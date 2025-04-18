@@ -1,0 +1,6 @@
+repo: 02467299402e641cb3f0bc0ae3be11430731ce56
+node: f1ff1a81be20d31608a4002546722d839f64b31e
+branch: default
+latesttag: build_CollidoscopeApp_v1.0
+latesttagdistance: 8
+changessincelatesttag: 8

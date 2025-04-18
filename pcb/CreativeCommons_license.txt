@@ -1,0 +1,7 @@
+Collidoscope pcb was designed by Ben Bengler
+Licensed under Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+
+Collidoscope pcb uses Tamir Emran's Teensy ++ pcb part based on an original design by Mark Gross.
+Licensed under Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+
+http://creativecommons.org/licenses/by-sa/3.0//
