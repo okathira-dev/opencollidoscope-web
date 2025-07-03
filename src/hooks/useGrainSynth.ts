@@ -6,18 +6,9 @@ import * as Tone from "tone";
  */
 function midiToRate(midi: number): number {
   const chromaticRatios = [
-    1,
-    1.0594630943591,
-    1.1224620483089,
-    1.1892071150019,
-    1.2599210498937,
-    1.3348398541685,
-    1.4142135623711,
-    1.4983070768743,
-    1.5874010519653,
-    1.6817928305039,
-    1.7817974362766,
-    1.8877486253586,
+    1, 1.0594630943591, 1.1224620483089, 1.1892071150019, 1.2599210498937,
+    1.3348398541685, 1.4142135623711, 1.4983070768743, 1.5874010519653,
+    1.6817928305039, 1.7817974362766, 1.8877486253586,
   ];
 
   const distance = midi - 60;
@@ -45,7 +36,9 @@ export interface GrainSynthControls {
 /**
  * Hook returning granular playback helpers with additional controls (selection, grainDuration, loop).
  */
-export function useGrainSynth(buffer: Tone.ToneAudioBuffer | null): GrainSynthControls {
+export function useGrainSynth(
+  buffer: Tone.ToneAudioBuffer | null,
+): GrainSynthControls {
   const [selection, setSelection] = useState<[number, number]>([0, 0]);
   const [grainDuration, setGrainDuration] = useState(0.2); // seconds
   const [loop, setLoop] = useState(false);

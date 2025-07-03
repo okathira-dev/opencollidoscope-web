@@ -1,4 +1,11 @@
-import { Box, Typography, Container, Slider, Switch, FormControlLabel } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Container,
+  Slider,
+  Switch,
+  FormControlLabel,
+} from "@mui/material";
 import { useState } from "react";
 
 import { PianoKeyboard } from "./components/PianoKeyboard.tsx";

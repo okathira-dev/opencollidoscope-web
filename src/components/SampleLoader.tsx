@@ -34,7 +34,15 @@ export function SampleLoader({ onLoaded }: Props) {
         }}
       />
       {loading && <span>Loading...</span>}
-      {fileUrl && !loading && <Button onClick={() => { void Tone.start(); }}>Start Audio</Button>}
+      {fileUrl && !loading && (
+        <Button
+          onClick={() => {
+            void Tone.start();
+          }}
+        >
+          Start Audio
+        </Button>
+      )}
     </Box>
   );
 }
