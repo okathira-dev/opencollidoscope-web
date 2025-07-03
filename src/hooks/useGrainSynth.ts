@@ -18,11 +18,36 @@ export function useGrainSynth(buffer: Tone.ToneAudioBuffer | null) {
         loop: false,
       }).toDestination();
 
-      // Pitch-shift by setting detune in cents (100 cents per semitone).
-      player.detune = (midi - 60) * 100;
+      // Calculate playback rate ratio relative to middle C (MIDI 60) as in original code.
+      const chromaticRatios = [
+        1,
+        1.0594630943591,
+        1.1224620483089,
+        1.1892071150019,
+        1.2599210498937,
+        1.3348398541685,
+        1.4142135623711,
+        1.4983070768743,
+        1.5874010519653,
+        1.6817928305039,
+        1.7817974362766,
+        1.8877486253586,
+      ];
 
-      // Slight randomization of grain position for more natural sound.
-      player.playbackRate = 1;
+      const distance = midi - 60;
+      let ratio = 1;
+      if (distance < 0) {
+        const diff = -distance;
+        const octaves = Math.floor(diff / 12);
+        const intervals = diff % 12;
+        ratio = Math.pow(0.5, octaves) / chromaticRatios[intervals]!;
+      } else {
+        const octaves = Math.floor(distance / 12);
+        const intervals = distance % 12;
+        ratio = Math.pow(2, octaves) * chromaticRatios[intervals]!;
+      }
+
+      player.playbackRate = ratio;
 
       // Start immediately and schedule stop after 1 second.
       player.start(0);
