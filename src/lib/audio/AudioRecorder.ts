@@ -3,7 +3,7 @@
  * Based on the original OpenCollidoscope recording functionality
  */
 
-import { RecordingState } from '../types/audio';
+import type { RecordingState } from "../../types/audio";
 
 export class AudioRecorder {
   private audioContext: AudioContext;
@@ -25,13 +25,13 @@ export class AudioRecorder {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-          sampleRate: 44100
-        }
+          sampleRate: 44100,
+        },
       });
 
       // Setup MediaRecorder
       this.mediaRecorder = new MediaRecorder(this.mediaStream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: "audio/webm;codecs=opus",
       });
 
       this.audioChunks = [];
@@ -45,20 +45,20 @@ export class AudioRecorder {
       };
 
       this.mediaRecorder.onstop = () => {
-        console.log('Recording stopped');
+        console.log("Recording stopped");
       };
 
       this.mediaRecorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
+        console.error("MediaRecorder error:", event);
       };
 
       // Start recording
       this.mediaRecorder.start(100); // Collect data every 100ms
       this.isRecording = true;
 
-      console.log('Recording started');
+      console.log("Recording started");
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      console.error("Failed to start recording:", error);
       throw error;
     }
   }
@@ -66,27 +66,28 @@ export class AudioRecorder {
   async stopRecording(): Promise<AudioBuffer> {
     return new Promise((resolve, reject) => {
       if (!this.mediaRecorder || !this.isRecording) {
-        reject(new Error('No active recording to stop'));
+        reject(new Error("No active recording to stop"));
         return;
       }
 
       this.mediaRecorder.onstop = async () => {
         try {
           // Create blob from recorded chunks
-          const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-          
+          const audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
+
           // Convert blob to ArrayBuffer
           const arrayBuffer = await audioBlob.arrayBuffer();
-          
+
           // Decode audio data
-          const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-          
+          const audioBuffer =
+            await this.audioContext.decodeAudioData(arrayBuffer);
+
           this.cleanup();
           resolve(audioBuffer);
         } catch (error) {
-          console.error('Failed to process recorded audio:', error);
+          console.error("Failed to process recorded audio:", error);
           this.cleanup();
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       };
 
@@ -97,23 +98,24 @@ export class AudioRecorder {
 
   private cleanup(): void {
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream.getTracks().forEach((track) => track.stop());
       this.mediaStream = null;
     }
-    
+
     this.mediaRecorder = null;
     this.audioChunks = [];
     this.isRecording = false;
   }
 
   getRecordingState(): RecordingState {
-    const duration = this.isRecording ? 
-      (Date.now() - this.recordingStartTime) / 1000 : 0;
-    
+    const duration = this.isRecording
+      ? (Date.now() - this.recordingStartTime) / 1000
+      : 0;
+
     return {
       isRecording: this.isRecording,
       duration,
-      bufferLength: this.audioChunks.length
+      bufferLength: this.audioChunks.length,
     };
   }
 

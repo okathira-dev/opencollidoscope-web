@@ -2,360 +2,371 @@
 
 /* Advanced Slider Styles */
 .control-group {
-    position: relative;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    transition: all 0.2s ease;
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  transition: all 0.2s ease;
 }
 
 .control-group:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 .control-group.active {
-    border-color: var(--primary-color);
-    background: rgba(37, 99, 235, 0.05);
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.05);
 }
 
 /* Enhanced Slider Track */
 .slider {
-    width: 100%;
-    margin: var(--spacing-md) 0;
-    position: relative;
+  width: 100%;
+  margin: var(--spacing-md) 0;
+  position: relative;
 }
 
 .slider::-webkit-slider-track {
-    width: 100%;
-    height: 8px;
-    cursor: pointer;
-    background: var(--bg-primary);
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
 }
 
 .slider::-moz-range-track {
-    width: 100%;
-    height: 8px;
-    cursor: pointer;
-    background: var(--bg-primary);
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
 }
 
 /* Slider Progress Fill */
 .slider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    height: 8px;
-    background: linear-gradient(90deg, var(--primary-color), var(--primary-hover));
-    border-radius: 4px;
-    transform: translateY(-50%);
-    pointer-events: none;
-    z-index: 1;
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color),
+    var(--primary-hover)
+  );
+  border-radius: 4px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Slider Value Tooltip */
 .control-group::after {
-    content: attr(data-value);
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
+  content: attr(data-value);
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
 }
 
 .control-group:hover::after {
-    opacity: 1;
+  opacity: 1;
 }
 
 /* Value Display Enhanced */
 .value-display {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    min-width: 60px;
-    font-family: 'Fira Code', monospace;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-width: 60px;
+  font-family: "Fira Code", monospace;
 }
 
 /* Parameter Labels */
 .control-group label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
 }
 
 .control-group label::after {
-    content: '';
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--secondary-color);
-    transition: background-color 0.2s ease;
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--secondary-color);
+  transition: background-color 0.2s ease;
 }
 
 .control-group.active label::after {
-    background: var(--primary-color);
+  background: var(--primary-color);
 }
 
 /* Selection Controls */
 .wave-controls {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    margin-top: var(--spacing-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
 }
 
 .selection-controls,
 .selection-size-controls {
-    background: var(--bg-primary);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-sm);
+  background: var(--bg-primary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
 }
 
 /* Enhanced Button States */
 .btn-small {
-    min-width: 80px;
-    position: relative;
-    overflow: hidden;
+  min-width: 80px;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-small::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transform: translate(-50%, -50%);
-    transition: width 0.3s, height 0.3s;
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.3s,
+    height 0.3s;
 }
 
 .btn-small:active::before {
-    width: 200px;
-    height: 200px;
+  width: 200px;
+  height: 200px;
 }
 
 /* Record Button Special Styling */
 #record-toggle.recording {
-    animation: recordingPulse 1s ease-in-out infinite;
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+  animation: recordingPulse 1s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
 }
 
 @keyframes recordingPulse {
-    0%, 100% {
-        background-color: var(--danger-color);
-        transform: scale(1);
-    }
-    50% {
-        background-color: #ef4444;
-        transform: scale(1.05);
-    }
+  0%,
+  100% {
+    background-color: var(--danger-color);
+    transform: scale(1);
+  }
+  50% {
+    background-color: #ef4444;
+    transform: scale(1.05);
+  }
 }
 
 /* Loop Button Active State */
 #loop-toggle.active {
-    background: var(--success-color);
-    box-shadow: 0 0 15px rgba(5, 150, 105, 0.4);
+  background: var(--success-color);
+  box-shadow: 0 0 15px rgba(5, 150, 105, 0.4);
 }
 
 #loop-toggle.active .icon {
-    animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Status Indicators */
 .status-section {
-    position: relative;
+  position: relative;
 }
 
 .status-info span {
-    position: relative;
-    padding-left: var(--spacing-lg);
+  position: relative;
+  padding-left: var(--spacing-lg);
 }
 
 .status-info span::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    transform: translateY(-50%);
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translateY(-50%);
 }
 
 #audio-status::before {
-    background: var(--secondary-color);
+  background: var(--secondary-color);
 }
 
 #audio-status.active::before {
-    background: var(--success-color);
-    animation: pulse 2s infinite;
+  background: var(--success-color);
+  animation: pulse 2s infinite;
 }
 
 #recording-status::before {
-    background: var(--secondary-color);
+  background: var(--secondary-color);
 }
 
 #recording-status.recording::before {
-    background: var(--danger-color);
-    animation: pulse 1s infinite;
+  background: var(--danger-color);
+  animation: pulse 1s infinite;
 }
 
 #grain-count::before {
-    background: var(--primary-color);
+  background: var(--primary-color);
 }
 
 /* Sample Item Enhanced */
 .sample-item {
-    position: relative;
-    transition: all 0.2s ease;
-    cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .sample-item:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-color);
 }
 
 .sample-item.active {
-    border-color: var(--success-color);
-    background: rgba(5, 150, 105, 0.1);
+  border-color: var(--success-color);
+  background: rgba(5, 150, 105, 0.1);
 }
 
 .sample-item::before {
-    content: '';
-    position: absolute;
-    top: var(--spacing-sm);
-    right: var(--spacing-sm);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--secondary-color);
-    transition: background-color 0.2s ease;
+  content: "";
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--secondary-color);
+  transition: background-color 0.2s ease;
 }
 
 .sample-item.active::before {
-    background: var(--success-color);
+  background: var(--success-color);
 }
 
 /* Waveform Display Enhancements */
 #wave-display {
-    position: relative;
-    cursor: crosshair;
+  position: relative;
+  cursor: crosshair;
 }
 
 #wave-display::after {
-    content: 'Click to set selection position';
-    position: absolute;
-    bottom: var(--spacing-sm);
-    left: var(--spacing-sm);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.75rem;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+  content: "Click to set selection position";
+  position: absolute;
+  bottom: var(--spacing-sm);
+  left: var(--spacing-sm);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 #wave-display:hover::after {
-    opacity: 1;
+  opacity: 1;
 }
 
 /* Oscilloscope Enhancements */
 #oscilloscope {
-    position: relative;
+  position: relative;
 }
 
 #oscilloscope::before {
-    content: 'Audio Output Visualization';
-    position: absolute;
-    top: var(--spacing-sm);
-    left: var(--spacing-sm);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.75rem;
-    pointer-events: none;
+  content: "Audio Output Visualization";
+  position: absolute;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  pointer-events: none;
 }
 
 /* Control Groups Animation */
 .granular-controls .control-group {
-    animation: fadeInUp 0.3s ease-out;
-    animation-fill-mode: both;
+  animation: fadeInUp 0.3s ease-out;
+  animation-fill-mode: both;
 }
 
 .granular-controls .control-group:nth-child(1) {
-    animation-delay: 0.1s;
+  animation-delay: 0.1s;
 }
 
 .granular-controls .control-group:nth-child(2) {
-    animation-delay: 0.2s;
+  animation-delay: 0.2s;
 }
 
 .granular-controls .control-group:nth-child(3) {
-    animation-delay: 0.3s;
+  animation-delay: 0.3s;
 }
 
 .granular-controls .control-group:nth-child(4) {
-    animation-delay: 0.4s;
+  animation-delay: 0.4s;
 }
 
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Enhanced Focus States */
 .slider:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 4px;
+  outline: 2px solid var(--primary-color);
+  outline-offset: 4px;
 }
 
 .control-group:focus-within {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 /* Accessibility Improvements */
 @media (prefers-reduced-motion: reduce) {
-    .control-group,
-    .btn-small::before,
-    #record-toggle.recording,
-    #loop-toggle.active .icon {
-        animation: none !important;
-    }
-    
-    .control-group:hover,
-    .sample-item:hover {
-        transform: none;
-    }
+  .control-group,
+  .btn-small::before,
+  #record-toggle.recording,
+  #loop-toggle.active .icon {
+    animation: none !important;
+  }
+
+  .control-group:hover,
+  .sample-item:hover {
+    transform: none;
+  }
 }

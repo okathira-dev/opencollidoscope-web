@@ -1,5 +1,5 @@
 // UI Types for OpenCollidoscope React
-import { ReactNode } from 'react';
+import type { ReactNode } from "react";
 export interface PianoKeyProps {
   note: number;
   isBlack: boolean;
@@ -10,28 +10,8 @@ export interface PianoKeyProps {
   onMouseLeave: (note: number) => void;
 }
 
-export interface PianoKeyboardProps {
-  startNote?: number;
-  endNote?: number;
-  onNotePress: (note: number, velocity: number) => void;
-  onNoteRelease: (note: number) => void;
-  pressedKeys?: Set<number>;
-}
-
-export interface WaveformDisplayProps {
-  buffer: AudioBuffer | null;
-  selection: { start: number; size: number };
-  onSelectionChange: (start: number, size: number) => void;
-  width?: number;
-  height?: number;
-}
-
-export interface OscilloscopeProps {
-  analyserNode: AnalyserNode | null;
-  width?: number;
-  height?: number;
-  glowEffect?: boolean;
-}
+// Note: PianoKeyboardProps, WaveformDisplayProps, and OscilloscopeProps
+// are now defined in types/audio.ts to avoid duplication
 
 export interface ControlSliderProps {
   id: string;
@@ -115,7 +95,7 @@ export interface AppState {
   error: string | null;
 }
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = "dark" | "light";
 
 export interface Theme {
   mode: ThemeMode;

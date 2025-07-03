@@ -20,7 +20,7 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   background-color: var(--background-color);
   color: var(--text-color);
   overflow-x: hidden;
@@ -43,7 +43,11 @@ body {
 .app-header h1 {
   margin: 0 0 0.5rem 0;
   font-size: 3rem;
-  background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    45deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -57,7 +61,11 @@ body {
 }
 
 .start-audio-btn {
-  background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    45deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   border: none;
   color: var(--background-color);
   padding: 1rem 2rem;
@@ -144,8 +152,13 @@ section {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* Granular Controls */
@@ -393,32 +406,32 @@ input[type="file"]:hover {
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .app-header h1 {
     font-size: 2rem;
   }
-  
+
   .granular-controls {
     grid-template-columns: 1fr;
   }
-  
+
   .audio-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .piano-key.white {
     width: 30px;
     height: 100px;
   }
-  
+
   .piano-key.black {
     width: 20px;
     height: 65px;
     margin-left: -10px;
     margin-right: -10px;
   }
-  
+
   .status-info {
     flex-direction: column;
     gap: 0.5rem;

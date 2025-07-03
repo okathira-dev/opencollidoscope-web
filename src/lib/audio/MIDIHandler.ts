@@ -3,15 +3,25 @@
  * Based on the original OpenCollidoscope MIDI functionality
  */
 
-import { MIDIEvent, MIDI_CC } from '../types/audio';
+import { MIDI_CC } from "../../types/audio";
 
-type MIDIEventCallback = (note: number, velocity: number, channel: number) => void;
-type ControlChangeCallback = (controller: number, value: number, channel: number) => void;
+// Remove unused MIDIEvent import to fix ESLint error
+
+type MIDIEventCallback = (
+  note: number,
+  velocity: number,
+  channel: number,
+) => void;
+type ControlChangeCallback = (
+  controller: number,
+  value: number,
+  channel: number,
+) => void;
 type PitchBendCallback = (value: number, channel: number) => void;
 
 export class MIDIHandler {
-  private midiAccess: WebMidi.MIDIAccess | null = null;
-  private connectedInputs: Set<WebMidi.MIDIInput> = new Set();
+  private midiAccess: MIDIAccess | null = null;
+  private connectedInputs: Set<MIDIInput> = new Set();
 
   // Event callbacks
   public onNoteOn: MIDIEventCallback | null = null;
@@ -20,27 +30,27 @@ export class MIDIHandler {
   public onPitchBend: PitchBendCallback | null = null;
 
   constructor() {
-    this.initializeMIDI();
+    void this.initializeMIDI();
   }
 
   private async initializeMIDI(): Promise<void> {
     try {
       if (!navigator.requestMIDIAccess) {
-        console.warn('Web MIDI API not supported');
+        console.warn("Web MIDI API not supported");
         return;
       }
 
       this.midiAccess = await navigator.requestMIDIAccess();
       this.setupMIDIInputs();
-      
+
       // Listen for device connection changes
       this.midiAccess.onstatechange = () => {
         this.setupMIDIInputs();
       };
 
-      console.log('MIDI system initialized');
+      console.log("MIDI system initialized");
     } catch (error) {
-      console.error('Failed to initialize MIDI:', error);
+      console.error("Failed to initialize MIDI:", error);
     }
   }
 
@@ -52,7 +62,7 @@ export class MIDIHandler {
 
     // Connect to all available inputs
     for (const input of this.midiAccess.inputs.values()) {
-      if (input.state === 'connected') {
+      if (input.state === "connected") {
         input.onmidimessage = (message) => this.handleMIDIMessage(message);
         this.connectedInputs.add(input);
         console.log(`Connected to MIDI input: ${input.name}`);
@@ -60,10 +70,16 @@ export class MIDIHandler {
     }
   }
 
-  private handleMIDIMessage(message: WebMidi.MIDIMessageEvent): void {
-    const [status, data1, data2] = message.data;
-    const messageType = status & 0xF0;
-    const channel = status & 0x0F;
+  private handleMIDIMessage(message: MIDIMessageEvent): void {
+    if (!message.data || message.data.length < 1) return;
+
+    const data = Array.from(message.data);
+    const [status, data1 = 0, data2 = 0] = data;
+
+    if (status === undefined) return;
+
+    const messageType = status & 0xf0;
+    const channel = status & 0x0f;
 
     switch (messageType) {
       case 0x80: // Note Off
@@ -77,10 +93,10 @@ export class MIDIHandler {
           this.handleNoteOn(data1, data2, channel);
         }
         break;
-      case 0xB0: // Control Change
+      case 0xb0: // Control Change
         this.handleControlChange(data1, data2, channel);
         break;
-      case 0xE0: // Pitch Bend
+      case 0xe0: // Pitch Bend
         this.handlePitchBend(data1, data2, channel);
         break;
     }
@@ -96,9 +112,13 @@ export class MIDIHandler {
     this.onNoteOff?.(note, normalizedVelocity, channel);
   }
 
-  private handleControlChange(controller: number, value: number, channel: number): void {
+  private handleControlChange(
+    controller: number,
+    value: number,
+    channel: number,
+  ): void {
     this.onControlChange?.(controller, value, channel);
-    
+
     // Log specific OpenCollidoscope control changes
     switch (controller) {
       case MIDI_CC.SELECTION_SIZE:
@@ -108,7 +128,7 @@ export class MIDIHandler {
         console.log(`MIDI CC${controller}: Grain Duration = ${value}`);
         break;
       case MIDI_CC.LOOP_TOGGLE:
-        console.log(`MIDI CC${controller}: Loop = ${value > 0 ? 'ON' : 'OFF'}`);
+        console.log(`MIDI CC${controller}: Loop = ${value > 0 ? "ON" : "OFF"}`);
         break;
       case MIDI_CC.RECORD_TRIGGER:
         console.log(`MIDI CC${controller}: Record Trigger = ${value}`);
@@ -134,32 +154,36 @@ export class MIDIHandler {
     this.sendMIDIMessage([0x80 | channel, note, Math.floor(velocity * 127)]);
   }
 
-  sendControlChange(controller: number, value: number, channel: number = 0): void {
-    this.sendMIDIMessage([0xB0 | channel, controller, value]);
+  sendControlChange(
+    controller: number,
+    value: number,
+    channel: number = 0,
+  ): void {
+    this.sendMIDIMessage([0xb0 | channel, controller, value]);
   }
 
   private sendMIDIMessage(data: number[]): void {
     if (!this.midiAccess) return;
 
     for (const output of this.midiAccess.outputs.values()) {
-      if (output.state === 'connected') {
+      if (output.state === "connected") {
         output.send(data);
       }
     }
   }
 
-  getConnectedDevices(): { inputs: string[], outputs: string[] } {
+  getConnectedDevices(): { inputs: string[]; outputs: string[] } {
     if (!this.midiAccess) {
       return { inputs: [], outputs: [] };
     }
 
     const inputs = Array.from(this.midiAccess.inputs.values())
-      .filter(input => input.state === 'connected')
-      .map(input => input.name || 'Unknown Input');
+      .filter((input) => input.state === "connected")
+      .map((input) => input.name || "Unknown Input");
 
     const outputs = Array.from(this.midiAccess.outputs.values())
-      .filter(output => output.state === 'connected')
-      .map(output => output.name || 'Unknown Output');
+      .filter((output) => output.state === "connected")
+      .map((output) => output.name || "Unknown Output");
 
     return { inputs, outputs };
   }

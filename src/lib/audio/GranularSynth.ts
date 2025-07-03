@@ -3,7 +3,9 @@
  * Based on the original PGranular implementation from OpenCollidoscope
  */
 
-import { AudioGrain, AUDIO_CONSTANTS } from '../types/audio';
+import { AUDIO_CONSTANTS } from "../../types/audio";
+
+// Remove unused AudioGrain import to fix ESLint error
 
 interface GrainData {
   id: number;
@@ -22,7 +24,7 @@ export class GranularSynth {
   private output: GainNode;
   private filterNode: BiquadFilterNode;
   private masterGain: GainNode;
-  
+
   // Granular parameters (matching original)
   private maxGrains: number = AUDIO_CONSTANTS.MAX_GRAINS;
   private minGrainDuration: number = 0.04; // 40ms minimum (640 samples at 16kHz)
@@ -30,20 +32,21 @@ export class GranularSynth {
   private selectionStart: number = 0;
   private selectionSize: number = 64;
   private attenuation: number = 0.25; // -12dB default attenuation
-  
+
   // Audio buffer and state
   private sourceBuffer: AudioBuffer | null = null;
   private grains: GrainData[] = [];
   private activeGrains: number = 0;
   private isLooping: boolean = false;
   private isNoteOn: boolean = false;
-  
+
   // ASR Envelope parameters (matching original)
   private attackTime: number = AUDIO_CONSTANTS.ATTACK_TIME;
   private releaseTime: number = AUDIO_CONSTANTS.RELEASE_TIME;
-  
+
   // Note tracking for polyphony
-  private activeNotes: Map<number, any> = new Map();
+  private activeNotes: Map<number, { rate: number; velocity: number }> =
+    new Map();
   private nextGrainId: number = 0;
 
   constructor(audioContext: AudioContext) {
@@ -51,20 +54,20 @@ export class GranularSynth {
     this.output = audioContext.createGain();
     this.filterNode = audioContext.createBiquadFilter();
     this.masterGain = audioContext.createGain();
-    
+
     this.setupAudioGraph();
     this.initializeGrains();
   }
 
   private setupAudioGraph(): void {
     // Filter setup (low pass)
-    this.filterNode.type = 'lowpass';
+    this.filterNode.type = "lowpass";
     this.filterNode.frequency.value = 22050; // Max frequency
     this.filterNode.Q.value = 0.707;
-    
+
     // Master gain setup
     this.masterGain.gain.value = this.attenuation;
-    
+
     // Audio routing: grains -> filter -> master gain -> output
     this.filterNode.connect(this.masterGain);
     this.masterGain.connect(this.output);
@@ -82,7 +85,7 @@ export class GranularSynth {
         startTime: 0,
         duration: 0,
         rate: 1.0,
-        phase: 0
+        phase: 0,
       });
     }
   }
@@ -90,7 +93,7 @@ export class GranularSynth {
   setBuffer(audioBuffer: AudioBuffer): void {
     this.sourceBuffer = audioBuffer;
     this.stopAllGrains();
-    console.log('Buffer set:', audioBuffer.duration, 'seconds');
+    console.log("Buffer set:", audioBuffer.duration, "seconds");
   }
 
   setMasterVolume(volume: number): void {
@@ -106,9 +109,10 @@ export class GranularSynth {
     const minCutoff = AUDIO_CONSTANTS.FILTER_MIN_FREQ;
     const maxCutoff = AUDIO_CONSTANTS.FILTER_MAX_FREQ;
     const normalizedValue = midiValue / 127;
-    
+
     // Exponential scaling for more musical control
-    const frequency = minCutoff * Math.pow(maxCutoff / minCutoff, normalizedValue);
+    const frequency =
+      minCutoff * Math.pow(maxCutoff / minCutoff, normalizedValue);
     this.filterNode.frequency.value = frequency;
   }
 
@@ -119,9 +123,9 @@ export class GranularSynth {
 
   noteOn(rate: number = 1.0, velocity: number = 0.8): void {
     if (!this.sourceBuffer) return;
-    
+
     this.isNoteOn = true;
-    
+
     if (this.isLooping) {
       this.startLoopGrains(rate, velocity);
     } else {
@@ -148,30 +152,34 @@ export class GranularSynth {
 
   private triggerGrain(rate: number = 1.0, velocity: number = 0.8): void {
     if (!this.sourceBuffer) return;
-    
+
     const grain = this.getNextAvailableGrain();
     if (!grain) return;
-    
+
     this.setupGrain(grain, rate, velocity, false);
   }
 
   private startLoopGrains(rate: number = 1.0, velocity: number = 0.8): void {
     if (!this.sourceBuffer || !this.isLooping) return;
-    
+
     // Calculate trigger interval based on selection size
     const selectionDuration = this.getSelectionDuration();
     const triggerInterval = selectionDuration / this.grainDurationCoeff;
-    
+
     // Schedule first grain immediately
     this.triggerGrain(rate, velocity);
-    
+
     // Schedule subsequent grains
     this.scheduleLoopGrains(rate, velocity, triggerInterval);
   }
 
-  private scheduleLoopGrains(rate: number, velocity: number, interval: number): void {
+  private scheduleLoopGrains(
+    rate: number,
+    velocity: number,
+    interval: number,
+  ): void {
     if (!this.isLooping || !this.isNoteOn) return;
-    
+
     setTimeout(() => {
       if (this.isLooping && this.isNoteOn) {
         this.triggerGrain(rate, velocity);
@@ -194,65 +202,78 @@ export class GranularSynth {
     return null; // No available grains
   }
 
-  private setupGrain(grain: GrainData, rate: number, velocity: number, isLoop: boolean = false): void {
+  private setupGrain(
+    grain: GrainData,
+    rate: number,
+    velocity: number,
+    _isLoop: boolean = false,
+  ): void {
     const currentTime = this.audioContext.currentTime;
-    
+
     // Calculate grain parameters
     const selectionDuration = this.getSelectionDuration();
-    const grainDuration = Math.max(this.minGrainDuration, 
-      selectionDuration * this.grainDurationCoeff);
-    
+    const grainDuration = Math.max(
+      this.minGrainDuration,
+      selectionDuration * this.grainDurationCoeff,
+    );
+
     // Create audio nodes for this grain
     grain.source = this.audioContext.createBufferSource();
     grain.gain = this.audioContext.createGain();
     grain.envelope = this.audioContext.createGain();
-    
+
     // Set buffer and playback rate
     grain.source.buffer = this.sourceBuffer;
     grain.source.playbackRate.value = rate;
-    
+
     // Calculate random offset (matching original behavior)
     const randomOffset = Math.random() * (this.audioContext.sampleRate / 100);
-    const startOffset = this.getSelectionStartTime() + (randomOffset / this.audioContext.sampleRate);
-    
+    const startOffset =
+      this.getSelectionStartTime() +
+      randomOffset / this.audioContext.sampleRate;
+
     // Connect audio graph for this grain
     grain.source.connect(grain.gain);
     grain.gain.connect(grain.envelope);
     grain.envelope.connect(this.filterNode);
-    
+
     // Setup gain (velocity and attenuation)
     grain.gain.gain.value = velocity * this.attenuation;
-    
+
     // Setup Hann window envelope (matching original raised cosine bell)
     this.setupHannEnvelope(grain.envelope, currentTime, grainDuration);
-    
+
     // Setup grain properties
     grain.active = true;
     grain.startTime = currentTime;
     grain.duration = grainDuration;
     grain.rate = rate;
     grain.id = this.nextGrainId++;
-    
+
     // Start playback
     grain.source.start(currentTime, startOffset, grainDuration);
-    
+
     // Schedule cleanup
-    grain.source.addEventListener('ended', () => {
+    grain.source.addEventListener("ended", () => {
       this.cleanupGrain(grain);
     });
-    
+
     // Stop after duration
     grain.source.stop(currentTime + grainDuration);
-    
+
     this.activeGrains++;
   }
 
-  private setupHannEnvelope(envelopeNode: GainNode, startTime: number, duration: number): void {
+  private setupHannEnvelope(
+    envelopeNode: GainNode,
+    startTime: number,
+    duration: number,
+  ): void {
     const envelope = envelopeNode.gain;
-    
+
     // Hann window: 0.5 * (1 - cos(2π * t / duration))
     // Implemented as attack-sustain-release for simplicity
-    
+
     envelope.setValueAtTime(0, startTime);
     envelope.linearRampToValueAtTime(1, startTime + this.attackTime);
     envelope.setValueAtTime(1, startTime + duration - this.releaseTime);
@@ -272,7 +293,7 @@ export class GranularSynth {
       grain.envelope.disconnect();
       grain.envelope = null;
     }
-    
+
     grain.active = false;
     this.activeGrains = Math.max(0, this.activeGrains - 1);
   }
@@ -289,18 +310,23 @@ export class GranularSynth {
 
   private getSelectionStartTime(): number {
     if (!this.sourceBuffer) return 0;
-    
+
     // Convert chunk position to time
-    const chunksPerSecond = AUDIO_CONSTANTS.DEFAULT_CHUNKS / this.sourceBuffer.duration;
+    const chunksPerSecond =
+      AUDIO_CONSTANTS.DEFAULT_CHUNKS / this.sourceBuffer.duration;
     return this.selectionStart / chunksPerSecond;
   }
 
   private getSelectionDuration(): number {
     if (!this.sourceBuffer) return this.minGrainDuration;
-    
+
     // Convert chunk size to duration
-    const chunksPerSecond = AUDIO_CONSTANTS.DEFAULT_CHUNKS / this.sourceBuffer.duration;
-    return Math.max(this.minGrainDuration, this.selectionSize / chunksPerSecond);
+    const chunksPerSecond =
+      AUDIO_CONSTANTS.DEFAULT_CHUNKS / this.sourceBuffer.duration;
+    return Math.max(
+      this.minGrainDuration,
+      this.selectionSize / chunksPerSecond,
+    );
   }
 
   getActiveGrainCount(): number {
@@ -318,7 +344,7 @@ export class GranularSynth {
   destroy(): void {
     this.stopAllGrains();
     this.disconnect();
-    
+
     this.filterNode?.disconnect();
     this.masterGain?.disconnect();
     this.output?.disconnect();
@@ -331,13 +357,13 @@ export class ASREnvelope {
   private attackTime: number;
   private sustainLevel: number;
   private releaseTime: number;
-  private state: 'idle' | 'attack' | 'sustain' | 'release' = 'idle';
+  private state: "idle" | "attack" | "sustain" | "release" = "idle";
 
   constructor(
-    audioContext: AudioContext, 
-    attackTime: number = AUDIO_CONSTANTS.ATTACK_TIME, 
-    sustainLevel: number = 1.0, 
-    releaseTime: number = AUDIO_CONSTANTS.RELEASE_TIME
+    audioContext: AudioContext,
+    attackTime: number = AUDIO_CONSTANTS.ATTACK_TIME,
+    sustainLevel: number = 1.0,
+    releaseTime: number = AUDIO_CONSTANTS.RELEASE_TIME,
   ) {
     this.audioContext = audioContext;
     this.attackTime = attackTime;
@@ -347,10 +373,13 @@ export class ASREnvelope {
 
   trigger(gainNode: GainNode, startTime: number, duration: number): void {
     const gain = gainNode.gain;
-    
+
     gain.setValueAtTime(0, startTime);
-    gain.linearRampToValueAtTime(this.sustainLevel, startTime + this.attackTime);
-    
+    gain.linearRampToValueAtTime(
+      this.sustainLevel,
+      startTime + this.attackTime,
+    );
+
     const releaseStartTime = startTime + duration - this.releaseTime;
     gain.setValueAtTime(this.sustainLevel, releaseStartTime);
     gain.linearRampToValueAtTime(0, startTime + duration);
