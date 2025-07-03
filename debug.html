@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - OpenCollidoscope Web</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1f2e;
+            color: #f8fafc;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .debug-section {
+            background: #2d3748;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        #console-output {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            font-family: monospace;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenCollidoscope Web - Debug Console</h1>
+    
+    <div class="debug-section">
+        <h2>Module Loading Test</h2>
+        <p>Testing if ES6 modules can be loaded...</p>
+        <div id="module-status">⏳ Loading...</div>
+    </div>
+
+    <div class="debug-section">
+        <h2>Browser Compatibility</h2>
+        <p>Web Audio API: <span id="webaudio-status">❓</span></p>
+        <p>Web MIDI API: <span id="webmidi-status">❓</span></p>
+        <p>getUserMedia: <span id="getusermedia-status">❓</span></p>
+        <p>ES6 Modules: <span id="es6-status">❓</span></p>
+    </div>
+
+    <div class="debug-section">
+        <h2>Manual Tests</h2>
+        <button onclick="testAudioContext()">Test AudioContext</button>
+        <button onclick="testMicrophone()">Test Microphone</button>
+        <button onclick="testMIDI()">Test MIDI</button>
+        <button onclick="clearConsole()">Clear Console</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>Console Output</h2>
+        <div id="console-output"></div>
+    </div>
+
+    <script type="module">
+        // Console logging function
+        function log(message, type = 'info') {
+            const output = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeIcon = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            output.textContent += `[${timestamp}] ${typeIcon} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+
+        // Global functions for button tests
+        window.log = log;
+        window.testAudioContext = function() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                log(`✅ AudioContext created successfully. Sample rate: ${audioContext.sampleRate}Hz`, 'info');
+                log(`   State: ${audioContext.state}`, 'info');
+            } catch (error) {
+                log(`❌ AudioContext failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.testMicrophone = async function() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('✅ Microphone access granted', 'info');
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                log(`❌ Microphone access failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.testMIDI = async function() {
+            try {
+                if (navigator.requestMIDIAccess) {
+                    const midiAccess = await navigator.requestMIDIAccess();
+                    log('✅ MIDI access granted', 'info');
+                    log(`   Inputs: ${midiAccess.inputs.size}, Outputs: ${midiAccess.outputs.size}`, 'info');
+                } else {
+                    log('❌ Web MIDI API not supported', 'warning');
+                }
+            } catch (error) {
+                log(`❌ MIDI access failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.clearConsole = function() {
+            document.getElementById('console-output').textContent = '';
+        };
+
+        // Check browser compatibility
+        function checkCompatibility() {
+            // Web Audio API
+            const webAudioStatus = document.getElementById('webaudio-status');
+            if (window.AudioContext || window.webkitAudioContext) {
+                webAudioStatus.textContent = '✅ Supported';
+                webAudioStatus.className = 'success';
+            } else {
+                webAudioStatus.textContent = '❌ Not Supported';
+                webAudioStatus.className = 'error';
+            }
+
+            // Web MIDI API
+            const webMidiStatus = document.getElementById('webmidi-status');
+            if (navigator.requestMIDIAccess) {
+                webMidiStatus.textContent = '✅ Supported';
+                webMidiStatus.className = 'success';
+            } else {
+                webMidiStatus.textContent = '❌ Not Supported';
+                webMidiStatus.className = 'warning';
+            }
+
+            // getUserMedia
+            const getUserMediaStatus = document.getElementById('getusermedia-status');
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                getUserMediaStatus.textContent = '✅ Supported';
+                getUserMediaStatus.className = 'success';
+            } else {
+                getUserMediaStatus.textContent = '❌ Not Supported';
+                getUserMediaStatus.className = 'error';
+            }
+
+            // ES6 Modules
+            const es6Status = document.getElementById('es6-status');
+            es6Status.textContent = '✅ Supported';
+            es6Status.className = 'success';
+        }
+
+        // Test module loading
+        async function testModuleLoading() {
+            const moduleStatus = document.getElementById('module-status');
+            
+            try {
+                log('🔄 Testing module imports...', 'info');
+                
+                // Test import of main modules
+                const { GranularSynth } = await import('./src/audio/GranularSynth.js');
+                log('✅ GranularSynth module loaded', 'info');
+                
+                const { PianoKeyboard } = await import('./src/ui/PianoKeyboard.js');
+                log('✅ PianoKeyboard module loaded', 'info');
+                
+                const { WaveformDisplay } = await import('./src/ui/WaveformDisplay.js');
+                log('✅ WaveformDisplay module loaded', 'info');
+                
+                const { Oscilloscope } = await import('./src/ui/Oscilloscope.js');
+                log('✅ Oscilloscope module loaded', 'info');
+                
+                const { AudioRecorder } = await import('./src/audio/AudioRecorder.js');
+                log('✅ AudioRecorder module loaded', 'info');
+                
+                const { MIDIHandler } = await import('./src/audio/MIDIHandler.js');
+                log('✅ MIDIHandler module loaded', 'info');
+                
+                moduleStatus.innerHTML = '<span class="success">✅ All modules loaded successfully</span>';
+                log('🎉 All modules loaded successfully!', 'info');
+                
+            } catch (error) {
+                moduleStatus.innerHTML = `<span class="error">❌ Module loading failed: ${error.message}</span>`;
+                log(`❌ Module loading failed: ${error.message}`, 'error');
+                log(`   Stack: ${error.stack}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('🚀 Debug console initialized', 'info');
+        checkCompatibility();
+        testModuleLoading();
+
+    </script>
+</body>
+</html>

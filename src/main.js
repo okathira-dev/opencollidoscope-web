@@ -53,7 +53,7 @@ class OpenCollidoscopeApp {
         this.pianoKeyboard.onNoteRelease = (midiNote) => this.handleNoteOff(midiNote);
         
         this.waveformDisplay = new WaveformDisplay(document.getElementById('wave-display'));
-        this.waveformDisplay.onSelectionChange = (start, size) => this.updateSelection(start, size);
+        this.waveformDisplay.onSelectionChange = (start, size) => this.handleSelectionChange(start, size);
         
         this.oscilloscope = new Oscilloscope(document.getElementById('oscilloscope'));
         
@@ -139,7 +139,7 @@ class OpenCollidoscopeApp {
             }
             
             if (this.waveformDisplay && this.recordedBuffer) {
-                this.waveformDisplay.drawSelection(this.selectionStart, this.selectionSize);
+                this.waveformDisplay.setSelection(this.selectionStart, this.selectionSize);
             }
             
             requestAnimationFrame(animate);
@@ -468,6 +468,12 @@ class OpenCollidoscopeApp {
                 this.granularSynth.loopOff();
             }
         }
+    }
+
+    handleSelectionChange(start, size) {
+        this.selectionStart = start;
+        this.selectionSize = size;
+        this.updateSelection();
     }
 
     updateSelection() {
