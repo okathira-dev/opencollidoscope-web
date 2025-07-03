@@ -1,11 +1,12 @@
-import { Box, Typography, Container } from "@mui/material";
+import { Box, Typography, Container, Slider, Switch, FormControlLabel } from "@mui/material";
 import { useState } from "react";
-import * as Tone from "tone";
-import { SampleLoader } from "./components/SampleLoader.tsx";
+
 import { PianoKeyboard } from "./components/PianoKeyboard.tsx";
+import { SampleLoader } from "./components/SampleLoader.tsx";
 import { Waveform } from "./components/Waveform.tsx";
 import { useGrainSynth } from "./hooks/useGrainSynth.ts";
-import { Slider, Switch, FormControlLabel } from "@mui/material";
+
+import type * as Tone from "tone";
 
 export function App() {
   const [buffer, setBuffer] = useState<Tone.ToneAudioBuffer | null>(null);

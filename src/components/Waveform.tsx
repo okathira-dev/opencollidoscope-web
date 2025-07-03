@@ -26,8 +26,8 @@ export function Waveform({ buffer, selection }: Props) {
     ctx.beginPath();
     ctx.moveTo(0, amp);
     for (let i = 0; i < canvas.width; i++) {
-      const min = Math.min(...data.subarray(i * step, (i + 1) * step));
-      const max = Math.max(...data.subarray(i * step, (i + 1) * step));
+      const segment = data.subarray(i * step, (i + 1) * step);
+      const min = Math.min(...segment);
       ctx.lineTo(i, (1 + min) * amp);
     }
     ctx.strokeStyle = "#1976d2";

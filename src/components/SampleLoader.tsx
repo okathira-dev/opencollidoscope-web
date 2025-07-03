@@ -1,6 +1,8 @@
 import { Box, Button, Input } from "@mui/material";
-import React, { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import * as Tone from "tone";
+
+import type { ChangeEvent } from "react";
 
 interface Props {
   onLoaded: (buffer: Tone.ToneAudioBuffer) => void;
@@ -32,7 +34,7 @@ export function SampleLoader({ onLoaded }: Props) {
         }}
       />
       {loading && <span>Loading...</span>}
-      {fileUrl && !loading && <Button onClick={() => Tone.start()}>Start Audio</Button>}
+      {fileUrl && !loading && <Button onClick={() => { void Tone.start(); }}>Start Audio</Button>}
     </Box>
   );
 }
