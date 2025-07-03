@@ -1,0 +1,466 @@
+/* OpenCollidoscope React App Styles */
+
+:root {
+  --primary-color: #00ff88;
+  --secondary-color: #88ff00;
+  --background-color: #0a0a0a;
+  --surface-color: #1a1a1a;
+  --text-color: #ffffff;
+  --text-secondary: #cccccc;
+  --accent-color: #ffff00;
+  --warning-color: #ff8800;
+  --error-color: #ff4444;
+  --success-color: #00ff88;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  overflow-x: hidden;
+}
+
+.opencollidoscope-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.app-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  padding: 2rem;
+  text-align: center;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.app-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 3rem;
+  background: linear-gradient(
+    45deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.app-header p {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+.start-audio-btn {
+  background: linear-gradient(
+    45deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
+  border: none;
+  color: var(--background-color);
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.start-audio-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 255, 136, 0.3);
+}
+
+.error-message {
+  background: var(--error-color);
+  color: white;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+/* Main Content */
+.app-content {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Control Sections */
+section {
+  background: var(--surface-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid #333;
+}
+
+/* Audio Controls */
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.control-btn {
+  background: #333;
+  border: 2px solid var(--primary-color);
+  color: var(--text-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-btn:hover {
+  background: var(--primary-color);
+  color: var(--background-color);
+  transform: translateY(-1px);
+}
+
+.control-btn.active {
+  background: var(--primary-color);
+  color: var(--background-color);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.control-btn.recording {
+  border-color: var(--error-color);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Granular Controls */
+.granular-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: bold;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  outline: none;
+  border: 1px solid #555;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.control-group input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* File input styling */
+input[type="file"] {
+  background: #333;
+  border: 2px solid #555;
+  color: var(--text-color);
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="file"]:hover {
+  border-color: var(--primary-color);
+}
+
+/* Waveform Section */
+.waveform-section {
+  min-height: 250px;
+}
+
+.waveform-display-container {
+  width: 100%;
+}
+
+.waveform-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.waveform-canvas {
+  width: 100%;
+  height: 200px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #0a0a0a;
+}
+
+/* Oscilloscope Section */
+.oscilloscope-section {
+  display: flex;
+  justify-content: center;
+}
+
+.oscilloscope-container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.oscilloscope-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.oscilloscope-header h3 {
+  margin: 0;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-indicator {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.oscilloscope-canvas {
+  width: 100%;
+  height: 200px;
+  display: block;
+}
+
+/* Piano Keyboard Section */
+.keyboard-section {
+  padding: 1rem;
+}
+
+.piano-keyboard-container {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.piano-keyboard {
+  display: flex;
+  position: relative;
+  height: 120px;
+  user-select: none;
+}
+
+.piano-key {
+  position: relative;
+  border: none;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.piano-key.white {
+  width: 40px;
+  height: 120px;
+  background: linear-gradient(to bottom, #f8f8f8, #e0e0e0);
+  border: 1px solid #ccc;
+  color: #333;
+  z-index: 1;
+}
+
+.piano-key.black {
+  width: 28px;
+  height: 80px;
+  background: linear-gradient(to bottom, #2a2a2a, #000);
+  color: #fff;
+  margin-left: -14px;
+  margin-right: -14px;
+  z-index: 2;
+  border-radius: 0 0 4px 4px;
+}
+
+.piano-key:hover {
+  transform: translateY(2px);
+}
+
+.piano-key.pressed,
+.piano-key.playing {
+  transform: translateY(4px);
+}
+
+.piano-key.white.pressed {
+  background: linear-gradient(to bottom, var(--primary-color), #00cc66);
+  color: var(--background-color);
+}
+
+.piano-key.black.pressed {
+  background: linear-gradient(to bottom, var(--primary-color), #00aa55);
+}
+
+.key-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.midi-note {
+  font-size: 0.6rem;
+  opacity: 0.7;
+}
+
+.note-name {
+  font-size: 0.6rem;
+  opacity: 0.8;
+}
+
+/* Status Section */
+.status-section {
+  background: #111;
+  border: 1px solid #333;
+}
+
+.status-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.status-info span {
+  color: var(--text-secondary);
+}
+
+.status-info span:before {
+  content: "● ";
+  color: var(--primary-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .app-header h1 {
+    font-size: 2rem;
+  }
+
+  .granular-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .audio-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .piano-key.white {
+    width: 30px;
+    height: 100px;
+  }
+
+  .piano-key.black {
+    width: 20px;
+    height: 65px;
+    margin-left: -10px;
+    margin-right: -10px;
+  }
+
+  .status-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+.piano-key:focus,
+.control-btn:focus,
+input:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #00ff00;
+    --background-color: #000000;
+    --text-color: #ffffff;
+    --surface-color: #333333;
+  }
+}
