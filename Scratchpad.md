@@ -50,6 +50,17 @@ opencollidoscope Web版移植設計書作成
   - 独立したコンポーネント構造の解析
   - 段階的実装戦略の策定（Phase 1: 単一音声処理システム、Phase 2: デュアル音声処理システム）
   - 設計書・仕様書の更新
+- [X] 型安全なlocalStorage読み込みの実装
+  - Zodライブラリの調査・選択
+  - `JSON.parse(configJson) as Partial<CollidoscopeConfig>`の問題点特定
+  - Zodスキーマによるランタイム型検証の実装
+  - Result型パターンの採用
+  - ベストプラクティスの文書化
+- [X] 設計書コードの位置づけ明確化
+  - 設計書冒頭に注意書きを追加
+  - 擬似コード的な性質を明確化
+  - 実装時の再設計ポイントを文書化
+  - Lessons.mdに実装時の注意点を記録
 
 ## オリジナルCollidoscope分析結果
 

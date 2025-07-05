@@ -1,5 +1,18 @@
 # Collidoscope Web版 設計書
 
+## ⚠️ 重要な注意事項
+
+**コード例について**：本設計書に記載されているTypeScriptコードは、アーキテクチャ設計の概念と実装方向性を示すための**擬似コード的な説明**です。実際の実装時には以下の点を考慮して再設計してください：
+
+- **依存関係の詳細確認**：ライブラリのバージョンやAPIの最新仕様
+- **型定義の精密化**：実際の使用場面での型安全性の詳細検証  
+- **エラーハンドリングの拡張**：プロダクション環境での包括的なエラー処理
+- **パフォーマンス最適化**：実際の使用パターンでの性能測定と最適化
+- **テスタビリティ**：単体テスト・統合テストに適した構造への調整
+- **ブラウザ互換性**：対象ブラウザでの実際の動作確認
+
+設計書のコードは**設計思想の伝達**が目的であり、そのままコピー＆ペーストして使用することは推奨されません。
+
 ## 概要
 
 本設計書は、オリジナルのCollidoscope（C++/Cinder）をWeb技術（React + TypeScript + Web Audio API）で再実装するためのアーキテクチャと設計を定義します。
@@ -677,6 +690,67 @@ export interface CollidoscopeConfig {
 }
 
 // デフォルト設定
+// Zodスキーマ定義
+import { z } from 'zod';
+
+const CollidoscopeConfigSchema = z.object({
+  audio: z.object({
+    sampleRate: z.number().positive().default(44100),
+    chunkCount: z.number().int().min(1).max(1000).default(150),
+    waveLength: z.number().positive().min(0.1).max(10).default(2.0),
+    maxSelectionSize: z.number().int().min(1).max(37).default(37),
+    attenuation: z.number().min(0).max(1).default(0.25118864315096),
+  }),
+  granular: z.object({
+    maxGrains: z.number().int().min(1).max(128).default(32),
+    maxVoices: z.number().int().min(1).max(16).default(6),
+    minGrainDuration: z.number().positive().default(640),
+    grainDurationRange: z.object({
+      min: z.number().positive().min(1).max(8).default(1.0),
+      max: z.number().positive().min(1).max(8).default(8.0),
+    }),
+  }),
+  envelope: z.object({
+    attackTime: z.number().positive().min(0.001).max(1).default(0.01),
+    releaseTime: z.number().positive().min(0.001).max(1).default(0.05),
+    sustainLevel: z.number().min(0).max(1).default(1.0),
+  }),
+  filter: z.object({
+    minCutoff: z.number().positive().min(20).max(20000).default(200),
+    maxCutoff: z.number().positive().min(200).max(22050).default(22050),
+    qFactor: z.number().positive().min(0.1).max(30).default(0.707),
+  }),
+  visual: z.object({
+    colors: z.object({
+      wave1: z.string().regex(/^#[0-9A-F]{6}$/i).default('#F3063E'),
+      wave2: z.string().regex(/^#[0-9A-F]{6}$/i).default('#FFCC00'),
+      cursor: z.string().regex(/^#[0-9A-F]{6}$/i).default('#FFFFFF'),
+    }),
+    maxParticles: z.number().int().min(10).max(1000).default(150),
+    chunkAnimationFrames: z.number().int().min(1).max(10).default(3),
+  }),
+  midi: z.object({
+    pitchBendRange: z.object({
+      min: z.number().int().min(0).max(149).default(0),
+      max: z.number().int().min(0).max(149).default(149),
+    }),
+    ccMappings: z.object({
+      selectionSize: z.number().int().min(0).max(127).default(1),
+      grainDuration: z.number().int().min(0).max(127).default(2),
+      loopToggle: z.number().int().min(0).max(127).default(4),
+      recordTrigger: z.number().int().min(0).max(127).default(5),
+      filterCutoff: z.number().int().min(0).max(127).default(7),
+    }),
+  }),
+});
+
+// Partial版スキーマ（設定更新用）
+const PartialCollidoscopeConfigSchema = CollidoscopeConfigSchema.deepPartial();
+
+// 型の生成
+type CollidoscopeConfig = z.infer<typeof CollidoscopeConfigSchema>;
+
+// デフォルト設定
 export const DEFAULT_CONFIG: CollidoscopeConfig = {
   audio: {
     sampleRate: 44100,
@@ -734,6 +808,42 @@ export class ConfigManager {
   
   constructor(initialConfig: Partial<CollidoscopeConfig> = {}) {
     this.config = this.mergeConfig(DEFAULT_CONFIG, initialConfig);
+    this.loadFromStorage();
+  }
+  
+  // 型安全なlocalStorageからの読み込み
+  private loadFromStorage(): void {
+    const stored = localStorage.getItem('collidoscope-config');
+    
+    if (!stored) {
+      return;
+    }
+    
+    try {
+      const parsed = JSON.parse(stored);
+      
+      // Zodスキーマで検証
+      const result = PartialCollidoscopeConfigSchema.safeParse(parsed);
+      
+      if (result.success) {
+        this.config = this.mergeConfig(this.config, result.data);
+      } else {
+        console.warn('保存されている設定の形式が無効です。デフォルト設定を使用します。', result.error.errors);
+      }
+    } catch (error) {
+      console.warn('設定の読み込みに失敗しました。デフォルト設定を使用します。', error);
+    }
+  }
+  
+  // 型安全なlocalStorageへの保存
+  private saveToStorage(): void {
+    try {
+      // 保存前に設定を検証
+      const validatedConfig = CollidoscopeConfigSchema.parse(this.config);
+      localStorage.setItem('collidoscope-config', JSON.stringify(validatedConfig, null, 2));
+    } catch (error) {
+      console.error('設定の保存に失敗しました:', error);
+    }
   }
   
   // 設定値の取得
@@ -745,6 +855,7 @@ export class ConfigManager {
   updateConfig(updates: Partial<CollidoscopeConfig>): void {
     this.config = this.mergeConfig(this.config, updates);
     this.validateConfig();
+    this.saveToStorage(); // 型安全な自動保存
   }
   
   // 設定値のリセット
@@ -807,13 +918,27 @@ export class ConfigManager {
     return JSON.stringify(this.config, null, 2);
   }
   
-  // 設定のインポート（JSON）
+  // 設定のインポート（JSON）- 型安全な実装
   importConfig(configJson: string): void {
     try {
-      const imported = JSON.parse(configJson) as Partial<CollidoscopeConfig>;
-      this.updateConfig(imported);
+      const imported = JSON.parse(configJson);
+      
+      // Zodスキーマで検証
+      const result = PartialCollidoscopeConfigSchema.safeParse(imported);
+      
+      if (result.success) {
+        this.updateConfig(result.data);
+      } else {
+        const errorMessage = result.error.errors
+          .map(err => `${err.path.join('.')}: ${err.message}`)
+          .join(', ');
+        throw new Error(`設定ファイルの形式が無効です: ${errorMessage}`);
+      }
     } catch (error) {
-      throw new Error('設定ファイルの形式が無効です');
+      if (error instanceof SyntaxError) {
+        throw new Error('JSONの構文が無効です');
+      }
+      throw error;
     }
   }
 }
@@ -1552,16 +1677,159 @@ const saveConfigToStorage = (config: CollidoscopeConfig) => {
   localStorage.setItem('collidoscope-config', JSON.stringify(config));
 };
 
-// ローカルストレージからの読み込み
+// 型安全なローカルストレージからの読み込み
 const loadConfigFromStorage = (): Partial<CollidoscopeConfig> | null => {
   const stored = localStorage.getItem('collidoscope-config');
-  if (stored) {
-    try {
-      return JSON.parse(stored) as Partial<CollidoscopeConfig>;
-    } catch {
+  
+  if (!stored) {
+    return null;
+  }
+  
+  try {
+    const parsed = JSON.parse(stored);
+    
+    // Zodスキーマで検証
+    const result = PartialCollidoscopeConfigSchema.safeParse(parsed);
+    
+    if (result.success) {
+      return result.data;
+    } else {
+      console.warn('保存されている設定の形式が無効です。デフォルト設定を使用します。', result.error.errors);
       return null;
     }
+  } catch (error) {
+    console.warn('設定の読み込みに失敗しました。デフォルト設定を使用します。', error);
+    return null;
   }
-  return null;
 };
+
+## 型安全なlocalStorage実装のベストプラクティス
+
+### 1. 問題の認識
+
+従来の実装では、localStorageから読み込んだデータを型アサーション（`as`）で強制的に型付けしていました：
+
+```typescript
+// 危険な実装例
+const config = JSON.parse(localStorage.getItem('config')) as MyConfig;
+```
+
+この実装の問題点：
+
+- `JSON.parse`は例外を投げる可能性がある
+- 型アサーション（`as`）は実際の型チェックを行わない
+- ランタイムでの型安全性が保証されない
+
+### 2. Zodを使用した型安全な実装
+
+Zodライブラリを使用することで、以下の利点が得られます：
+
+```typescript
+import { z } from 'zod';
+
+// スキーマ定義
+const ConfigSchema = z.object({
+  theme: z.enum(['light', 'dark']),
+  volume: z.number().min(0).max(100),
+  language: z.string().default('ja'),
+});
+
+// 型の自動生成
+type Config = z.infer<typeof ConfigSchema>;
+
+// 型安全な読み込み
+function loadConfig(): Config | null {
+  const stored = localStorage.getItem('config');
+  
+  if (!stored) {
+    return null;
+  }
+  
+  try {
+    const parsed = JSON.parse(stored);
+    const result = ConfigSchema.safeParse(parsed);
+    
+    if (result.success) {
+      return result.data;
+    } else {
+      console.warn('設定の形式が無効です:', result.error.errors);
+      return null;
+    }
+  } catch (error) {
+    console.warn('設定の読み込みに失敗しました:', error);
+    return null;
+  }
+}
+```
+
+### 3. Result型パターンの採用
+
+より厳密なエラーハンドリングのため、Result型パターンを採用：
+
+```typescript
+type Result<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+function loadConfigSafe(): Result<Config, string> {
+  const stored = localStorage.getItem('config');
+  
+  if (!stored) {
+    return { success: false, error: '設定が見つかりません' };
+  }
+  
+  try {
+    const parsed = JSON.parse(stored);
+    const result = ConfigSchema.safeParse(parsed);
+    
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      const errors = result.error.errors
+        .map(err => `${err.path.join('.')}: ${err.message}`)
+        .join(', ');
+      return { success: false, error: `設定の検証エラー: ${errors}` };
+    }
+  } catch (error) {
+    return { 
+      success: false, 
+      error: `JSON解析エラー: ${error instanceof Error ? error.message : '不明なエラー'}` 
+    };
+  }
+}
+
+// 使用例
+const configResult = loadConfigSafe();
+if (configResult.success) {
+  console.log('設定を読み込みました:', configResult.data);
+} else {
+  console.error('設定の読み込みに失敗:', configResult.error);
+}
+```
+
+### 4. 専用ライブラリの活用
+
+より簡潔な実装には、`zod-storage`などの専用ライブラリの使用も検討：
+
+```typescript
+import { ZodStorageBuilder } from 'zod-storage';
+
+const configStorage = new ZodStorageBuilder(ConfigSchema)
+  .withProvider(localStorage)
+  .withKeys({ config: 'app-config' })
+  .build();
+
+// 型安全な読み書き
+configStorage.config.set({ theme: 'dark', volume: 50, language: 'ja' });
+const config = configStorage.config.get(); // 自動的に型付けされる
+```
+
+### 5. 推奨事項
+
+1. **常にZodスキーマで検証**: localStorageから読み込むすべてのデータを検証
+2. **Result型の使用**: 成功/失敗を明確に区別
+3. **詳細なエラーメッセージ**: デバッグを容易にするため
+4. **デフォルト値の設定**: スキーマレベルでデフォルト値を定義
+5. **Migration戦略**: スキーマ変更時の移行戦略を考慮
+
 ```
