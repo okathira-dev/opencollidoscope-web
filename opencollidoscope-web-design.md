@@ -861,6 +861,7 @@ export class ConfigManager {
   // 設定値のリセット
   resetConfig(): void {
     this.config = { ...DEFAULT_CONFIG };
+    this.saveToStorage(); // リセット後に設定を保存
   }
   
   // 設定値の検証
