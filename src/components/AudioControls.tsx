@@ -1,16 +1,26 @@
-import { Mic, MicOff, PlayArrow, Stop, VolumeUp } from "@mui/icons-material";
 import {
-  Card,
-  CardContent,
+  Mic,
+  PlayArrow,
+  Stop,
+  VolumeUp,
+  GraphicEq,
+  Science,
+} from "@mui/icons-material";
+import {
   Button,
   LinearProgress,
   Typography,
   Box,
   Alert,
+  Paper,
+  Divider,
+  Grid,
+  Slider,
 } from "@mui/material";
 import { useCallback, useState } from "react";
 
 import { useAudioContext } from "../hooks/useAudioContext";
+import { useAudioWorkletZustand } from "../hooks/useAudioWorkletZustand";
 import { usePlayback } from "../hooks/usePlayback";
 import { useRecording } from "../hooks/useRecording";
 import { useAudioStore } from "../store/audioStore";
@@ -19,8 +29,13 @@ export const AudioControls = () => {
   const [volume, setVolume] = useState(0.5);
 
   // AudioContextの管理
-  const { audioContext, isInitialized, isSupported, initializeAudioContext } =
-    useAudioContext();
+  const {
+    audioContext,
+    isInitialized,
+    isSupported,
+    initializeAudioContext,
+    error,
+  } = useAudioContext();
 
   // 録音・再生の管理
   const recording = useRecording(audioContext);
@@ -28,6 +43,15 @@ export const AudioControls = () => {
 
   // ストアの状態（エラー表示用）
   const audioStore = useAudioStore();
+
+  // AudioWorkletの管理
+  const {
+    workletState,
+    initializeWorklet,
+    startWorkletRecording,
+    stopWorkletRecording,
+    createAudioBufferFromChunks,
+  } = useAudioWorkletZustand(audioContext);
 
   // AudioContextを初期化
   const handleInitializeAudio = useCallback(async () => {
@@ -78,13 +102,46 @@ export const AudioControls = () => {
 
   // ボリューム変更
   const handleVolumeChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newVolume = parseFloat(event.target.value);
-      setVolume(newVolume);
-      playback.setVolume(newVolume);
+    (event: Event, newValue: number | number[]) => {
+      setVolume(newValue as number);
+      playback.setVolume(newValue as number);
     },
     [playback],
   );
+
+  // AudioWorklet関連のハンドラー
+  const handleInitializeWorklet = () => {
+    void initializeWorklet();
+  };
+
+  const handleStartWorkletRecording = () => {
+    void startWorkletRecording(2.0); // 2秒間録音
+  };
+
+  const handleStopWorkletRecording = () => {
+    stopWorkletRecording();
+  };
+
+  const handlePlayWorkletBuffer = () => {
+    if (playback.isPlaying) {
+      handleStopPlayback();
+    } else {
+      const buffer = createAudioBufferFromChunks();
+      if (buffer) {
+        playback.startPlayback(buffer, volume);
+      }
+    }
+  };
+
+  // 進捗計算
+  const progress =
+    playback.duration > 0
+      ? (playback.currentTime / playback.duration) * 100
+      : 0;
+  const workletProgress =
+    workletState.totalChunks > 0
+      ? (workletState.chunks.length / workletState.totalChunks) * 100
+      : 0;
 
   // エラー表示
   if (audioStore.error) {
@@ -127,77 +184,67 @@ export const AudioControls = () => {
   }
 
   return (
-    <Card sx={{ maxWidth: 600, mx: "auto", mt: 4 }}>
-      <CardContent>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Opencollidoscope Web
-        </Typography>
+    <Paper elevation={3} sx={{ p: 3, m: 1 }}>
+      <Typography variant="h5" gutterBottom>
+        🎛️ オーディオコントロール
+      </Typography>
 
-        {/* 録音コントロール */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-          <Button
-            variant={recording.isRecording ? "contained" : "outlined"}
-            color={recording.isRecording ? "error" : "primary"}
-            onClick={() => {
-              if (recording.isRecording) {
-                void handleStopRecording();
-              } else {
-                void handleStartRecording();
-              }
-            }}
-            disabled={playback.isPlaying}
-            startIcon={recording.isRecording ? <MicOff /> : <Mic />}
-          >
-            {recording.isRecording ? "録音停止" : "録音開始"}
-          </Button>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-          {recording.isRecording && (
-            <Typography variant="body2">
-              {recording.recordingTime.toFixed(1)}秒
-            </Typography>
-          )}
-        </Box>
+      <Grid container spacing={3}>
+        {/* 基本的な録音・再生コントロール */}
+        <Grid item xs={12} md={6}>
+          <Typography variant="h6" gutterBottom>
+            <Mic sx={{ mr: 1 }} />
+            基本録音・再生
+          </Typography>
 
-        {/* 録音時間のプログレスバー */}
-        {recording.isRecording && (
           <Box sx={{ mb: 2 }}>
-            <LinearProgress
-              variant="determinate"
-              value={
-                Math.min(
-                  100,
-                  Math.max(
-                    0,
-                    (recording.recordingTime / recording.maxRecordingTime) *
-                      100,
-                  ),
-                ) || 0
-              }
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-            {/* デバッグ用表示 */}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontSize: "0.7rem" }}
-            >
-              録音進捗:{" "}
-              {(
-                (recording.recordingTime / recording.maxRecordingTime) *
-                100
-              ).toFixed(1)}
-              % ({recording.recordingTime.toFixed(2)}s /{" "}
-              {recording.maxRecordingTime.toFixed(2)}s)
-            </Typography>
-          </Box>
-        )}
-
-        {/* 再生コントロール */}
-        {recording.audioBuffer && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
             <Button
-              variant={playback.isPlaying ? "contained" : "outlined"}
-              color={playback.isPlaying ? "error" : "success"}
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                void handleInitializeAudio();
+              }}
+              disabled={!!audioContext}
+              sx={{ mr: 1 }}
+            >
+              初期化
+            </Button>
+
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={() => {
+                void handleStartRecording();
+              }}
+              disabled={!audioContext || recording.isRecording}
+              startIcon={<Mic />}
+              sx={{ mr: 1 }}
+            >
+              録音開始
+            </Button>
+
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => {
+                void handleStopRecording();
+              }}
+              disabled={!recording.isRecording}
+              startIcon={<Stop />}
+              sx={{ mr: 1 }}
+            >
+              録音停止
+            </Button>
+
+            <Button
+              variant="contained"
+              color="success"
               onClick={() => {
                 if (playback.isPlaying) {
                   handleStopPlayback();
@@ -205,82 +252,135 @@ export const AudioControls = () => {
                   handleStartPlayback();
                 }
               }}
-              disabled={recording.isRecording}
+              disabled={!recording.audioBuffer || recording.isRecording}
               startIcon={playback.isPlaying ? <Stop /> : <PlayArrow />}
             >
-              {playback.isPlaying ? "再生停止" : "再生開始"}
+              {playback.isPlaying ? "停止" : "再生"}
+            </Button>
+          </Box>
+
+          {/* 録音状態表示 */}
+          <Alert severity="info" sx={{ mb: 2 }}>
+            録音中: {recording.isRecording ? "Yes" : "No"}
+            <br />
+            再生中: {playback.isPlaying ? "Yes" : "No"}
+            <br />
+            録音時間: {recording.recordingTime.toFixed(1)}秒<br />
+            再生時間: {playback.currentTime.toFixed(1)}秒 /{" "}
+            {playback.duration.toFixed(1)}秒
+          </Alert>
+
+          {/* 再生進捗 */}
+          {playback.isPlaying && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2">再生進捗</Typography>
+              <LinearProgress variant="determinate" value={progress} />
+              <Typography variant="caption">{progress.toFixed(1)}%</Typography>
+            </Box>
+          )}
+        </Grid>
+
+        {/* AudioWorkletコントロール */}
+        <Grid item xs={12} md={6}>
+          <Typography variant="h6" gutterBottom>
+            <Science sx={{ mr: 1 }} />
+            AudioWorklet（チャンク分割録音）
+          </Typography>
+
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleInitializeWorklet}
+              disabled={!audioContext}
+              sx={{ mr: 1 }}
+            >
+              Worklet初期化
             </Button>
 
-            {playback.isPlaying && (
-              <Typography variant="body2">
-                {playback.currentTime.toFixed(1)}秒 /{" "}
-                {playback.duration.toFixed(1)}秒
-              </Typography>
-            )}
-          </Box>
-        )}
-
-        {/* 再生時間のプログレスバー */}
-        {playback.isPlaying && playback.duration > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <LinearProgress
-              variant="determinate"
-              value={
-                Math.min(
-                  100,
-                  Math.max(0, (playback.currentTime / playback.duration) * 100),
-                ) || 0
-              }
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-            {/* デバッグ用表示 */}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontSize: "0.7rem" }}
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleStartWorkletRecording}
+              disabled={!audioContext || workletState.isRecording}
+              startIcon={<GraphicEq />}
+              sx={{ mr: 1 }}
             >
-              進捗:{" "}
-              {((playback.currentTime / playback.duration) * 100).toFixed(1)}% (
-              {playback.currentTime.toFixed(2)}s /{" "}
-              {playback.duration.toFixed(2)}s)
-            </Typography>
+              チャンク録音
+            </Button>
+
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleStopWorkletRecording}
+              disabled={!workletState.isRecording}
+              startIcon={<Stop />}
+              sx={{ mr: 1 }}
+            >
+              停止
+            </Button>
+
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handlePlayWorkletBuffer}
+              disabled={
+                workletState.chunks.length === 0 || workletState.isRecording
+              }
+              startIcon={<PlayArrow />}
+            >
+              チャンク再生
+            </Button>
           </Box>
-        )}
 
-        {/* ボリューム調整 */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-          <VolumeUp />
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={volume}
-            onChange={handleVolumeChange}
-            style={{ flex: 1 }}
-          />
-          <Typography variant="body2" sx={{ minWidth: 40 }}>
-            {Math.round(volume * 100)}%
-          </Typography>
-        </Box>
+          {/* AudioWorklet状態表示 */}
+          <Alert severity="info" sx={{ mb: 2 }}>
+            録音中: {workletState.isRecording ? "Yes" : "No"}
+            <br />
+            チャンク数: {workletState.chunks.length} /{" "}
+            {workletState.totalChunks}
+            <br />
+            録音フレーム数: {workletState.recordedFrames}
+          </Alert>
 
-        {/* 状態表示 */}
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            状態:{" "}
-            {recording.isRecording
-              ? "録音中"
-              : playback.isPlaying
-                ? "再生中"
-                : "待機中"}
-          </Typography>
-          {recording.audioBuffer && (
-            <Typography variant="body2" color="text.secondary">
-              録音データ: {recording.audioBuffer.duration.toFixed(1)}秒
-            </Typography>
+          {/* チャンク録音進捗 */}
+          {workletState.isRecording && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2">チャンク録音進捗</Typography>
+              <LinearProgress variant="determinate" value={workletProgress} />
+              <Typography variant="caption">
+                {workletProgress.toFixed(1)}% ({workletState.chunks.length}/
+                {workletState.totalChunks})
+              </Typography>
+            </Box>
           )}
-        </Box>
-      </CardContent>
-    </Card>
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* ボリューム調整 */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          <VolumeUp sx={{ mr: 1 }} />
+          ボリューム
+        </Typography>
+
+        <Slider
+          value={volume}
+          onChange={handleVolumeChange}
+          min={0}
+          max={1}
+          step={0.1}
+          marks
+          valueLabelDisplay="auto"
+          sx={{ width: "100%" }}
+        />
+
+        <Typography variant="caption" color="text.secondary">
+          現在のボリューム: {(volume * 100).toFixed(0)}%
+        </Typography>
+      </Box>
+    </Paper>
   );
 };

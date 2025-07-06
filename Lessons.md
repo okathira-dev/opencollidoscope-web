@@ -136,3 +136,57 @@ React の `onClick` 属性は `void` を期待するため、Promise を返却�
   void handleAsyncFunction();
 }} />
 ```
+
+### 🔴 重要: 初期からのzustand状態管理アーキテクチャ設計の重要性
+
+複雑な状態管理を持つアプリケーションでは、最初からzustandベースの設計を行うべきです。
+
+**遭遇した問題（useCallback + useRef地獄）:**
+
+```typescript
+// 悪い例：複雑な依存関係
+const handleMessage = useCallback((message) => {
+  setWorkletState(prev => ({ ...prev, chunks: [...prev.chunks, chunk] }));
+}, [audioContext]);
+
+const startRecording = useCallback(async () => {
+  workletNode.port.onmessage = (event) => {
+    handleMessage(event.data); // 古いクロージャの参照
+  };
+}, [audioContext, handleMessage]); // 循環依存
+
+// useRefによる回避策（複雑）
+const handleMessageRef = useRef(handleMessage);
+handleMessageRef.current = handleMessage;
+workletNode.port.onmessage = (event) => {
+  handleMessageRef.current(event.data);
+};
+```
+
+**zustandベースの解決法:**
+
+```typescript
+// 良い例：シンプルな状態管理
+const { addChunk, setWorkletRecording } = useWorkletActions();
+
+const startRecording = useCallback(async () => {
+  workletNode.port.onmessage = (event) => {
+    if (event.data.type === 'chunk') {
+      addChunk(chunkData); // 常に最新の関数を参照
+    }
+  };
+}, [addChunk]); // addChunkは安定した参照
+```
+
+**重要な教訓:**
+
+1. **最初にアーキテクチャを正しく設計すべき**: 後からの状態管理移行は大変
+2. **複雑な状態は最初からzustandで設計**: ReactのフックだけでExampleは軽い状態管理のみ
+3. **useCallbackの依存配列問題は、zustandで解決できる**: 状態管理ライブラリの安定した参照
+4. **状態の一元管理は、デバッグ性と保守性を大幅に向上**: devtoolsでの状態追跡
+
+**将来の開発指針:**
+
+- 3つ以上の状態を持つ機能は、最初からzustandで設計する
+- AudioWorklet等のワーカーとの通信は、zustandで状態を一元管理する
+- ReactのuseStateとuseEffectは、ローカルなUI状態管理のみに使用する

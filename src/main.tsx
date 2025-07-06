@@ -3,7 +3,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { App } from "./App.tsx";
+import App from "./App.tsx";
 
 // MUIのテーマを作成
 const theme = createTheme();

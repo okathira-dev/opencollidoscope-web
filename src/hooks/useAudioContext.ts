@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   AudioContextState,
@@ -32,7 +32,7 @@ export function useAudioContext() {
   };
 
   // AudioContextの初期化
-  const initializeAudioContext = async (): Promise<
+  const initializeAudioContext = useCallback(async (): Promise<
     AudioProcessingResult<AudioContext>
   > => {
     try {
@@ -88,10 +88,10 @@ export function useAudioContext() {
         error: audioError,
       };
     }
-  };
+  }, []);
 
   // AudioContextの破棄
-  const destroyAudioContext = async (): Promise<void> => {
+  const destroyAudioContext = useCallback(async (): Promise<void> => {
     if (audioContextRef.current) {
       await audioContextRef.current.close();
       audioContextRef.current = null;
@@ -103,7 +103,7 @@ export function useAudioContext() {
       isSupported: checkAudioSupport(),
       error: null,
     });
-  };
+  }, []);
 
   // 初期化時にブラウザ対応チェックを実行
   useEffect(() => {
