@@ -1,5 +1,7 @@
 import { Box, Typography, Container } from "@mui/material";
 
+import { AudioControls } from "./components/AudioControls";
+
 export function App() {
   return (
     <Container sx={{ position: "relative" }}>
@@ -7,7 +9,9 @@ export function App() {
         Open Collidoscope Web App
       </Typography>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}></Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <AudioControls />
+      </Box>
     </Container>
   );
 }

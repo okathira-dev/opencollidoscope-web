@@ -78,3 +78,61 @@
 4. **他のファイルとの連携**:
    - Scratchpad.mdでタスクを実行する際、このLessons.mdを参照して過去の教訓を活かしてください
    - 新しいLessonを発見したら、現在のタスクを中断せずに、タスク完了後にこのファイルを更新してください
+
+### Web Audio API + React 実装計画策定
+
+プロジェクトの要件を理解し、技術調査を行ってから実装計画を策定するアプローチが効果的でした。C++からWebへの移植では、元のコードの理解、Web Audio APIの制約、Reactのベストプラクティスを組み合わせた段階的なアプローチが重要です。
+
+### react-hooks/exhaustive-deps エラーは useEffect の乱用のサイン
+
+`react-hooks/exhaustive-deps` エラーが発生した場合、`useEffect` の乱用を疑うべきです。
+
+**問題のあるパターン:**
+
+```typescript
+// 悪い例：useEffect で状態同期
+useEffect(() => {
+  audioActions.setRecording({
+    ...recording,
+    isPlaying: playback.isPlaying,
+  });
+}, [recording, playback.isPlaying, audioActions]);
+```
+
+**解決方法:**
+
+```typescript
+// 良い例：直接的な状態管理
+const recording = useRecording(audioContext);
+const playback = usePlayback(audioContext);
+// フックから直接値を取得し、複雑な同期を避ける
+```
+
+**重要なポイント:**
+
+1. `useEffect` は状態同期のために使うべきではない
+2. 複雑な依存関係は設計の問題を示している
+3. フックの責任を明確にし、直接的な状態管理を行う
+4. Zustand などの状態管理ライブラリを複雑に使いすぎない
+
+この修正により、7個のESLintエラーと3個の警告がすべて解決されました。
+
+### Promise 返却関数の onClick 属性での使用
+
+React の `onClick` 属性は `void` を期待するため、Promise を返却する関数を直接使用するとESLintエラーが発生します。
+
+**問題のあるパターン:**
+
+```typescript
+// 悪い例
+<Button onClick={handleAsyncFunction} />
+```
+
+**解決方法:**
+
+```typescript
+// 良い例
+<Button onClick={() => {
+  void handleAsyncFunction();
+}} />
+```
