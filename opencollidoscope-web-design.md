@@ -550,18 +550,186 @@ graph TB
 
 #### 1. 録音パイプライン
 
-```
-Microphone → MediaStreamAudioSourceNode → AudioWorkletNode → AudioBuffer
-                                               ↓
-                                        ChunkProcessor → WaveStore
+```mermaid
+graph TB
+    subgraph "Recording Pipeline"
+        A1[Microphone]
+        A2[MediaStream<br/>getUserMedia]
+        A3[MediaStreamAudioSourceNode]
+        A4[RecordingProcessor<br/>AudioWorkletNode]
+        A5[AudioBuffer<br/>2.0秒 44.1kHz]
+        A6[ChunkProcessor<br/>150チャンク分割]
+        A7[WaveStore<br/>Zustand]
+        
+        A1 --> A2
+        A2 --> A3
+        A3 --> A4
+        A4 --> A5
+        A5 --> A6
+        A6 --> A7
+        
+        subgraph "Recording Control"
+            A8[Record Button]
+            A9[Record State<br/>isRecording]
+            A10[Auto Stop<br/>2.0秒後]
+            
+            A8 --> A9
+            A9 --> A4
+            A10 --> A9
+        end
+    end
+    
+    style A1 fill:#ffb,stroke:#333,stroke-width:2px
+    style A5 fill:#f9f,stroke:#333,stroke-width:2px
+    style A7 fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
 #### 2. 再生パイプライン
 
+```mermaid
+graph TB
+    subgraph "Playback Pipeline"
+        B1[AudioBuffer<br/>150チャンク]
+        B2[Selection<br/>開始: 0-149<br/>サイズ: 1-37]
+        B3[GranularProcessor<br/>AudioWorkletNode]
+        B4[BiquadFilterNode<br/>LowPass 200Hz-22kHz]
+        B5[GainNode<br/>-12dB attenuation]
+        B6[AudioDestination<br/>スピーカー出力]
+        
+        B1 --> B2
+        B2 --> B3
+        B3 --> B4
+        B4 --> B5
+        B5 --> B6
+        
+        subgraph "Grain Processing"
+            B7[Grain Generator<br/>最大32グレイン]
+            B8[Random Offset<br/>±10サンプル]
+            B9[Hann Window<br/>エンベロープ]
+            B10[Linear Interpolation]
+            B11[Playback Rate<br/>MIDIピッチ]
+            
+            B3 --> B7
+            B7 --> B8
+            B8 --> B9
+            B9 --> B10
+            B10 --> B11
+        end
+        
+        subgraph "Voice Management"
+            B12[MIDI Input]
+            B13[Voice Allocator<br/>最大6ボイス]
+            B14[ASR Envelope<br/>Attack: 10ms<br/>Release: 50ms]
+            
+            B12 --> B13
+            B13 --> B14
+            B14 --> B3
+        end
+    end
+    
+    style B1 fill:#ffb,stroke:#333,stroke-width:2px
+    style B3 fill:#f9f,stroke:#333,stroke-width:2px
+    style B6 fill:#bfb,stroke:#333,stroke-width:2px
 ```
-AudioBuffer → GranularSynthesizer → BiquadFilterNode → GainNode → AudioDestination
-                     ↓                                      ↓
-              CursorTriggers                         AnalyserNode → Oscilloscope
+
+#### 3. 視覚化・フィードバックパイプライン
+
+```mermaid
+graph TB
+    subgraph "Visual Feedback Pipeline"
+        C1[BiquadFilterNode<br/>音声出力]
+        C2[AnalyserNode<br/>FFT解析]
+        C3[Float32Array<br/>周波数データ]
+        C4[Canvas Renderer<br/>Oscilloscope]
+        
+        C1 --> C2
+        C2 --> C3
+        C3 --> C4
+        
+        subgraph "Wave Display"
+            C5[AudioBuffer<br/>波形データ]
+            C6[ChunkData<br/>150チャンク]
+            C7[Canvas Renderer<br/>波形表示]
+            C8[Selection Highlight<br/>選択範囲表示]
+            
+            C5 --> C6
+            C6 --> C7
+            C7 --> C8
+        end
+        
+        subgraph "Particle System"
+            C9[Grain Activity<br/>グレイン状態]
+            C10[Particle Generator<br/>最大150パーティクル]
+            C11[Animation Loop<br/>requestAnimationFrame]
+            C12[Canvas Renderer<br/>パーティクル表示]
+            
+            C9 --> C10
+            C10 --> C11
+            C11 --> C12
+        end
+        
+        subgraph "Cursor System"
+            C13[Playback Position<br/>再生位置]
+            C14[Cursor Renderer<br/>カーソル表示]
+            C15[Cursor Triggers<br/>チャンク境界]
+            
+            C13 --> C14
+            C14 --> C15
+        end
+    end
+    
+    style C2 fill:#bbf,stroke:#333,stroke-width:2px
+    style C4 fill:#f9f,stroke:#333,stroke-width:2px
+    style C7 fill:#bfb,stroke:#333,stroke-width:2px
+    style C12 fill:#ffb,stroke:#333,stroke-width:2px
+```
+
+#### 4. MIDI制御パイプライン
+
+```mermaid
+graph TB
+    subgraph "MIDI Control Pipeline"
+        D1[MIDI Input<br/>Hardware/Software]
+        D2[WebMIDI API<br/>MIDIAccess]
+        D3[MIDI Message Parser<br/>Note On/Off, CC]
+        D4[Parameter Mapper<br/>CC → 機能マッピング]
+        
+        D1 --> D2
+        D2 --> D3
+        D3 --> D4
+        
+        subgraph "Control Targets"
+            D5[ピッチベンド<br/>選択開始位置<br/>0-149]
+            D6[CC1: 選択サイズ<br/>1-37チャンク]
+            D7[CC2: グレイン持続時間<br/>係数 1.0-8.0]
+            D8[CC4: ループ切り替え<br/>On/Off]
+            D9[CC5: 録音トリガー<br/>Record Start]
+            D10[CC7: フィルターカットオフ<br/>200Hz-22kHz]
+            
+            D4 --> D5
+            D4 --> D6
+            D4 --> D7
+            D4 --> D8
+            D4 --> D9
+            D4 --> D10
+        end
+        
+        subgraph "Note Processing"
+            D11[Note On/Off<br/>MIDIノート]
+            D12[Voice Allocation<br/>最大6ボイス]
+            D13[Pitch Calculation<br/>セント → レート]
+            D14[Grain Triggering<br/>グレイン生成]
+            
+            D3 --> D11
+            D11 --> D12
+            D12 --> D13
+            D13 --> D14
+        end
+    end
+    
+    style D1 fill:#ffb,stroke:#333,stroke-width:2px
+    style D4 fill:#f9f,stroke:#333,stroke-width:2px
+    style D12 fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
 ## 重要なクラス・インターフェース
@@ -1504,13 +1672,13 @@ array< shared_ptr< Oscilloscope >, NUM_WAVES > mOscilloscopes;
 
 ### 4. Web版の実装戦略
 
-**Phase 1: 単一音声処理システム実装**
+#### Phase 1: 単一音声処理システム実装
 
 - 赤色波形（Wave 0）のみを実装
 - 全機能を単一音声処理システムで完成
 - UI/UXの最適化
 
-**Phase 2: デュアル音声処理システム拡張**
+#### Phase 2: デュアル音声処理システム拡張
 
 - 黄色波形（Wave 1）の追加
 - 状態管理の分離
@@ -1832,5 +2000,3 @@ const config = configStorage.config.get(); // 自動的に型付けされる
 3. **詳細なエラーメッセージ**: デバッグを容易にするため
 4. **デフォルト値の設定**: スキーマレベルでデフォルト値を定義
 5. **Migration戦略**: スキーマ変更時の移行戦略を考慮
-
-```
