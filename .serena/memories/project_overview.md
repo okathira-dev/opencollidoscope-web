@@ -17,8 +17,9 @@
 
 - `src/` — アプリケーションソース（`domain/config/` に設定バリデーション実装済み）
 - `opencollidoscope/` — オリジナル C++ ソース（参照用）
-- `opencollidoscope-web-spec.md` — 実装仕様
-- `opencollidoscope-web-design.md` — 設計書
+- `docs/original-analysis.md` — オリジナル C++ 実装分析
+- `docs/web-spec.md` — Web版実装仕様
+- `docs/web-design.md` — Web版設計書
 - `Scratchpad.md` — 短期タスクログ
 
 ## 実装戦略
@@ -28,4 +29,4 @@
 
 ## 開発環境の未整備
 
-意図的なトレードオフと未導入ツールの一覧は `opencollidoscope-web-spec.md` **5.4** が正本。
+意図的なトレードオフと未導入ツールの一覧は `docs/web-spec.md` の「開発環境の意図的な選択と未整備」が正本。

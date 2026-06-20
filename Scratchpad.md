@@ -5,16 +5,17 @@
 
 ## 現在のタスク
 
-TDD 基盤整備と設定バリデーション実装
+ドキュメント再構成（移植元分析 + Web版仕様 + Web版設計）
 
-- [X] テスト依存関係の導入（zod, @testing-library/*, @vitest/coverage-v8）
-- [X] Vitest 設定拡張（setupFiles, coverage, include）
-- [X] テストインフラ（src/test/setup.ts, renderWithTheme）
-- [X] CI / lint-staged 更新（test:coverage, vitest related）
-- [X] 設定バリデーションの TDD 実装（config-schema, default-config, config-manager）
-- [X] 仕様書・メモリ更新
+- [X] `docs/original-analysis.md` 作成（オリジナル C++ 分析）
+- [X] `docs/web-spec.md` 作成（Web版仕様）
+- [X] `docs/web-design.md` 作成（Web版設計）
+- [X] 旧ドキュメント削除（`opencollidoscope-web-spec.md`, `opencollidoscope-web-design.md`）
+- [X] 参照パス更新（README, rules, skills, memories）
 
 ## 完了済みタスク
+
+TDD 基盤整備と設定バリデーション実装
 
 opencollidoscope Web版移植設計書作成
 

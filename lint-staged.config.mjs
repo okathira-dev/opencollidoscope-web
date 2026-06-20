@@ -8,7 +8,7 @@ export default {
       );
 
       if (sourceFiles.length === 0) {
-        return;
+        return [];
       }
 
       return `vitest related --run ${sourceFiles.join(" ")}`;

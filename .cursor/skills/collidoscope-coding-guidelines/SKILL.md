@@ -19,7 +19,7 @@ description: Open Collidoscope Web 実装時の基本コーディング規約（
 ## Scope and references
 
 - コロケーション原則、ディレクトリ構造、Zustand 状態管理ルールの正本は `.cursor/rules/coding-rules.mdc`。
-- ストア設計の正本は `opencollidoscope-web-design.md` の状態管理セクション。
+- ストア設計の正本は `docs/web-design.md` の状態管理セクション。
 - Biome 運用の正本は `.cursor/rules/biome.mdc`。
 
 ## Import / export

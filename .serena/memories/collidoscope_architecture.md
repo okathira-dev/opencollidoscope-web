@@ -44,5 +44,6 @@
 
 ## 設計書の扱い
 
+- 正本: `docs/original-analysis.md`（オリジナル分析）、`docs/web-spec.md`（仕様）、`docs/web-design.md`（設計）
 - 設計書の TypeScript コードは擬似コード。実装時は依存関係・型定義・エラーハンドリングを再設計
 - Mermaid ダイアグラムはアーキテクチャ理解に有効

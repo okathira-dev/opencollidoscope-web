@@ -17,7 +17,7 @@ description: Open Collidoscope Web リポジトリの構造、技術スタック
 - 主な技術: React 19 / TypeScript 6 / Vite 8 / MUI 9 / Zustand / Tone.js / Biome 2.5 / Vitest 4 / pnpm 11
 - Vite の `root` は `src/`（テストも `src/` 配下の `*.test.ts(x)` を想定）
 - オリジナル C++ コード: `opencollidoscope/`（参照用、Mercurial クローン）
-- 未整備・意図的な選択: `opencollidoscope-web-spec.md` セクション 5.4
+- 未整備・意図的な選択: `docs/web-spec.md` の「開発環境の意図的な選択と未整備」
 - テスト: `src/**/*.test.{ts,tsx}` をコロケーション。セットアップは `src/test/setup.ts`、UI は `renderWithTheme`
 
 ## ディレクトリ構成
@@ -42,8 +42,9 @@ opencollidoscope/   # オリジナル C++ ソース（参照用）
 
 ## 主要ドキュメント
 
-- `opencollidoscope-web-spec.md` — 実装仕様（**5.4** に未整備・意図的選択の正本）
-- `opencollidoscope-web-design.md` — 設計書（アーキテクチャ、Mermaid 図、擬似コード）
+- `docs/original-analysis.md` — オリジナル C++ 実装の分析
+- `docs/web-spec.md` — Web版実装仕様（未整備・意図的選択の正本を含む）
+- `docs/web-design.md` — Web版設計書（アーキテクチャ、Mermaid 図）
 - `Scratchpad.md` — 短期タスクログ
 - `.serena/memories/` — 長期知識（アーキテクチャ分析、コーディング規約等）
 
