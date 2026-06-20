@@ -11,11 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
-.eslintcache
+/coverage
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -26,5 +26,5 @@ dist-ssr
 .specstory
 opencollidoscope/downloads
 
-.env*
-!.env.example
+# Serena cache
+.serena/cache/

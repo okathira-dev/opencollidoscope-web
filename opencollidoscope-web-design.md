@@ -93,10 +93,10 @@ graph TB
 
 ### フロントエンド
 
-- **React 18**: UIコンポーネント
-- **TypeScript**: 型安全性
-- **Vite**: 開発・ビルドツール
-- **MUI v7**: UIコンポーネントライブラリ
+- **React 19**: UIコンポーネント
+- **TypeScript 6**: 型安全性
+- **Vite 8**: 開発・ビルドツール
+- **MUI 9**: UIコンポーネントライブラリ
 
 ### 状態管理
 
@@ -550,7 +550,7 @@ graph TB
 
 #### 1. 録音パイプライン
 
-```
+```text
 Microphone → MediaStreamAudioSourceNode → AudioWorkletNode → AudioBuffer
                                                ↓
                                         ChunkProcessor → WaveStore
@@ -558,7 +558,7 @@ Microphone → MediaStreamAudioSourceNode → AudioWorkletNode → AudioBuffer
 
 #### 2. 再生パイプライン
 
-```
+```text
 AudioBuffer → GranularSynthesizer → BiquadFilterNode → GainNode → AudioDestination
                      ↓                                      ↓
               CursorTriggers                         AnalyserNode → Oscilloscope
@@ -1406,11 +1406,14 @@ export async function initializeAudioWorkletSafely(
 
 ## テスト戦略
 
-### 1. 単体テスト (Jest)
+### 1. 単体テスト (Vitest)
 
+- デフォルト環境は `jsdom`（React / DOM 向け）。純粋なロジックのみのテストは `// @vitest-environment node` で切り替える
+- **未整備**: `@testing-library/react` は未導入（UI コンポーネント実装時に追加予定。仕様書 5.4 参照）
 - 音声処理関数
 - 状態管理ロジック
 - ユーティリティ関数
+- テスト未追加の段階では `passWithNoTests: true` により CI が失敗しない（テスト追加後も維持可）
 
 ### 2. 統合テスト
 
@@ -1423,29 +1426,39 @@ export async function initializeAudioWorkletSafely(
 - ユーザーフロー
 - 音声録音・再生
 - パラメータ制御
+- **現状**: `devDependencies` 未導入。Cursor MCP（`pnpm dlx @playwright/mcp`）での手動確認のみ。CI 連携は未整備（下記 5.3 参照）
 
 ## デプロイメント
 
 ### 1. ビルド設定
 
-- **Vite**: 高速ビルド
-- **TypeScript**: 型チェック
-- **ESLint/Prettier**: コード品質
+- **Vite 8**: 高速ビルド
+- **TypeScript 6**: 型チェック（`tsc --noEmit`）
+- **Biome**: コード整形・静的解析（lint / format）
+- **markdownlint-cli2**: Markdown 品質チェック
+- **pnpm**: パッケージマネージャ
+- **Node.js**: ^24.14.0
 
-### 2. 最適化
+### 2. 開発ワークフロー
+
+- **Husky + lint-staged**: コミット前に Biome、`tsc --noEmit`、markdownlint を実行（`lint-staged.config.mjs`）
+- **GitHub Actions**: `pnpm check` → `pnpm test` → `pnpm build` を CI で実行（`node.js.yml`）
+- **GitHub Pages**: `main` への push で `publish-pages.yml` が `pnpm build` のみ実行（品質ゲートは上記 CI に委ねる）
+
+### 3. 最適化
 
 - **コード分割**: 動的インポート
 - **アセット最適化**: 画像・音声ファイル
 - **PWA対応**: オフライン機能
 
-### 3. 対象ブラウザ（AudioWorklet対応）
+### 4. 対象ブラウザ（AudioWorklet対応）
 
 - **Chrome**: 66+（AudioWorklet対応開始、推奨120+）
 - **Firefox**: 76+（AudioWorklet対応開始、推奨120+）
 - **Safari**: 14.1+（AudioWorklet対応開始、推奨17+）
 - **Edge**: 79+（Chromiumベース、推奨120+）
 
-### 4. セキュリティ要件
+### 5. セキュリティ要件
 
 - **HTTPS必須**: AudioWorkletはセキュアコンテキストでのみ動作
 - **ユーザージェスチャー**: 音声再生にはユーザーの操作が必要
@@ -1504,13 +1517,13 @@ array< shared_ptr< Oscilloscope >, NUM_WAVES > mOscilloscopes;
 
 ### 4. Web版の実装戦略
 
-**Phase 1: 単一音声処理システム実装**
+#### Phase 1: 単一音声処理システム実装
 
 - 赤色波形（Wave 0）のみを実装
 - 全機能を単一音声処理システムで完成
 - UI/UXの最適化
 
-**Phase 2: デュアル音声処理システム拡張**
+#### Phase 2: デュアル音声処理システム拡張
 
 - 黄色波形（Wave 1）の追加
 - 状態管理の分離
@@ -1832,5 +1845,3 @@ const config = configStorage.config.get(); // 自動的に型付けされる
 3. **詳細なエラーメッセージ**: デバッグを容易にするため
 4. **デフォルト値の設定**: スキーマレベルでデフォルト値を定義
 5. **Migration戦略**: スキーマ変更時の移行戦略を考慮
-
-```

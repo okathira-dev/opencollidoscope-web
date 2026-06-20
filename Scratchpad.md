@@ -60,7 +60,7 @@ opencollidoscope Web版移植設計書作成
   - 設計書冒頭に注意書きを追加
   - 擬似コード的な性質を明確化
   - 実装時の再設計ポイントを文書化
-  - Lessons.mdに実装時の注意点を記録
+  - `.serena/memories/` に実装時の注意点を記録
 
 ## オリジナルCollidoscope分析結果
 
@@ -142,7 +142,7 @@ add_definitions(-DNUM_WAVES=2)
 - 基本的に整合性は保たれています
 - 最近の変更：
   - `global.mdc`とScratchpad.mdの関係を明確化
-  - Lessons.mdファイルを作成し、Lessonsに関する情報をglobal.mdcから分離
+  - 長期知識は `.serena/memories/` に集約し、`Lessons.md` は廃止（`global.mdc` と整合）
   - global.mdcに他のルールファイルとの関連性を明示的に記載
   - global.mdcを日本語化し、内容の一貫性を向上（コマンド例の文字列は技術的な正確性のため原文のまま）
 

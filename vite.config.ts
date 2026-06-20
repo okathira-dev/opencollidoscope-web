@@ -1,19 +1,19 @@
-import { resolve } from "path";
+import { resolve } from "node:path";
 
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const root = resolve(__dirname, "src"); // srcフォルダをrootにする。マルチページのフォルダをsrcにまとめたい＆変に階層を増やしたくない。
-const outDir = resolve(__dirname, "dist"); // でも当然ビルドフォルダはsrcの外にしたい
+const root = resolve(__dirname, "src");
+const outDir = resolve(__dirname, "dist");
 
 export default defineConfig({
-  base: "./", // JSのimportが相対パスになる。ビルドしたフォルダ単体で動くので便利。
+  base: "./",
   root,
   plugins: [react()],
   build: {
     outDir,
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         index: resolve(root, "index.html"),
       },

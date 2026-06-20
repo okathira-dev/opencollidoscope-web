@@ -221,25 +221,66 @@ Collidoscopeの心臓部であるグラニュラーシンセサイザーをWeb A
 
 ## 5. 技術スタック
 
-- **フロントエンド:** React 18, TypeScript 5+
+- **フロントエンド:** React 19, TypeScript 6
 - **音声処理:** Web Audio API（AudioWorklet、AudioWorkletNode）
-- **UIコンポーネント:** MUI v7
+- **UIコンポーネント:** MUI 9
 - **状態管理:** Zustand
 - **描画:** HTML5 Canvas API（波形・オシロスコープ・パーティクル）
-- **ビルドツール:** Vite（高速開発・ビルド）
+- **ビルドツール:** Vite 8
 
-### 5.1. 対応ブラウザ（AudioWorklet対応）
+### 5.1. 開発環境
+
+- **パッケージマネージャ:** pnpm 11
+- **Node.js:** ^24.14.0
+- **品質チェック:** Biome（lint / format）、markdownlint-cli2、`pnpm check`（Biome + 型チェック + Markdown）
+- **テスト:** Vitest（単体、デフォルト `jsdom`）、Playwright（E2E、将来）
+- **Git フック:** Husky + lint-staged（Biome、`tsc --noEmit`、markdownlint）
+- **CI/CD:** GitHub Actions（`check` → `test` → `build`）、GitHub Pages デプロイ（build のみ、品質ゲートは CI に委ねる）
+
+### 5.2. 対応ブラウザ（AudioWorklet対応）
 
 - **Chrome:** 66+（AudioWorklet対応開始）
 - **Firefox:** 76+（AudioWorklet対応開始）
 - **Safari:** 14.1+（AudioWorklet対応開始）
 - **Edge:** 79+（Chromiumベース）
 
-### 5.2. AudioWorklet要件
+### 5.3. AudioWorklet要件
 
 - **HTTPS必須**: AudioWorkletはHTTPS環境でのみ動作します
 - **Cross-Origin Isolation**: SharedArrayBufferを使用する場合は必要
 - **Worker Context**: 音声処理はメインスレッドとは独立したワーカーコンテキストで実行
+
+### 5.4. 開発環境の未整備と意図的な選択
+
+実装フェーズ（Phase 1）において、一般的なベストプラクティスと意図的に異なる点・まだ手を付けていない点をここに集約する。詳細コマンドは [README.md](README.md) および `.serena/memories/suggested_commands.md` を参照。
+
+#### 意図的な選択（トレードオフとして維持）
+
+| 項目 | 内容 |
+| --- | --- |
+| ツールチェーン | Node.js ^24.14.0 / TypeScript 6 / Vite 8 など最新寄り。LTS 固定より再現性と先進性を優先 |
+| Vite の `root` | リポジトリ直下ではなく `src/` をルートに設定（`vite.config.ts`） |
+| 品質ツールの分離 | TS/JS は Biome、Markdown は markdownlint-cli2 |
+| pre-commit の型チェック | lint-staged で staged ファイルに Biome をかけつつ、`tsc --noEmit` はプロジェクト全体を検査 |
+| テスト未実装時の CI | Vitest `passWithNoTests: true` でテストファイル0件でも CI を通す |
+| 供給チェーン | `pnpm-workspace.yaml` の `minimumReleaseAge`（3日）、CI の Takumi Guard |
+| 単一パッケージの workspace | 現状はアプリ1つのみ。将来のパッケージ分割に備え `pnpm-workspace.yaml` を維持 |
+| 参照用 C++ 同梱 | `opencollidoscope/` は Web アプリのビルド対象外（参照・AI 補完用） |
+| Pages デプロイ | `publish-pages.yml` は `pnpm build` のみ。`check` / `test` は `node.js.yml` が担当 |
+
+#### 未整備（今後導入予定）
+
+| 項目 | 現状 | 導入時の目安 |
+| --- | --- | --- |
+| React コンポーネントテスト | Vitest + `jsdom` のみ。`@testing-library/react` 未導入 | 最初の UI コンポーネント実装時 |
+| E2E テスト | Playwright は MCP（`pnpm dlx`）のみ。`devDependencies`・CI 未設定 | 主要ユーザーフロー実装後 |
+| カバレッジ | `@vitest/coverage-v8` 等なし | テストが一定数増えた段階 |
+| テストファイル | `src/` 配下に `*.test.ts(x)` なし | ドメインロジック実装と同時 |
+| README の言語 | 製品説明は英語。開発手順（Development）は README に追記済み | 必要に応じて日本語化 |
+
+#### 解消済みの齟齬
+
+- `coding-rules.mdc` が存在しない `src/README.md` を想定していた → ルールから削除（README はリポジトリ直下のみ）
 
 ## 6. パフォーマンス考慮事項
 

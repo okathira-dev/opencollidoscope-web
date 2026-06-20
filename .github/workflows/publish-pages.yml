@@ -1,52 +1,53 @@
 # ref: https://ja.vitejs.dev/guide/static-deploy.html#github-pages
-# 静的コンテンツを GitHub Pages にデプロイするためのシンプルなワークフロー
+# 静的コンテンツを GitHub Pages にデプロイするためのワークフロー
 name: Deploy static content to Pages
 
 on:
-  # デフォルトブランチを対象としたプッシュ時にで実行されます
   push:
     branches: ["main"]
-
-  # Actions タブから手動でワークフローを実行できるようにします
   workflow_dispatch:
 
-# GITHUB_TOKEN のパーミッションを設定し、GitHub Pages へのデプロイを許可します
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# 1 つの同時デプロイメントを可能にする
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PAGES_ARTIFACT_NAME: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  # デプロイするだけなので、単一のデプロイジョブ
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - name: Setup toolchain
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Build
+        run: pnpm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          name: ${{ env.PAGES_ARTIFACT_NAME }}
+          path: "./dist"
+
   deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22.x"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm install
-      - name: Build
-        run: npm run build
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # dist リポジトリーのアップロード
-          path: "./dist"
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128
+        with:
+          artifact_name: ${{ env.PAGES_ARTIFACT_NAME }}

@@ -18,3 +18,17 @@ official repository of Open Collidoscope: <https://code.soundsoftware.ac.uk/proj
 This repository of web application has a directory `opencollidoscope` that is a clone of original repository of Open Collidoscope. It is for AI-powered code completion. The other directories and files are for the web application.
 
 The revision is [18:f1ff1a81be20](https://code.soundsoftware.ac.uk/projects/opencollidoscope/repository/revisions/f1ff1a81be20d31608a4002546722d839f64b31e).
+
+## Development
+
+Prerequisites: **Node.js** `^24.14.0`, **pnpm** 11 (see `packageManager` in `package.json`).
+
+```bash
+pnpm install
+pnpm dev          # dev server (Vite root is src/)
+pnpm check        # Biome + tsc + markdownlint
+pnpm test         # Vitest (passWithNoTests until tests exist)
+pnpm build
+```
+
+Intentional trade-offs and gaps not yet implemented (testing libraries, E2E in CI, coverage, etc.) are documented in [opencollidoscope-web-spec.md](opencollidoscope-web-spec.md) section **5.4**.
