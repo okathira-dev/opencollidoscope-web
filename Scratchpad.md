@@ -5,6 +5,17 @@
 
 ## 現在のタスク
 
+TDD 基盤整備と設定バリデーション実装
+
+- [X] テスト依存関係の導入（zod, @testing-library/*, @vitest/coverage-v8）
+- [X] Vitest 設定拡張（setupFiles, coverage, include）
+- [X] テストインフラ（src/test/setup.ts, renderWithTheme）
+- [X] CI / lint-staged 更新（test:coverage, vitest related）
+- [X] 設定バリデーションの TDD 実装（config-schema, default-config, config-manager）
+- [X] 仕様書・メモリ更新
+
+## 完了済みタスク
+
 opencollidoscope Web版移植設計書作成
 
 - [X] オリジナルコードの分析と理解

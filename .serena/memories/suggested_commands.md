@@ -30,9 +30,11 @@
 
 ## テスト
 
-- `pnpm test` — Vitest 一回実行（現状テストファイルなし、`passWithNoTests: true`）
+- `pnpm test` — Vitest 一回実行
 - `pnpm test:watch` — ウォッチ
-- テストファイルは `src/` 配下（Vite root と一致）。UI テスト用 `@testing-library/react` は未導入（仕様書 5.4）
+- `pnpm test:coverage` — カバレッジ付き実行（レポートは `coverage/`）
+- テストファイルは `src/` 配下にコロケーション（`*.test.ts(x)`）
+- UI テストは `@testing-library/react` + `src/test/test-utils.tsx` の `renderWithTheme`
 
 ## Git（Windows）
 
@@ -41,4 +43,4 @@
 
 ## Husky / lint-staged
 
-コミット時に TS/JS は `biome check` と `tsc --noEmit`、md は markdownlint が走る（`lint-staged.config.mjs`）。
+コミット時に TS/JS は `biome check`、`tsc --noEmit`、変更ソースに関連する `vitest related --run`、md は markdownlint が走る（`lint-staged.config.mjs`）。

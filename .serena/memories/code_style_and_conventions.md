@@ -37,3 +37,10 @@
 
 - `JSON.parse(data) as Type` は危険。Zod 等でランタイム型検証を行う
 - 設計書の TypeScript コードは擬似コード扱い。実装時は再設計が必要
+
+## テスト
+
+- Vitest の `describe` / `it` / `expect` は明示 import（globals は使わない）
+- テストファイルはソースの隣に `*.test.ts(x)` でコロケーション
+- UI テストは `src/test/test-utils.tsx` の `renderWithTheme` を使う
+- Zod 4 ではネストした `.default({})` だけでは内側のデフォルトが適用されない。空のネスト構造をマージしてから `parse` する

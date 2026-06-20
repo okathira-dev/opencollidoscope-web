@@ -233,9 +233,9 @@ Collidoscopeの心臓部であるグラニュラーシンセサイザーをWeb A
 - **パッケージマネージャ:** pnpm 11
 - **Node.js:** ^24.14.0
 - **品質チェック:** Biome（lint / format）、markdownlint-cli2、`pnpm check`（Biome + 型チェック + Markdown）
-- **テスト:** Vitest（単体、デフォルト `jsdom`）、Playwright（E2E、将来）
-- **Git フック:** Husky + lint-staged（Biome、`tsc --noEmit`、markdownlint）
-- **CI/CD:** GitHub Actions（`check` → `test` → `build`）、GitHub Pages デプロイ（build のみ、品質ゲートは CI に委ねる）
+- **テスト:** Vitest（単体、デフォルト `jsdom`）、`@testing-library/react`、`@vitest/coverage-v8`（`pnpm test:coverage`）、Playwright（E2E、将来）
+- **Git フック:** Husky + lint-staged（Biome、`tsc --noEmit`、`vitest related --run`、markdownlint）
+- **CI/CD:** GitHub Actions（`check` → `test:coverage` → `build`）、GitHub Pages デプロイ（build のみ、品質ゲートは CI に委ねる）
 
 ### 5.2. 対応ブラウザ（AudioWorklet対応）
 
@@ -262,7 +262,7 @@ Collidoscopeの心臓部であるグラニュラーシンセサイザーをWeb A
 | Vite の `root` | リポジトリ直下ではなく `src/` をルートに設定（`vite.config.ts`） |
 | 品質ツールの分離 | TS/JS は Biome、Markdown は markdownlint-cli2 |
 | pre-commit の型チェック | lint-staged で staged ファイルに Biome をかけつつ、`tsc --noEmit` はプロジェクト全体を検査 |
-| テスト未実装時の CI | Vitest `passWithNoTests: true` でテストファイル0件でも CI を通す |
+| pre-commit の関連テスト | lint-staged でソース変更時に `vitest related --run` を実行 |
 | 供給チェーン | `pnpm-workspace.yaml` の `minimumReleaseAge`（3日）、CI の Takumi Guard |
 | 単一パッケージの workspace | 現状はアプリ1つのみ。将来のパッケージ分割に備え `pnpm-workspace.yaml` を維持 |
 | 参照用 C++ 同梱 | `opencollidoscope/` は Web アプリのビルド対象外（参照・AI 補完用） |
@@ -272,15 +272,16 @@ Collidoscopeの心臓部であるグラニュラーシンセサイザーをWeb A
 
 | 項目 | 現状 | 導入時の目安 |
 | --- | --- | --- |
-| React コンポーネントテスト | Vitest + `jsdom` のみ。`@testing-library/react` 未導入 | 最初の UI コンポーネント実装時 |
 | E2E テスト | Playwright は MCP（`pnpm dlx`）のみ。`devDependencies`・CI 未設定 | 主要ユーザーフロー実装後 |
-| カバレッジ | `@vitest/coverage-v8` 等なし | テストが一定数増えた段階 |
-| テストファイル | `src/` 配下に `*.test.ts(x)` なし | ドメインロジック実装と同時 |
+| カバレッジ閾値 | `@vitest/coverage-v8` でレポート生成済み。閾値未設定 | テストが一定数増えた段階 |
 | README の言語 | 製品説明は英語。開発手順（Development）は README に追記済み | 必要に応じて日本語化 |
 
 #### 解消済みの齟齬
 
 - `coding-rules.mdc` が存在しない `src/README.md` を想定していた → ルールから削除（README はリポジトリ直下のみ）
+- React コンポーネントテスト基盤 → `@testing-library/react` / `jest-dom` / `user-event` を導入。`src/test/setup.ts` と `renderWithTheme` を整備
+- カバレッジ計測 → `@vitest/coverage-v8` を導入。CI は `pnpm test:coverage` を実行
+- ドメインテスト → `src/domain/config/` に設定バリデーション（Zod + ConfigManager）の単体テスト 22 件を追加
 
 ## 6. パフォーマンス考慮事項
 

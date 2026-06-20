@@ -18,6 +18,7 @@ description: Open Collidoscope Web リポジトリの構造、技術スタック
 - Vite の `root` は `src/`（テストも `src/` 配下の `*.test.ts(x)` を想定）
 - オリジナル C++ コード: `opencollidoscope/`（参照用、Mercurial クローン）
 - 未整備・意図的な選択: `opencollidoscope-web-spec.md` セクション 5.4
+- テスト: `src/**/*.test.{ts,tsx}` をコロケーション。セットアップは `src/test/setup.ts`、UI は `renderWithTheme`
 
 ## ディレクトリ構成
 

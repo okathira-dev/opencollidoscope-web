@@ -8,14 +8,14 @@
 ## 技術スタック
 
 - **フロントエンド**: React 19, TypeScript 6, Vite 8, MUI 9, Zustand, Tone.js
-- **品質**: Biome 2.5（lint + format）, markdownlint-cli2, Vitest 4（デフォルト `jsdom`）
+- **品質**: Biome 2.5（lint + format）, markdownlint-cli2, Vitest 4（`jsdom`）, `@testing-library/react`, `@vitest/coverage-v8`
 - **パッケージマネージャ**: pnpm 11
 - **Node**: ^24.14.0
 - **AI ツール**: Cursor Rules/Skills, Serena MCP, Playwright MCP, Chrome DevTools MCP
 
 ## リポジトリ構成
 
-- `src/` — アプリケーションソース（現在はプレースホルダー）
+- `src/` — アプリケーションソース（`domain/config/` に設定バリデーション実装済み）
 - `opencollidoscope/` — オリジナル C++ ソース（参照用）
 - `opencollidoscope-web-spec.md` — 実装仕様
 - `opencollidoscope-web-design.md` — 設計書

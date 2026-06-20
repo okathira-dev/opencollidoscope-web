@@ -7,7 +7,14 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
-      passWithNoTests: true,
+      setupFiles: ["test/setup.ts"],
+      include: ["**/*.test.{ts,tsx}"],
+      passWithNoTests: false,
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "html"],
+        reportsDirectory: "../coverage",
+      },
     },
   }),
 );

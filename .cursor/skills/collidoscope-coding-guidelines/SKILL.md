@@ -37,4 +37,4 @@ description: Open Collidoscope Web 実装時の基本コーディング規約（
 ## 変更後の検証
 
 - `pnpm check` を通す（Biome + 型チェック + markdownlint）
-- ロジックに触れた場合は `pnpm test`
+- ロジックに触れた場合は `pnpm test` または `pnpm test:coverage`
