@@ -202,3 +202,7 @@ export function useStartRecording() {
 export function useStopRecording() {
   return useAudioStoreInternal((state) => state.stopRecording);
 }
+
+export function getAudioStoreState(): AudioState {
+  return useAudioStoreInternal.getState();
+}

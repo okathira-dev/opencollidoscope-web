@@ -47,3 +47,11 @@ export function useResetConfig() {
 export function getConfigState(): ConfigState {
   return useConfigStoreInternal.getState();
 }
+
+export function subscribeConfig(listener: (config: CollidoscopeConfig) => void): () => void {
+  return useConfigStoreInternal.subscribe((state, prev) => {
+    if (state.config !== prev.config) {
+      listener(state.config);
+    }
+  });
+}

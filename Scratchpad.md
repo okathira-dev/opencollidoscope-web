@@ -5,15 +5,7 @@
 
 ## 現在のタスク
 
-### Phase 1 実装（次: M2）
-
-### M2: 選択 + グラニュラー + 鍵盤
-
-- [ ] `granular-processor` Worklet（`PGranular` 移植、`domain/audio` と共有）
-- [ ] `synthStore` 追加
-- [ ] `ConfigPanel` に **グラニュラータブ** 追加
-- [ ] 選択 UI（スライダー + ホイール）
-- [ ] `PianoKeyboard` + PC キーボード
+### Phase 1 実装（次: M3）
 
 ### M3: ループ・フィルター・オシロスコープ
 
@@ -31,6 +23,17 @@
 - [ ] キーボードショートカット一式
 
 ## 完了済みタスク
+
+### M2: 選択 + グラニュラー + 鍵盤
+
+- [x] `src/domain/audio/` — grain.ts（Hann窓・補間・ピッチ）、env-asr.ts + テスト
+- [x] `granular-processor` Worklet（PGranular 移植、ボイス管理、メッセージプロトコル）
+- [x] `GranularSynthesizer` クラス + `synthStore`
+- [x] `waveStore` 選択状態（start/size）+ ストア購読で Worklet 同期
+- [x] `WaveDisplay` 選択ハイライト + ドラッグ + ホイール
+- [x] `PianoKeyboard` + PC キーボード（A S D F G H J K / W E T Y U）
+- [x] `ConfigPanel` グラニュラータブ
+- [x] `SynthEngine` 統合（録音 → 選択 → 鍵盤演奏）
 
 ### M1: 録音 → 波形表示
 
@@ -73,4 +76,5 @@ TDD 基盤・設定ドメイン
 
 - M1 スパイク完了。`?worker&url` + coi-serviceworker で SharedArrayBuffer / AudioWorklet を確認。
 - M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声タブ）、Zustand ストア4つ。
-- 次: M2（選択 UI、granular-processor、PianoKeyboard）。
+- M2 完了。PGranular 移植の granular-processor、選択 UI、PianoKeyboard、synthStore。録音バッファからグラニュラー演奏可能。
+- 次: M3（ループ、フィルター、オシロスコープ、再生カーソル）。
