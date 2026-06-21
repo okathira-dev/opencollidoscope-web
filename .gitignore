@@ -11,11 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
-.eslintcache
+/coverage
+
+# Spike investigation (local E2E only, do not commit)
+spike-*.mjs
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -26,5 +29,5 @@ dist-ssr
 .specstory
 opencollidoscope/downloads
 
-.env*
-!.env.example
+# Serena cache
+.serena/cache/

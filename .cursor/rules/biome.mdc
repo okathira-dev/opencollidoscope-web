@@ -1,0 +1,28 @@
+---
+description: Biome（フォーマット・Lint・check）運用ルール
+globs: biome.json,package.json,.vscode/settings.json
+alwaysApply: false
+---
+# Biome 運用ルール
+
+このプロジェクトのリンター兼フォーマッターは **Biome のみ** です。ESLint と Prettier は使いません。
+
+## 基本方針
+
+- コード整形・静的解析は `biome.json` と `@biomejs/biome` に従う
+- import 整理は Biome の `organizeImports` を使う
+- 変更は既存スタイル（ダブルクォート、セミコロン、2スペース等）を維持する
+
+## 実行コマンド
+
+- `pnpm check`: Biome（format + lint）、`pnpm compile`（`tsc --noEmit`）、markdownlint をまとめて確認
+- `pnpm check:fix`: Biome と markdownlint の自動修正（**型チェックは含まない**。総合確認は `pnpm check`）
+- `pnpm format` / `pnpm format:fix`
+- `pnpm lint` / `pnpm lint:fix`
+
+## Markdown
+
+Markdown（`.md`, `.mdx`, `.mdc`）は Biome ではなく markdownlint-cli2 で検査します。
+
+- `pnpm lint-md`
+- `pnpm lint-md:fix`

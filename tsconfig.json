@@ -2,36 +2,25 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "target": "ES2020",
+    "target": "ES2024",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleDetection": "force",
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    /* Linting */
     "strict": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    /* jest */
+    "noImplicitAny": true,
     "esModuleInterop": true
   },
-  "include": [
-    "src"
-  ],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+  "include": ["src"],
+  "exclude": ["src/features/synth-engine/worklets/**/*.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

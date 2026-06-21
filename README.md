@@ -18,3 +18,27 @@ official repository of Open Collidoscope: <https://code.soundsoftware.ac.uk/proj
 This repository of web application has a directory `opencollidoscope` that is a clone of original repository of Open Collidoscope. It is for AI-powered code completion. The other directories and files are for the web application.
 
 The revision is [18:f1ff1a81be20](https://code.soundsoftware.ac.uk/projects/opencollidoscope/repository/revisions/f1ff1a81be20d31608a4002546722d839f64b31e).
+
+## Documentation
+
+| Document | Description |
+| --- | --- |
+| [docs/original-analysis.md](docs/original-analysis.md) | Analysis of the original C++ implementation |
+| [docs/web-spec.md](docs/web-spec.md) | Web version goals, features, and configuration |
+| [docs/web-design.md](docs/web-design.md) | Web version architecture and porting design |
+
+## Development
+
+Prerequisites: **Node.js** `^24.14.0`, **pnpm** 11 (see `packageManager` in `package.json`).
+
+```bash
+pnpm install
+pnpm dev          # dev server (Vite root is src/)
+pnpm check        # Biome + tsc + markdownlint
+pnpm test         # Vitest (passWithNoTests until tests exist)
+pnpm build
+```
+
+デモ（GitHub Pages）: <https://okathira-dev.github.io/opencollidoscope-web/> — M1 スパイク診断 UI（AudioWorklet・coi-serviceworker・440Hz テスト音）
+
+Intentional trade-offs and gaps not yet implemented (testing libraries, E2E in CI, coverage, etc.) are documented in [docs/web-spec.md](docs/web-spec.md) under **開発環境の意図的な選択と未整備**.
