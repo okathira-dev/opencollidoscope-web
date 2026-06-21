@@ -13,6 +13,9 @@ dist-ssr
 *.local
 /coverage
 
+# Spike investigation (local E2E only, do not commit)
+spike-test.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/settings.json
