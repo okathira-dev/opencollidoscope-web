@@ -9,8 +9,8 @@
 
 ### M1: 録音 → 波形表示
 
-- [ ] スパイク: Vite `?worker&url` で空 Worklet を `addModule` できること
-- [ ] スパイク: [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker)（GitHub Pages / SharedArrayBuffer 用。未完了でも postMessage で継続可）
+- [x] スパイク: Vite `?worker&url` で空 Worklet を `addModule` できること
+- [x] スパイク: [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker)（GitHub Pages / SharedArrayBuffer 用。未完了でも postMessage で継続可）
 - [ ] `src/features/synth-engine/` 骨格（`SynthEngine.tsx`, `index.ts`）
 - [ ] `src/domain/audio/` — チャンク計算・フェード等の純粋関数 + 単体テスト
 - [ ] `src/stores/` — `audioStore`, `waveStore`, `configStore`, `uiStore`（`isConfigPanelOpen`）
@@ -76,4 +76,5 @@ TDD 基盤・設定ドメイン
 
 ## 振り返り
 
-- 設計・TODO は M1 着手可能。実装は上記 M1 の先頭（Worklet スパイク）から開始する。
+- M1 スパイク完了（`spike/worklet-coi` ブランチ）。`?worker&url` で TS Worklet を `addModule` 可能。coi-serviceworker + 静的配信（COOP/COEP ヘッダーなし）で `crossOriginIsolated` / `SharedArrayBuffer` / AudioWorklet テスト成功。
+- 次: `spike/worklet-coi` を main へ PR マージ後、GitHub Pages で最終確認。続いて M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。
