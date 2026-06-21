@@ -14,7 +14,7 @@ dist-ssr
 /coverage
 
 # Spike investigation (local E2E only, do not commit)
-spike-test.mjs
+spike-*.mjs
 
 # Editor directories and files
 .vscode/*

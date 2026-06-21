@@ -1,3 +1,5 @@
+declare const sampleRate: number;
+
 declare abstract class AudioWorkletProcessor {
   readonly port: MessagePort;
 

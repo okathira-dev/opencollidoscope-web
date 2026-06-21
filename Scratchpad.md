@@ -70,11 +70,12 @@ TDD 基盤・設定ドメイン
 | 音声 | Web Audio API のみ（Tone.js 不使用） |
 | Worklet | TypeScript（`?worker&url`） |
 | バッファ | SharedArrayBuffer 優先 / postMessage フォールバック |
-| GitHub Pages | coi-serviceworker を M1 スパイクで検証 |
+| GitHub Pages | coi-serviceworker を M1 スパイクで検証済み |
 | 設定 UI | M1 から折りたたみ `ConfigPanel` 常設。プリセット・JSON は M4 |
 | ディレクトリ | `src/features/synth-engine/` + `src/stores/` + `src/domain/` |
 
 ## 振り返り
 
 - M1 スパイク完了（`feature/update-dev-env` ブランチ）。`?worker&url` で TS Worklet を `addModule` 可能。coi-serviceworker + 静的配信（COOP/COEP ヘッダーなし）で `crossOriginIsolated` / `SharedArrayBuffer` / AudioWorklet テスト成功。
-- 次: `feature/update-dev-env` を main へ PR マージ後、GitHub Pages で最終確認。続いて M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。
+- スパイク診断で Worklet 経由の 440Hz 音声出力・GainNode 音量調節（再生/停止）を確認。
+- 次: M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。診断 UI（`App.tsx`）は本実装時に置き換え。

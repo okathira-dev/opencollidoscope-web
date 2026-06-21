@@ -39,4 +39,6 @@ pnpm test         # Vitest (passWithNoTests until tests exist)
 pnpm build
 ```
 
+デモ（GitHub Pages）: <https://okathira-dev.github.io/opencollidoscope-web/> — M1 スパイク診断 UI（AudioWorklet・coi-serviceworker・440Hz テスト音）
+
 Intentional trade-offs and gaps not yet implemented (testing libraries, E2E in CI, coverage, etc.) are documented in [docs/web-spec.md](docs/web-spec.md) under **開発環境の意図的な選択と未整備**.

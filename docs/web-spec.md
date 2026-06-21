@@ -39,8 +39,10 @@
 
 **調査タスク**（M1 の先頭で実施。未完了でも postMessage フォールバックで継続可）:
 
-- Vite `?worker&url` による Worklet の TypeScript ビルド
-- GitHub Pages 向け [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) による COOP/COEP 迂回（SharedArrayBuffer 用）
+- [x] Vite `?worker&url` による Worklet の TypeScript ビルド（`spike-processor` で `addModule`・440Hz 出力を確認）
+- [x] GitHub Pages 向け [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) による COOP/COEP 迂回（`crossOriginIsolated` / `SharedArrayBuffer` を確認。初回リロードあり）
+
+実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/spike-processor.ts`（スパイク用。M1 本実装時に `recording-processor` へ置き換え）
 
 ### マイルストーンと Store の導入タイミング
 

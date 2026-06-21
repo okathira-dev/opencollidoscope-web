@@ -1,14 +1,21 @@
 class SpikeProcessor extends AudioWorkletProcessor {
-  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
-    const input = inputs[0];
+  private phase = 0;
+  private readonly frequency = 440;
+
+  process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     const output = outputs[0];
-    if (input && output) {
-      for (let ch = 0; ch < output.length; ch++) {
-        const inp = input[ch];
-        const out = output[ch];
-        if (inp && out) {
-          out.set(inp);
-        }
+    if (!output) {
+      return true;
+    }
+
+    for (let ch = 0; ch < output.length; ch++) {
+      const channel = output[ch];
+      if (!channel) {
+        continue;
+      }
+      for (let i = 0; i < channel.length; i++) {
+        channel[i] = Math.sin(this.phase) * 0.2;
+        this.phase += (2 * Math.PI * this.frequency) / sampleRate;
       }
     }
     return true;

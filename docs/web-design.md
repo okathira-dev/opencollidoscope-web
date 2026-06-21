@@ -393,7 +393,7 @@ flowchart TB
 | `SharedArrayBuffer` | 本番・隔離済み環境。録音と再生が同一メモリを参照 |
 | `postMessage` + コピー | `crossOriginIsolated` が false のとき（開発初回、coi 未導入） |
 
-**GitHub Pages**: カスタム HTTP ヘッダが使えないため、[coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) で Service Worker 経由の COOP/COEP 注入を検証する（M1 前の調査タスク）。初回訪問時にページリロードが発生する点に留意。
+**GitHub Pages**: カスタム HTTP ヘッダが使えないため、[coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) で Service Worker 経由の COOP/COEP 注入を行う（スパイクで検証済み。`vite.config.ts` のプラグインが `dist/` に同梱）。初回訪問時にページリロードが発生する点に留意。
 
 ### recording-processor.ts
 

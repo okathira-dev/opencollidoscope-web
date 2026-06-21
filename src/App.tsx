@@ -7,13 +7,17 @@ import {
   List,
   ListItem,
   ListItemText,
+  Slider,
+  Stack,
   Typography,
 } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import spikeProcessorUrl from "./features/synth-engine/worklets/spike-processor.ts?worker&url";
 
 type WorkletTestStatus = "idle" | "running" | "success" | "error";
+
+const DEFAULT_VOLUME = 0.3;
 
 function isSharedArrayBufferAvailable(): boolean {
   try {
@@ -28,30 +32,88 @@ function StatusChip({ ok, label }: { ok: boolean; label: string }) {
 }
 
 export function App() {
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+
   const [workletStatus, setWorkletStatus] = useState<WorkletTestStatus>("idle");
   const [workletMessage, setWorkletMessage] = useState<string>("");
+  const [audioReady, setAudioReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
 
   const crossOriginIsolated = self.crossOriginIsolated;
   const sharedArrayBufferAvailable = useMemo(() => isSharedArrayBufferAvailable(), []);
+
+  useEffect(() => {
+    const gainNode = gainNodeRef.current;
+    if (gainNode) {
+      gainNode.gain.value = volume;
+    }
+  }, [volume]);
+
+  useEffect(() => {
+    return () => {
+      workletNodeRef.current?.disconnect();
+      gainNodeRef.current?.disconnect();
+      void audioContextRef.current?.close();
+      audioContextRef.current = null;
+      workletNodeRef.current = null;
+      gainNodeRef.current = null;
+    };
+  }, []);
 
   const runWorkletTest = useCallback(async () => {
     setWorkletStatus("running");
     setWorkletMessage("");
 
     try {
-      const audioContext = new AudioContext();
-      await audioContext.resume();
-      await audioContext.audioWorklet.addModule(spikeProcessorUrl);
-      const node = new AudioWorkletNode(audioContext, "spike-processor");
-      node.disconnect();
-      await audioContext.close();
+      if (!audioContextRef.current) {
+        const audioContext = new AudioContext();
+        await audioContext.resume();
+        await audioContext.audioWorklet.addModule(spikeProcessorUrl);
 
+        const workletNode = new AudioWorkletNode(audioContext, "spike-processor");
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = volume;
+
+        workletNode.connect(gainNode);
+
+        audioContextRef.current = audioContext;
+        workletNodeRef.current = workletNode;
+        gainNodeRef.current = gainNode;
+      }
+
+      setAudioReady(true);
       setWorkletStatus("success");
-      setWorkletMessage("addModule と AudioWorkletNode の生成に成功しました。");
+      setWorkletMessage(
+        "addModule と AudioWorkletNode の生成に成功しました。再生ボタンで音を確認できます。",
+      );
     } catch (error) {
       setWorkletStatus("error");
       setWorkletMessage(error instanceof Error ? error.message : String(error));
     }
+  }, [volume]);
+
+  const startPlayback = useCallback(async () => {
+    const audioContext = audioContextRef.current;
+    const gainNode = gainNodeRef.current;
+    if (!audioContext || !gainNode) {
+      return;
+    }
+
+    await audioContext.resume();
+    gainNode.connect(audioContext.destination);
+    setIsPlaying(true);
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    gainNodeRef.current?.disconnect();
+    setIsPlaying(false);
+  }, []);
+
+  const handleVolumeChange = useCallback((_: Event, value: number | number[]) => {
+    setVolume(Array.isArray(value) ? (value[0] ?? DEFAULT_VOLUME) : value);
   }, []);
 
   return (
@@ -97,7 +159,7 @@ export function App() {
           <Button
             variant="contained"
             onClick={runWorkletTest}
-            disabled={workletStatus === "running"}
+            disabled={workletStatus === "running" || audioReady}
           >
             {workletStatus === "running" ? "テスト中..." : "AudioWorklet テスト"}
           </Button>
@@ -117,6 +179,36 @@ export function App() {
                 : workletMessage}
             </Alert>
           )}
+        </Box>
+
+        <Box>
+          <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: "center" }}>
+            <Typography variant="h6">音声出力テスト</Typography>
+            {isPlaying && <Chip label="再生中" color="primary" size="small" />}
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            440Hz サイン波を AudioWorklet 経由で出力します。
+          </Typography>
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Button variant="contained" onClick={startPlayback} disabled={!audioReady || isPlaying}>
+              再生
+            </Button>
+            <Button variant="outlined" onClick={stopPlayback} disabled={!audioReady || !isPlaying}>
+              停止
+            </Button>
+          </Stack>
+          <Typography variant="body2" gutterBottom>
+            音量: {Math.round(volume * 100)}%
+          </Typography>
+          <Slider
+            value={volume}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={handleVolumeChange}
+            disabled={!audioReady}
+            aria-label="音量"
+          />
         </Box>
       </Box>
     </Container>
