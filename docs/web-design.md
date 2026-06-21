@@ -69,12 +69,12 @@ graph TB
 
 | C++ モジュール | Web 対応 | 備考 |
 | --- | --- | --- |
-| `PGranular.h` | `public/audio-worklets/granular-processor.js` | 核心アルゴリズム。AudioWorklet 内で実行 |
-| `EnvASR.h` | `src/domain/audio/env-asr.ts` | ASR エンベロープ |
+| `PGranular.h` | `features/synth-engine/worklets/granular-processor.ts` | Vite `?worker&url` でビルド |
+| `EnvASR.h` | `src/domain/audio/env-asr.ts` | Worklet から import 可（純粋関数のみ） |
 | `PGranularNode` | `GranularSynthesizer` クラス | Worklet との MessagePort 統合、ボイス管理 |
-| `BufferToWaveRecorderNode` | `public/audio-worklets/recording-processor.js` | 録音 + チャンク min/max |
+| `BufferToWaveRecorderNode` | `features/synth-engine/worklets/recording-processor.ts` | 録音 + チャンク min/max |
 | `AudioEngine` | `AudioEngineManager` | グラフ構築、パラメータ橋渡し |
-| `Wave` / `Chunk` | `WaveDisplay` コンポーネント | Canvas 描画 |
+| `Wave` / `Chunk` | `features/synth-engine/components/WaveDisplay.tsx` | Canvas 描画 |
 | `Oscilloscope` | `Oscilloscope` コンポーネント | `AnalyserNode` + Canvas |
 | `ParticleController` | `ParticleSystem`（Canvas） | WaveDisplay 内または独立 |
 | `Config` | `src/domain/config/` | Zod スキーマ + `ConfigManager` |
@@ -199,24 +199,45 @@ interface AudioState {
 }
 ```
 
+**導入タイミング**: M1。
+
 ### ConfigStore
 
 ```typescript
 interface ConfigState {
   config: CollidoscopeConfig;
   configManager: ConfigManager;
-  isConfigOpen: boolean;
-  presets: Record<string, CollidoscopeConfig>;
 
   updateConfig: (updates: PartialCollidoscopeConfig) => void;
-  exportConfig: () => string;
-  importConfig: (json: string) => void;
-  savePreset: (name: string) => void;
-  loadPreset: (name: string) => void;
+  resetConfig: () => void;
+  exportConfig: () => string;   // M4
+  importConfig: (json: string) => void;  // M4
+
+  presets: Record<string, CollidoscopeConfig>;  // M4
+  savePreset: (name: string) => void;  // M4
+  loadPreset: (name: string) => void;  // M4
+  deletePreset: (name: string) => void;  // M4
 }
 ```
 
 実装済みドメイン: `src/domain/config/`（Zod スキーマ、`ConfigManager`、localStorage 永続化）
+
+### UIStore
+
+```typescript
+interface UIState {
+  isConfigPanelOpen: boolean;  // false = 最小化（デフォルト）
+  keyboardLayout: KeyMap;
+  selectedEngine: number;
+  isFullscreen: boolean;
+
+  openConfigPanel: () => void;
+  closeConfigPanel: () => void;
+  toggleConfigPanel: () => void;
+}
+```
+
+パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1。
 
 ### WaveStore
 
@@ -231,6 +252,8 @@ interface WaveState {
   setCursor: (id: number, position: number) => void;
 }
 ```
+
+**導入タイミング**: M1（チャンク表示）。選択・カーソルは M2〜M3 で活用。
 
 ### SynthStore
 
@@ -248,15 +271,7 @@ interface SynthState {
 }
 ```
 
-### UIStore
-
-```typescript
-interface UIState {
-  keyboardLayout: KeyMap;
-  selectedEngine: number;
-  isFullscreen: boolean;
-}
-```
+**導入タイミング**: M2（M1 では未使用）。
 
 ## コンポーネント設計
 
@@ -300,36 +315,101 @@ class GranularSynthesizer {
 
 ### ConfigPanel
 
-MUI `Dialog` + `Tabs` で設定セクション（音声、グラニュラー、視覚、MIDI、プリセット）を表示。
+**折りたたみ式の常設パネル。** デフォルト最小化、展開時に全設定を GUI 編集できる。移植・デバッグ時にオリジナル定数をいじりながら挙動を確認する用途を兼ねる。
+
+- **配置**: 画面右端の `Drawer`（`persistent`）または FAB + 展開パネル
+- **最小化時**: 歯車アイコンのみ、または細いラベルバー
+- **展開時**: MUI `Tabs` でセクション分割
+- **M1**: `ConfigStore` 接続 + 「音声」タブ（`waveLength`, `chunkCount` 等）
+- **M2 以降**: 実装した機能に合わせてタブを追加（グラニュラー、フィルター、視覚）
+- **M4**: 「プリセット」タブ（保存・読み込み・JSON 入出力）
+
+```typescript
+// 最小化状態は UIStore で管理（ConfigStore ではない）
+interface UIState {
+  isConfigPanelOpen: boolean;  // false = 最小化がデフォルト
+  // ...
+}
+```
+
+変更は `updateConfig` → `ConfigManager` → 各 Store / Worklet へ伝播する。開閉は `uiStore.toggleConfigPanel()`。
 
 ## AudioWorklet 実装方針
+
+### Worklet は TypeScript で書く
+
+**全部 TS で問題ない。** `public/*.js` に手書きする必要はない。
+
+```typescript
+import recordingWorkletUrl from "./worklets/recording-processor.ts?worker&url";
+
+await audioContext.audioWorklet.addModule(recordingWorkletUrl);
+```
+
+- Vite の `?worker&url` で TS を別チャンクにトランスパイルし、URL を `addModule` に渡す
+- `?url` のみは TS を変換しないため使わない
+- Worklet から `src/domain/audio/` の**純粋関数**（Hann 窓、補間、ピッチ比など）を import し、オリジナル `PGranular.h` と同じ式を共有する
+- Worklet 内では React / Zustand / DOM API を import しない
+
+アルゴリズムの正本は `domain/audio`、リアルタイム処理の殻は `worklets/*.ts`、という分担にする。
 
 ### ファイル配置
 
 ```text
-public/
-└── audio-worklets/
-    ├── granular-processor.js
-    └── recording-processor.js
+src/features/synth-engine/
+├── SynthEngine.tsx
+├── components/
+│   ├── WaveDisplay.tsx
+│   ├── ControlPanel.tsx
+│   ├── PianoKeyboard.tsx
+│   └── Oscilloscope.tsx
+├── worklets/
+│   ├── recording-processor.ts
+│   └── granular-processor.ts
+├── hooks/
+└── index.ts
 ```
 
-Vite では `public/` 配下をそのまま配信。`audioContext.audioWorklet.addModule()` で読み込み。
+### 録音バッファ共有（パフォーマンス優先）
 
-### granular-processor.js
+```mermaid
+flowchart TB
+    subgraph isolated [crossOriginIsolated 時]
+        SAB[SharedArrayBuffer]
+        RecW[recording Worklet] --> SAB
+        GranW[granular Worklet] --> SAB
+        Main[メインスレッド] --> SAB
+    end
+
+    subgraph fallback [未隔離時フォールバック]
+        AB[AudioBuffer]
+        RecW2[recording Worklet] -->|postMessage| AB
+        AB --> GranW2[granular Worklet]
+    end
+```
+
+| 方式 | 用途 |
+| --- | --- |
+| `SharedArrayBuffer` | 本番・隔離済み環境。録音と再生が同一メモリを参照 |
+| `postMessage` + コピー | `crossOriginIsolated` が false のとき（開発初回、coi 未導入） |
+
+**GitHub Pages**: カスタム HTTP ヘッダが使えないため、[coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) で Service Worker 経由の COOP/COEP 注入を検証する（M1 前の調査タスク）。初回訪問時にページリロードが発生する点に留意。
+
+### recording-processor.ts
+
+- 入力サンプルをバッファに蓄積（SAB または内部バッファ）
+- チャンク境界で min/max を計算し `postMessage`
+- 録音完了をメインスレッドへ通知
+
+### granular-processor.ts
 
 オリジナル `PGranular` の `processGrains` / `synthesizeGrain` を移植:
 
 - グレインプール（最大 32、再利用）
 - raised cosine bell エンベロープ
 - 線形補間
-- `port.onmessage` で `setAudioBuffer`, `setSelection`, `noteOn`, `setLooping` 等を受信
+- `port.onmessage` でパラメータ受信
 - トリガー時に `postMessage({ type: 'cursorTrigger', ... })`
-
-### recording-processor.js
-
-- 入力サンプルをバッファに蓄積
-- チャンク境界で min/max を計算し `postMessage`
-- 録音完了時に `AudioBuffer` をメインスレッドへ転送
 
 ### メインスレッド ↔ Worklet 通信
 
@@ -401,31 +481,34 @@ useEffect(() => {
 
 音声 Worklet はブラウザ依存のため、核心アルゴリズム（Hann 窓、補間、ピッチ計算）は純粋関数として `src/domain/audio/` に切り出し、node 環境でテスト可能にする。
 
-## ディレクトリ構成（目標）
+## ディレクトリ構成
+
+[coding-rules.mdc](.cursor/rules/coding-rules.mdc) に準拠。機能単位は `features/` にコロケーションする。
 
 ```text
 src/
+├── features/
+│   └── synth-engine/           # Phase 1 の主機能
+│       ├── SynthEngine.tsx     # メインコンポーネント
+│       ├── components/         # WaveDisplay, ControlPanel 等
+│       ├── worklets/           # recording / granular（TypeScript）
+│       ├── hooks/              # useRecording, useGranular 等
+│       └── index.ts            # SynthEngine のみ re-export
+├── components/                 # 汎用 UI（Button, Layout 等）
 ├── domain/
-│   ├── config/          # 実装済み
-│   ├── audio/           # エンベロープ、ピッチ計算、チャンク処理
-│   └── midi/            # Web MIDI ラッパー
-├── stores/              # Zustand stores
-├── components/
-│   ├── MainApp/
-│   ├── SynthEngine/
-│   ├── WaveDisplay/
-│   ├── PianoKeyboard/
-│   ├── ControlPanel/
-│   ├── Oscilloscope/
-│   └── ConfigPanel/
-├── hooks/               # useAudioEngine, useDynamicConfig 等
-└── test/                # setup, test-utils
-
-public/
-└── audio-worklets/
-    ├── granular-processor.js
-    └── recording-processor.js
+│   ├── config/                 # 実装済み
+│   ├── audio/                  # 純粋関数（Worklet とテストで共有）
+│   └── midi/                   # Web MIDI ラッパー（M4）
+├── stores/                     # グローバル Zustand（Audio, Wave, Synth, Config, UI）
+├── hooks/                      # アプリ全体のフック
+├── test/                       # setup, test-utils
+├── App.tsx
+└── main.tsx
 ```
+
+**Store の配置**: Phase 1 は単一エンジンのため `src/stores/` に集約。Phase 2 で `engineId` キーを増やすか、エンジンごとにインスタンス化する。
+
+**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（折りたたみ式）。`ConfigStore` と同時に導入し、マイルストーンごとにタブを増やす。プリセット・JSON は M4。
 
 ## 今後の拡張
 

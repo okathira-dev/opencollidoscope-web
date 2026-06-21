@@ -7,7 +7,7 @@
 
 ## 技術スタック
 
-- **フロントエンド**: React 19, TypeScript 6, Vite 8, MUI 9, Zustand, Tone.js
+- **フロントエンド**: React 19, TypeScript 6, Vite 8, MUI 9, Zustand, Web Audio API
 - **品質**: Biome 2.5（lint + format）, markdownlint-cli2, Vitest 4（`jsdom`）, `@testing-library/react`, `@vitest/coverage-v8`
 - **パッケージマネージャ**: pnpm 11
 - **Node**: ^24.14.0
@@ -24,8 +24,9 @@
 
 ## 実装戦略
 
-- Phase 1: 単一音声処理システム（赤色波形）の実装
-- Phase 2: 第2音声処理システム（黄色波形）の追加（`NUM_WAVES=2`）
+- Phase 1: M1（録音→波形）→ M4。Scratchpad.md が実装 TODO の正本
+- 設定 UI: M1 から折りたたみ ConfigPanel。プリセットは M4
+- Phase 2: 第2音声処理システム（黄色波形、`NUM_WAVES=2`）
 
 ## 開発環境の未整備
 

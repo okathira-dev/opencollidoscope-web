@@ -14,7 +14,7 @@ description: Open Collidoscope Web リポジトリの構造、技術スタック
 ## Quick context
 
 - プロダクト: [Open Collidoscope](https://code.soundsoftware.ac.uk/projects/opencollidoscope) の Web ブラウザ移植版
-- 主な技術: React 19 / TypeScript 6 / Vite 8 / MUI 9 / Zustand / Tone.js / Biome 2.5 / Vitest 4 / pnpm 11
+- 主な技術: React 19 / TypeScript 6 / Vite 8 / MUI 9 / Zustand / Web Audio API / Biome 2.5 / Vitest 4 / pnpm 11
 - Vite の `root` は `src/`（テストも `src/` 配下の `*.test.ts(x)` を想定）
 - オリジナル C++ コード: `opencollidoscope/`（参照用、Mercurial クローン）
 - 未整備・意図的な選択: `docs/web-spec.md` の「開発環境の意図的な選択と未整備」
@@ -24,7 +24,8 @@ description: Open Collidoscope Web リポジトリの構造、技術スタック
 
 ```text
 src/
-├── features/       # 各機能ディレクトリ（今後実装）
+├── features/       # 機能ディレクトリ（synth-engine 等）
+│   └── synth-engine/
 ├── components/     # 汎用 UI コンポーネント
 ├── stores/         # グローバル Zustand ストア（AudioStore, ConfigStore 等）
 ├── consts/         # ドメイン定数
@@ -50,5 +51,16 @@ opencollidoscope/   # オリジナル C++ ソース（参照用）
 
 ## 実装フェーズ
 
-- Phase 1: 単一音声処理システム（赤色波形）の実装
-- Phase 2: 第2音声処理システム（黄色波形）の追加（`NUM_WAVES=2`）
+- Phase 1: マイルストーン **M1 → M4**（`docs/web-spec.md`）
+- Phase 2: 第2音声処理システム（`NUM_WAVES=2`）
+
+## ディレクトリ構成（実装時）
+
+```text
+src/
+├── features/synth-engine/   # メイン機能（worklets, components）
+├── stores/                  # audio, wave, config, ui（M1）, synth（M2）
+├── domain/config/           # 実装済み
+├── domain/audio/            # M1〜
+└── components/              # 汎用 UI のみ
+```

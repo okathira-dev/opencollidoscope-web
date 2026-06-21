@@ -36,9 +36,6 @@ updates:
       typescript:
         patterns:
           - "typescript"
-      tone:
-        patterns:
-          - "tone"
       zustand:
         patterns:
           - "zustand"

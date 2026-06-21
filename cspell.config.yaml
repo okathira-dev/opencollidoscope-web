@@ -10,6 +10,5 @@ words:
   - opencollidoscope
   - PGranular
   - ScriptProcessorNode
-  - Tonejs
 ignoreWords: []
 import: []

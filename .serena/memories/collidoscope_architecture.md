@@ -33,14 +33,16 @@
 ## AudioWorklet 対応
 
 - ScriptProcessorNode は非推奨。AudioWorkletNode を使用
+- Worklet は TypeScript（Vite `?worker&url`）。`domain/audio` の純粋関数を共有
+- バッファ共有: SharedArrayBuffer 優先（パフォーマンス）。未隔離時は postMessage フォールバック
+- GitHub Pages: coi-serviceworker で COOP/COEP 迂回を検証予定（M1 前）
 - HTTPS 必須、ユーザージェスチャー必要
-- 対応ブラウザ: Chrome 66+、Firefox 76+、Safari 14.1+
 
 ## 設定値のコンフィグ化
 
 - ハードコーディングからの脱却: チャンク数 150、最大グレイン数 32 等はすべて設定可能に
 - 設定管理の階層化: 音声設定、グラニュラーシンセシス設定、視覚設定、MIDI 設定
-- localStorage による永続化、プリセット管理
+- 設定 UI: M1 から折りたたみ式 ConfigPanel 常設（デバッグ向け）。プリセットは M4
 
 ## 設計書の扱い
 
