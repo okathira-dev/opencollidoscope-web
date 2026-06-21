@@ -76,5 +76,5 @@ TDD 基盤・設定ドメイン
 
 ## 振り返り
 
-- M1 スパイク完了（`spike/worklet-coi` ブランチ）。`?worker&url` で TS Worklet を `addModule` 可能。coi-serviceworker + 静的配信（COOP/COEP ヘッダーなし）で `crossOriginIsolated` / `SharedArrayBuffer` / AudioWorklet テスト成功。
-- 次: `spike/worklet-coi` を main へ PR マージ後、GitHub Pages で最終確認。続いて M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。
+- M1 スパイク完了（`feature/update-dev-env` ブランチ）。`?worker&url` で TS Worklet を `addModule` 可能。coi-serviceworker + 静的配信（COOP/COEP ヘッダーなし）で `crossOriginIsolated` / `SharedArrayBuffer` / AudioWorklet テスト成功。
+- 次: `feature/update-dev-env` を main へ PR マージ後、GitHub Pages で最終確認。続いて M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。
