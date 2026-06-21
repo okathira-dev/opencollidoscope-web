@@ -5,21 +5,7 @@
 
 ## 現在のタスク
 
-### Phase 1 実装（次: M1）
-
-### M1: 録音 → 波形表示
-
-- [x] スパイク: Vite `?worker&url` で空 Worklet を `addModule` できること
-- [x] スパイク: [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker)（GitHub Pages / SharedArrayBuffer 用。未完了でも postMessage で継続可）
-- [ ] `src/features/synth-engine/` 骨格（`SynthEngine.tsx`, `index.ts`）
-- [ ] `src/domain/audio/` — チャンク計算・フェード等の純粋関数 + 単体テスト
-- [ ] `src/stores/` — `audioStore`, `waveStore`, `configStore`, `uiStore`（`isConfigPanelOpen`）
-- [ ] `ConfigPanel` — 折りたたみ式、**音声タブ**のみ（`ConfigManager` 接続）
-- [ ] `recording-processor` Worklet（TypeScript）
-- [ ] 録音バッファ共有（優先: SharedArrayBuffer、フォールバック: postMessage）
-- [ ] マイク入力・`AudioContext` 初期化（`audioStore`）
-- [ ] `WaveDisplay`（Canvas）+ Record UI
-- [ ] `App.tsx` を `SynthEngine` に接続
+### Phase 1 実装（次: M2）
 
 ### M2: 選択 + グラニュラー + 鍵盤
 
@@ -45,6 +31,15 @@
 - [ ] キーボードショートカット一式
 
 ## 完了済みタスク
+
+### M1: 録音 → 波形表示
+
+- [x] スパイク: Vite `?worker&url` / coi-serviceworker
+- [x] `src/domain/audio/` — チャンク計算・フェード + 単体テスト
+- [x] `src/stores/` — audioStore, waveStore, configStore, uiStore
+- [x] `recording-processor` Worklet（SAB 優先 / postMessage フォールバック）
+- [x] `SynthEngine` 骨格 + `WaveDisplay` + `ConfigPanel`（音声タブ）
+- [x] `App.tsx` を `SynthEngine` に接続（スパイク UI 置き換え）
 
 技術判断・ドキュメント
 
@@ -76,6 +71,6 @@ TDD 基盤・設定ドメイン
 
 ## 振り返り
 
-- M1 スパイク完了（`feature/update-dev-env` ブランチ）。`?worker&url` で TS Worklet を `addModule` 可能。coi-serviceworker + 静的配信（COOP/COEP ヘッダーなし）で `crossOriginIsolated` / `SharedArrayBuffer` / AudioWorklet テスト成功。
-- スパイク診断で Worklet 経由の 440Hz 音声出力・GainNode 音量調節（再生/停止）を確認。
-- 次: M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。診断 UI（`App.tsx`）は本実装時に置き換え。
+- M1 スパイク完了。`?worker&url` + coi-serviceworker で SharedArrayBuffer / AudioWorklet を確認。
+- M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声タブ）、Zustand ストア4つ。
+- 次: M2（選択 UI、granular-processor、PianoKeyboard）。
