@@ -31,8 +31,10 @@ alwaysApply: true
 
 - [coding-rules.mdc](mdc:.cursor/rules/coding-rules.mdc): コード構造、コンポーネント設計、状態管理などの基本的なコーディングルール。
 - [biome.mdc](mdc:.cursor/rules/biome.mdc): Biome 設定に関するルール。
+- [github.mdc](mdc:.cursor/rules/github.mdc): GitHub 操作の制限（読み取りは可、書き込みは明示依頼時のみ）。
 
 ## コミット・PR
 
+- **コミット・push・PR 作成は、ユーザーが明示的に依頼した場合のみ**実行する（詳細は [github.mdc](mdc:.cursor/rules/github.mdc)）。
 - コミットメッセージと PR タイトルには「[Cursor] 」を含める。
 - 複数行のコミットメッセージが必要な場合は、まずメッセージをファイルに書き、`git commit -F <filename>` を使用する。
