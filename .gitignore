@@ -27,7 +27,19 @@ spike-*.mjs
 *.sln
 *.sw?
 .specstory
-opencollidoscope/downloads
+
+# opencollidoscope_downloads: PDF + README + license only (see opencollidoscope_downloads/README.md)
+opencollidoscope_downloads/*
+!opencollidoscope_downloads/*.pdf
+!opencollidoscope_downloads/README.md
+!opencollidoscope_downloads/CAD/
+
+opencollidoscope_downloads/CAD/*
+!opencollidoscope_downloads/CAD/license.txt
+!opencollidoscope_downloads/CAD/Drawings/
+
+opencollidoscope_downloads/CAD/Drawings/*
+!opencollidoscope_downloads/CAD/Drawings/*.PDF
 
 # Serena cache
 .serena/cache/

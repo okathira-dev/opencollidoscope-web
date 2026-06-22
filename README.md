@@ -15,7 +15,11 @@ official repository of Open Collidoscope: <https://code.soundsoftware.ac.uk/proj
 
 ## About this repository
 
-This repository of web application has a directory `opencollidoscope` that is a clone of original repository of Open Collidoscope. It is for AI-powered code completion. The other directories and files are for the web application.
+This repository of web application has a directory `opencollidoscope` that is a clone of original repository of Open Collidoscope. It is for AI-powered code completion.
+
+It also has [`opencollidoscope_downloads/`](opencollidoscope_downloads/) — a mirror of the official project's **Downloads** PDF guides and CAD drawing PDFs (binaries and 3D CAD sources are excluded via `.gitignore`; see [opencollidoscope_downloads/README.md](opencollidoscope_downloads/README.md)). These materials were published separately from the source code.
+
+The other directories and files are for the web application.
 
 The revision is [18:f1ff1a81be20](https://code.soundsoftware.ac.uk/projects/opencollidoscope/repository/revisions/f1ff1a81be20d31608a4002546722d839f64b31e).
 
