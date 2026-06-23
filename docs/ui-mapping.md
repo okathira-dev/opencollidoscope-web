@@ -1,6 +1,6 @@
 # オリジナル Collidoscope vs Web版 UI対応表
 
-オリジナル実装の分析は [original-analysis.md](original-analysis.md)、Web版の機能要件は [web-spec.md](web-spec.md) を参照。
+オリジナル実装の分析は [original-analysis.md](original-analysis.md)、Web版の機能要件は [web-spec.md](web-spec.md) を参照。**物理配置・位置関係の正本**は [hardware-layout.md](hardware-layout.md)（ゾーン ID `SLOT_*` / `WEB_ROW_*`）。
 
 ## Web 版 UI の基準
 
@@ -32,24 +32,22 @@
 
 ### 1 プレイヤー分の物理レイアウト（オリジナル版）
 
-波形表示の下、左から概ね次の並び（公式 Introduction・Physical Build 参照）:
+詳細な俯瞰図・座標系・Web 投影は [hardware-layout.md](hardware-layout.md) を参照。要約:
 
 ```text
-[波形ディスプレイ]
-[Wavejet 水平レール — 全幅]
-────────────────────────────────────────
- 縦スライダー×2 │ Wavejetノブ │ 録音ボタン │ 鍵盤 │ ループトグル
- Filter/Duration │  回転+水平   │  (赤/LED)  │      │
+[波形] → 下段に Wavejet 水平レール（SLOT_WAVEJET）
+inward 行: 鍵盤（左）| 波形 | 縦フェーダー×2 + ループトグル（右）
+player_end: マイク + 録音ボタン（筐体端・マイク付近）
 ```
 
-| 見た目 | 正式名称 | MIDI |
+| スロット ID | 正式名称 | MIDI |
 | --- | --- | --- |
-| 縦スライダー上 | Filter フェーダー（太陽/月） | CC7 |
-| 縦スライダー下 | Duration フェーダー（粒/雲） | CC2 |
-| 丸いアルミノブ | Wavejet（水平=位置、回転=サイズ） | Pitch Bend + CC1 |
-| 赤い押しボタン | Record（LED リング付き） | CC5 |
-| 鍵盤 | USB MIDI Keyboard | Note On/Off |
-| トグルスイッチ | Loop（新版はプッシュボタン） | CC4 |
+| `SLOT_FADER_FILTER` | Filter フェーダー（太陽/月） | CC7 |
+| `SLOT_FADER_DURATION` | Duration フェーダー（粒/雲） | CC2 |
+| `SLOT_WAVEJET` | Wavejet（水平=位置、回転=サイズ） | Pitch Bend + CC1 |
+| `SLOT_RECORD` | Record（LED リング付き） | CC5 |
+| `SLOT_KEYBOARD` | USB MIDI Keyboard | Note On/Off |
+| `SLOT_LOOP_TOGGLE` | Loop トグル（新版は `SLOT_LOOP_PUSH`） | CC4 |
 
 ---
 
@@ -129,6 +127,7 @@
 
 ## 関連ドキュメント
 
+- [hardware-layout.md](hardware-layout.md) — **筐体位置関係の正本**（ゾーン ID、バージョン別図、Web 投影）
 - [web-spec.md](web-spec.md) — Phase 1 マイルストーン定義、ハードウェア UI 方針
 - [web-design.md](web-design.md) — コンポーネント設計（`Oscilloscope`、`ControlPanel` 等）
 - [original-analysis.md](original-analysis.md) — オリジナル視覚システム・MIDI マッピング・物理ハードウェア

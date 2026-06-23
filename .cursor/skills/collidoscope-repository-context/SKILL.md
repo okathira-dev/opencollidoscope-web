@@ -43,6 +43,8 @@ opencollidoscope/   # オリジナル C++ ソース（参照用）
 
 ## 主要ドキュメント
 
+- `docs/hardware-layout.md` — **筐体位置関係の正本**（`SLOT_*` / `WEB_ROW_*`、バージョン別図、AI エージェント向け）
+- `docs/ui-mapping.md` — オリジナル vs Web 機能・MIDI 対応表
 - `docs/original-analysis.md` — オリジナル C++ 実装の分析
 - `docs/web-spec.md` — Web版実装仕様（未整備・意図的選択の正本を含む）
 - `docs/web-design.md` — Web版設計書（アーキテクチャ、Mermaid 図）
