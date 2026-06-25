@@ -5,84 +5,68 @@
 
 ## 現在のタスク
 
-### 方針転換（M3 の前に配置を固める）
+### 方針（配置 vs 電子）
 
-M2 残りで **横一列 `ControlPanel`** を入れたが、これは `WEB_ROW_1〜6` の暫定投影であり [hardware-layout.md](docs/hardware-layout.md) の物理ゾーン（`lateral_left` / `lateral_right` / `player_end`）と一致していない。
+**配置（空間）**: 既存の UI 配置分析は信用しない。  
+`docs/hardware-layout.md`・Canvas・過去の AI 分析によるスロット配置は **暫定・未検証**。一次資料（PDF 図・実機写真・CAD）を人間が確認し、**ワイヤーフレーム + `docs/layout-specs/`** を正本としてから M2.5 を実装する。
+
+**電子的つながり（MIDI・処理式・Store キー）**: **既存分析を正本としてよい**（[ui-mapping.md — 電子的対応](docs/ui-mapping.md#電子的対応正本) · [original-analysis.md](docs/original-analysis.md)）。バリアント切替でも MIDI / Store は不変。
+
+M2.5 の試作実装は **ワイヤーフレーム前のため revert 済み**（`ControlPanel` 暫定版に戻している）。
 
 **次フェーズの優先順位**:
 
-1. **M2.5** — オリジナル / 新版の **配置だけ** をすべて決め、切替可能にする（機能はスタブ・既存配線でよい）
-2. **M3** — 決まったスロットにループ・フィルター・オシロ等の **挙動を接続**
-3. **M4** — 拡張（プリセット・MIDI 等）
-
-正本: [docs/hardware-layout.md](docs/hardware-layout.md) · レビュー用 Canvas: [collidoscope-hardware-layout](C:/Users/sardo/.cursor/projects/g-dev-opencollidoscope-web/canvases/collidoscope-hardware-layout.canvas.tsx)
+1. **ワイヤーフレーム作成** — オリジナル / 新版の配置を人間が確定
+2. **M2.5** — ワイヤーフレーム正本に基づき配置実装 + バリアント切替
+3. **M3** — 配線・視覚フィードバック
+4. **M4** — 拡張
 
 ---
 
-### M2.5: UI 配置確定 + ハードウェアバリアント切替
+### ワイヤーフレーム作成（M2.5 の前提）
+
+**ゴール**: AI が誤読しにくい **ラベル付きワイヤー + YAML スロット定義** を `docs/layout-specs/` に置く。
+
+ガイド: [docs/layout-specs/README.md](docs/layout-specs/README.md)
+
+#### A. オリジナル版（`hw_version=original`）
+
+- [ ] Introduction Fig.2・Doctor Mix 動画を人間が再確認
+- [ ] `original.wireframe.png` — 矩形 + `SLOT_*` ラベル、スライダー向き明示
+- [ ] `original.web.yaml` — リージョン・スロット・コンポーネント・向き（horizontal/vertical）・積み方
+
+#### B. 新版（`hw_version=new`）
+
+- [ ] Introduction Fig.1・Physical Build / CAD を人間が再確認
+- [ ] `new.wireframe.png`
+- [ ] `new.web.yaml`
+
+#### C. 共通
+
+- [ ] 1 プレイヤー分の Web 投影（`WEB_STACK_1〜3`）を両バリアントで定義
+- [ ] オリジナル vs 新版の **差分表**（どのスロットが置き換わるか）
+- [ ] 確定後: `hardware-layout.md` / `ui-mapping.md` をワイヤーフレームに合わせて更新
+
+#### 完了条件
+
+- [ ] 人間がワイヤーを見て「実機と矛盾しない」と判断できる
+- [ ] YAML だけでスロット一覧・向き・リージョンが一意に読める
+- [ ] M2.5 実装タスクにそのまま渡せる
+
+---
+
+### M2.5: UI 配置確定 + ハードウェアバリアント切替（ワイヤーフレーム後）
+
+**前提**: `docs/layout-specs/*.yaml` + `*.wireframe.png` が正本。
 
 **ゴール**: `hw_version=original | new` を切り替えると演奏面の **見た目・スロット位置** が変わる。Filter / Loop 等は未配線でもスロットに存在すること。
 
-#### A. 仕様・データモデル
+（詳細タスクはワイヤーフレーム確定後に `layout-specs` から起こし直す）
 
-- [ ] `HardwareUiVariant` 型（`'original' | 'new'`）を定義
-- [ ] `uiStore` に `hardwareUiVariant` + setter（将来 `configStore` / プリセットへ移す余地をコメントで残す）
-- [ ] バリアント切替 UI（演奏画面上部の Pill または `ConfigPanel`「表示」タブ — **演奏中も切替可能**）
-- [ ] [hardware-layout.md](docs/hardware-layout.md) の「Web 投影」を **2D グリッド**（`lateral_left` / `lateral_right` / `player_end`）に更新
-- [ ] [ui-mapping.md](docs/ui-mapping.md) にバリアント別スロット表を追記（配置確定後）
-
-#### B. レイアウト基盤（スロット駆動）
-
-- [ ] `src/features/synth-engine/layout/` を新設
-  - [ ] `types.ts` — `ControlSlotId`, `GridRegion`, `VariantLayout` 型
-  - [ ] `original-layout.ts` — オリジナル版スロット → グリッド座標
-  - [ ] `new-layout.ts` — 新版スロット → グリッド座標
-- [ ] `PlayerControlSurface` — `variant` を受け取り、スロット定義に従って子を配置（`ControlPanel` は薄いラッパーに縮小 or 置換）
-- [ ] `SynthEngine` 構成を正本どおり 3 段に固定:
-  - `WEB_STACK_1` `WaveDisplay`
-  - `WEB_STACK_2` `WavejetRow`（水平 + サイズ）
-  - `WEB_STACK_3` `PlayerControlSurface`
-
-#### C. オリジナル版配置（`hw_version=original`）
-
-物理: [hardware-layout.md](docs/hardware-layout.md)「1 プレイヤー分 — オリジナル版」・Doctor Mix 2015 動画
-
-- [ ] **Wavejet 行** (`WEB_STACK_2`)
-  - [ ] `SelectionRail` — 水平（選択開始 / Pitch Bend）
-  - [ ] **選択サイズ**をここへ移動（ノブ回転メタファー。現状 `ControlPanel` 内の縦 Slider を移す）
-- [ ] **演奏面グリッド** (`WEB_STACK_3`)
-  - [ ] `lateral_left`: `PianoKeyboard`
-  - [ ] `lateral_right`: `VerticalSlider` Filter（太陽/月）— **M3 までスタブ可**
-  - [ ] `lateral_right`: `VerticalSlider` Duration（粒/雲）— 既存配線を維持
-  - [ ] `lateral_right` 端: Loop **トグル** — **M3 までスタブ可**
-  - [ ] `player_end` 行: `RecordButton` を **右端（マイク側）** に配置（中央列から移動）
-
-#### D. 新版配置（`hw_version=new`）
-
-物理: Introduction Fig.1 / CAD `A-1-3` Short Rail
-
-- [ ] **Wavejet 行** — オリジナルと同構成（水平 + サイズノブ）
-- [ ] **演奏面グリッド**
-  - [ ] `lateral_left`: `PianoKeyboard`
-  - [ ] `lateral_right`: `ShortKnobControl` 新規 — 上下=Filter / 回転=Duration（**2 縦フェーダーの代わり**）
-  - [ ] `player_end` 行: `RecordButton` + Loop **プッシュボタン**（`RecordButton` と同系の押しボタン UI）
-- [ ] 新版では Filter・Duration の縦フェーダー 2 本を **表示しない**
-
-#### E. 共通コンポーネント（配置フェーズで追加）
-
-| コンポーネント | 用途 | 備考 |
-| --- | --- | --- |
-| `ShortKnobControl` | 新版 Filter+Duration | 縦ドラッグ + 回転（または縦 Slider + 回転ノブの複合 UI） |
-| `LoopControl` | ループ UI | `variant` で `Toggle` / `PushButton` を切替 |
-| `WavejetRow` | WEB_STACK_2 ラッパー | Rail + Size を横並び |
-| `PlayerEndBar` | player_end 行 | 録音・ループ（新版）を右寄せ |
-
-#### F. レビュー完了条件（M2.5 の Done）
-
-- [ ] Canvas の「オリジナル版」「新版」「Web 投影」タブと実 UI のスロット対応が一致
-- [ ] バリアント切替で **配置が変わり**、MIDI / Store のキーは変わらない（同じ `synthStore` / `waveStore`）
-- [ ] Filter・Loop が未実装でも **正しい位置にプレースホルダ** がある
-- [ ] `ControlPanel` の暫定横一列（Filter｜Duration｜サイズ｜録音｜鍵盤｜Loop）を撤去
+- [ ] `layout/` + `PlayerControlSurface` 等 — **YAML 正本どおり**に再実装
+- [ ] `ControlPanel` 暫定横一列を撤去
+- [ ] バリアント切替（`uiStore` + `VariantSwitcher`）
+- [ ] `hardware-layout.md` / `ui-mapping.md` をワイヤーフレーム反映版に更新
 
 ---
 
@@ -90,9 +74,8 @@ M2 残りで **横一列 `ControlPanel`** を入れたが、これは `WEB_ROW_1
 
 **前提**: M2.5 でスロット位置は固定。M3 は **配線と視覚フィードバック** のみ。
 
-- [ ] ループ ON/OFF — `LoopControl` に `synthStore.loop.enabled` 接続（オリジナル=トグル / 新版=プッシュ）
-- [ ] フィルター — オリジナル=`VerticalSlider` / 新版=`ShortKnobControl` 縦軸 + `BiquadFilterNode`
-- [ ] Duration — オリジナル=`VerticalSlider` / 新版=`ShortKnobControl` 回転軸（既存 CC2 配線を UI に合わせる）
+- [ ] ループ ON/OFF — オリジナル=トグル / 新版=プッシュ
+- [ ] フィルター + Duration — ワイヤーフレームで定義されたコントロール形状に接続
 - [ ] 選択アルファのフィルター連動（透明度 0.5〜1.0）
 - [ ] `ConfigPanel` に **フィルター・視覚タブ** 追加
 - [ ] `Oscilloscope`（`AnalyserNode` + Canvas）
@@ -141,8 +124,8 @@ M2 残りで **横一列 `ControlPanel`** を入れたが、これは `WEB_ROW_1
 - [X] Tone.js 削除、Web Audio API + AudioWorklet 一本化
 - [X] マイルストーン M1〜M4、折りたたみ設定 UI、ディレクトリ方針をドキュメント化
 - [X] `docs/original-analysis.md` / `web-spec.md` / `web-design.md`
-- [X] `docs/ui-mapping.md` — オリジナル vs Web版 UI 対応表
-- [X] `docs/hardware-layout.md` + Canvas — 筐体位置関係の正本
+- [X] `docs/ui-mapping.md` — 電子 / 形状 / 配置を分離した UI 対応表
+- [X] `docs/hardware-layout.md` + Canvas — 筐体位置関係（**配置は未検証・暫定**）
 
 TDD 基盤・設定ドメイン
 
@@ -158,8 +141,10 @@ TDD 基盤・設定ドメイン
 | バッファ | SharedArrayBuffer 優先 / postMessage フォールバック |
 | GitHub Pages | coi-serviceworker を M1 スパイクで検証済み |
 | 設定 UI | M1 から折りたたみ `ConfigPanel` 常設。**演奏用 UI は別コンポーネント**（筐体レイアウト） |
-| **UI バリアント** | **`original` / `new` を `uiStore` で切替。MIDI・音声処理は共通** |
-| **配置 vs 機能** | **M2.5=配置確定、M3=機能配線** |
+| **UI 配置の正本** | **`docs/layout-specs/`（ワイヤーフレーム + YAML）。既存 layout 分析は暫定** |
+| **電子的つながりの正本** | **`ui-mapping.md` · `original-analysis.md`（既存分析を当てにしてよい）** |
+| **UI バリアント** | **`original` / `new` を `uiStore` で切替（M2.5 で実装予定）** |
+| **配置 vs 機能** | **M2.5=配置確定、M3=機能配線（配線の正本は電子ドキュメント）** |
 | ディレクトリ | `src/features/synth-engine/` + `layout/` + `src/stores/` + `src/domain/` |
 
 ## 振り返り
@@ -167,5 +152,6 @@ TDD 基盤・設定ドメイン
 - M1 スパイク完了。`?worker&url` + coi-serviceworker で SharedArrayBuffer / AudioWorklet を確認。
 - M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声タブ）、Zustand ストア4つ。
 - M2 コア完了。PGranular 移植、選択 UI、PianoKeyboard、synthStore。
-- M2 残り完了。暫定 `ControlPanel` 横一列を実装。**物理ゾーンとのズレを確認** → M2.5 で配置確定 + バリアント切替を先行。
-- 次: **M2.5**（配置・切替）→ M3（フィルター・ループ等の配線）。
+- M2 残り完了。暫定 `ControlPanel` 横一列を実装。
+- M2.5 試作を実施したが、配置分析の信頼性不足・ビジュアル不一致のため **revert**。ワイヤーフレーム作成を先行。
+- 次: **ワイヤーフレーム** → **M2.5 再実装** → M3。

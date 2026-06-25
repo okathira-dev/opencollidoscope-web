@@ -1,15 +1,28 @@
-# Collidoscope 筐体レイアウト（位置関係の正本）
+# Collidoscope 筐体レイアウト（暫定リファレンス）
 
-AI エージェント・実装者が **物理配置を誤解しない** ための空間リファレンス。機能対応（MIDI・Web 版状態）は [ui-mapping.md](ui-mapping.md)、実装分析は [original-analysis.md](original-analysis.md) を参照。
+> **配置（空間）**: 本書の **ゾーン・スロット位置・Web 投影** は **未検証・暫定**。実装の正本は [layout-specs/README.md](layout-specs/README.md)。
+>
+> **電子的つながり（MIDI・信号・Store）**: 本書には載せない。正本は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) と [original-analysis.md](original-analysis.md)（C++ / Teensy 分析・公式 MIDI PDF 突合済み）。**既存分析を当てにしてよい。**
 
-**インタラクティブ図**: [collidoscope-hardware-layout.canvas.tsx](C:/Users/sardo/.cursor/projects/g-dev-opencollidoscope-web/canvases/collidoscope-hardware-layout.canvas.tsx) — Cursor でチャット横に開き、スロットクリック・バージョン切替・レビューチェックが可能。
+一次資料（PDF・CAD・動画）の索引と座標系用語のリファレンス。
+
+**インタラクティブ図（暫定）**: [collidoscope-hardware-layout.canvas.tsx](C:/Users/sardo/.cursor/projects/g-dev-opencollidoscope-web/canvases/collidoscope-hardware-layout.canvas.tsx) — ワイヤーフレーム確定後に同期予定。
+
+## ドキュメントの管轄
+
+| 領域 | 正本 | 信頼度 |
+| --- | --- | --- |
+| **筐体上の位置**（ゾーン・並び・Web 画面上のどこ） | [layout-specs/](layout-specs/README.md)（ワイヤーフレーム + YAML） | ワイヤーフレーム確定後 |
+| **電子的つながり**（MIDI CC、Pitch Bend、Teensy ピン、処理式、Store キー） | [ui-mapping.md](ui-mapping.md#電子的対応正本) · [original-analysis.md](original-analysis.md) | **既存分析を正本としてよい** |
+| **物理コントロールの形状・操作軸**（縦フェーダー／ノブ回転など） | [ui-mapping.md](ui-mapping.md#物理コントロール形状資料ベース) · Introduction PDF | 資料ベース（配置とは別） |
+| **座標系用語**（`player_end` 等） | 本書「座標系」 | 用語定義として有効 |
 
 ## この文書の使い方（AI エージェント向け）
 
-1. **座標系**（下記）を先に読む。`player_end` / `inward` / `lateral_left` はプレイヤー視点で固定。
-2. **資料の正本**（下表）で、参照する PDF・CAD・動画のバージョンを確認する。
-3. **ゾーン ID**（`ZONE_*`）と **スロット ID**（`SLOT_*`）で配置を指定する。実装タスクでは ID をそのまま使う。
-4. **Web 版 Phase 1** は物理を 2D に投影した UI。`WEB_ROW_*` は画面上の並びで、物理行と 1:1 ではない（Wavejet は波形直下の別行）。
+1. **座標系**（下記）と **資料索引**（下表）を参照する。
+2. **画面上の配置**を実装するときは `docs/layout-specs/` を正本とする。本書の配置図は暫定。
+3. **MIDI 配線・パラメータ処理**を実装するときは [ui-mapping.md](ui-mapping.md#電子的対応正本) を正本とする（本書のスロット表に MIDI 列は載せない）。
+4. ゾーン ID（`ZONE_*`）とスロット ID（`SLOT_*`）は用語の共有用。
 
 ---
 
@@ -123,22 +136,24 @@ flowchart TB
   inward_row --> WJ
 ```
 
-### スロット一覧（オリジナル版）
+### スロット配置（暫定・未検証）
 
-| スロット ID | ゾーン | 部品 | MIDI | 操作軸 |
-| --- | --- | --- | --- | --- |
-| `SLOT_WAVE_DISPLAY` | `above_wave` / center | モニター半分 | — | — |
-| `SLOT_WAVEJET` | `below_wave` / full width | SoftPot + エンコーダー + 38mm ノブ | Pitch Bend + CC1 | 水平=選択開始、回転=選択サイズ |
-| `SLOT_FADER_FILTER` | `inward` / `lateral_right` | Bourns 縦フェーダー（太陽/月） | CC7 | 縦 |
-| `SLOT_FADER_DURATION` | `inward` / `lateral_right` | Bourns 縦フェーダー（粒/雲） | CC2 | 縦 |
-| `SLOT_KEYBOARD` | `inward` / `lateral_left` | USB MIDI 鍵盤 | Note | — |
-| `SLOT_RECORD` | `player_end` | 16mm 赤プッシュ（LED リング） | CC5 | 押下 |
-| `SLOT_LOOP_TOGGLE` | `inward` / `lateral_right` | 12V トグルスイッチ | CC4 | フリック |
-| `SLOT_MIC` | `player_end` 隅 | XLR グースネック | — | — |
+> ゾーン・平面図はワイヤーフレーム確定まで **参考のみ**。部品名・操作軸は [ui-mapping.md](ui-mapping.md#物理コントロール形状資料ベース)、MIDI は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を参照。
 
-フェーダー 2 本の **横並び順**（`lateral_right` 内）: Filter（外側/演奏者寄り）→ Duration。各フェーダーはアイコン上端=明るい/短い、下端=暗い/長い（太陽/月、粒/雲）。
+| スロット ID | ゾーン（暫定） |
+| --- | --- |
+| `SLOT_WAVE_DISPLAY` | `above_wave` / center |
+| `SLOT_WAVEJET` | `below_wave` / full width |
+| `SLOT_FADER_FILTER` | `inward` / `lateral_right` |
+| `SLOT_FADER_DURATION` | `inward` / `lateral_right` |
+| `SLOT_KEYBOARD` | `inward` / `lateral_left` |
+| `SLOT_RECORD` | `player_end` |
+| `SLOT_LOOP_TOGGLE` | `inward` / `lateral_right` |
+| `SLOT_MIC` | `player_end` 隅 |
 
-**録音・ループは `player_end`（マイク付近）**。演奏列の中央に置かない。
+フェーダー 2 本の **横並び順**（`lateral_right` 内・暫定）: Filter（外側/演奏者寄り）→ Duration。
+
+**録音・ループは `player_end`（マイク付近）**（暫定）。演奏列の中央に置かない想定。
 
 ---
 
@@ -147,13 +162,15 @@ flowchart TB
 **識別子**: `hw_version=new`  
 **根拠**: Introduction Fig.1, Physical Build PDF, CAD `A-1-3`/`A-1-4`/`PT-5-6`, `CollidoscopeTeensy_new.ino`
 
-### オリジナル版との差分（スロット）
+### オリジナル版との差分（物理形状のみ・資料ベース）
 
-| スロット ID | オリジナル | 新版 |
+> MIDI マッピングは両バージョン同一。電子的対応は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を参照。
+
+| スロット ID | オリジナル（物理形状） | 新版（物理形状） |
 | --- | --- | --- |
-| `SLOT_FADER_FILTER` | 縦フェーダー | **`SLOT_SHORT_KNOB`**（縦ストリップ + ノブ上下）→ CC7 |
-| `SLOT_FADER_DURATION` | 縦フェーダー | **同ノブ回転** → CC2 |
-| `SLOT_LOOP_TOGGLE` | トグル | **`SLOT_LOOP_PUSH`**（48m-ss プッシュ）→ CC4 |
+| `SLOT_FADER_FILTER` | 縦フェーダー | **`SLOT_SHORT_KNOB`**（縦ストリップ + ノブ上下） |
+| `SLOT_FADER_DURATION` | 縦フェーダー | **同ノブ回転** |
+| `SLOT_LOOP_TOGGLE` | トグル | **`SLOT_LOOP_PUSH`**（48m-ss プッシュ） |
 | `SLOT_WAVEJET` | 同左 | 同左（長尺レール `PT-3-*`） |
 | `SLOT_RECORD` / `SLOT_MIC` | 同左 | 同左（パースペックス `PT-5-6`, `PT-6-2`） |
 
@@ -174,11 +191,13 @@ CAD `A-1-4` Top Plate Assembly 部品: `PT-5-5` XLR×2, `PT-5-4` ITW Loop×2, `P
 
 ---
 
-## Web 版 Phase 1 への投影
+## Web 版 Phase 1 への投影（暫定）
 
-Phase 1 は **単一エンジン（Wave 0）** を画面中央に縦積み。物理の `below_wave` と `inward` 行を **2 段** に分けて表現する。
+> **本節全体は未検証・暫定。** 正本は [layout-specs/README.md](layout-specs/README.md)。MIDI / Store の配線は [ui-mapping.md](ui-mapping.md#電子的対応正本) を参照（配置とは別）。
 
-### 画面スタック（上 → 下）
+Phase 1 は **単一エンジン（Wave 0）** を画面中央に縦積み。以下は M2 暫定 `ControlPanel` 時代のメモであり、ワイヤーフレーム確定後に置き換える。
+
+### 画面スタック（上 → 下・暫定）
 
 ```text
 ┌─────────────────────────────────────────┐  WEB_STACK_1
@@ -190,18 +209,18 @@ Phase 1 は **単一エンジン（Wave 0）** を画面中央に縦積み。物
 └─────────────────────────────────────────┘
 ```
 
-### 物理スロット → Web コンポーネント
+### 物理スロット → Web コンポーネント（配置・暫定）
 
-| 物理スロット ID | Web コンポーネント | 画面位置 | 備考 |
-| --- | --- | --- | --- |
-| `SLOT_WAVE_DISPLAY` | `WaveDisplay` | `WEB_STACK_1` | — |
-| `SLOT_WAVEJET`（水平） | `SelectionRail` | `WEB_STACK_2` | Pitch Bend 相当 |
-| `SLOT_WAVEJET`（回転） | `VerticalSlider`（ラベル: サイズ） | `WEB_ROW_3` | CC1。物理はノブ回転 |
-| `SLOT_FADER_FILTER` | `VerticalSlider`（Filter） | `WEB_ROW_1`（列左端） | M3、CC7 |
-| `SLOT_FADER_DURATION` | `VerticalSlider`（Duration） | `WEB_ROW_2` | CC2 |
-| `SLOT_RECORD` | `RecordButton` | `WEB_ROW_4` | **物理は player_end**。Web は行内に配置（メタファー） |
-| `SLOT_KEYBOARD` | `PianoKeyboard` | `WEB_ROW_5` | `flex:1` |
-| `SLOT_LOOP_TOGGLE` | `Switch`（トグル） | `WEB_ROW_6`（列右端） | M3、CC4 |
+| 物理スロット ID | Web コンポーネント | 画面位置（暫定） |
+| --- | --- | --- |
+| `SLOT_WAVE_DISPLAY` | `WaveDisplay` | `WEB_STACK_1` |
+| `SLOT_WAVEJET`（水平） | `SelectionRail` | `WEB_STACK_2` |
+| `SLOT_WAVEJET`（回転） | `VerticalSlider`（ラベル: サイズ） | `WEB_ROW_3` |
+| `SLOT_FADER_FILTER` | `VerticalSlider`（Filter） | `WEB_ROW_1` |
+| `SLOT_FADER_DURATION` | `VerticalSlider`（Duration） | `WEB_ROW_2` |
+| `SLOT_RECORD` | `RecordButton` | `WEB_ROW_4` |
+| `SLOT_KEYBOARD` | `PianoKeyboard` | `WEB_ROW_5` |
+| `SLOT_LOOP_TOGGLE` | `Switch`（トグル） | `WEB_ROW_6` |
 
 ### Web 横一列の順序（`WEB_ROW_*` = 左から右）
 
@@ -215,7 +234,9 @@ WEB_ROW_1 Filter → WEB_ROW_2 Duration → WEB_ROW_3 サイズ → WEB_ROW_4 Re
 
 ---
 
-## バージョン別コントロール形状（クイック参照）
+## バージョン別コントロール形状（クイック参照・資料ベース）
+
+物理入力の形状差。MIDI は共通 → [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)。
 
 | パラメータ | オリジナル `hw_version=original` | 新版 `hw_version=new` |
 | --- | --- | --- |
@@ -225,8 +246,6 @@ WEB_ROW_1 Filter → WEB_ROW_2 Duration → WEB_ROW_3 サイズ → WEB_ROW_4 Re
 | 選択サイズ | `SLOT_WAVEJET` ノブ回転 | 同左 |
 | ループ | `SLOT_LOOP_TOGGLE` | `SLOT_LOOP_PUSH` |
 | 録音 | `SLOT_RECORD` | 同左 |
-
-MIDI CC と処理式は両バージョン同一（[ui-mapping.md](ui-mapping.md)）。
 
 ---
 
@@ -242,6 +261,7 @@ MIDI CC と処理式は両バージョン同一（[ui-mapping.md](ui-mapping.md)
 
 ## 関連ドキュメント
 
-- [ui-mapping.md](ui-mapping.md) — MIDI・Web 版機能対応表
+- [ui-mapping.md](ui-mapping.md) — **電子的対応（正本）**・Web 版機能対応
+- [layout-specs/README.md](layout-specs/README.md) — **配置（正本・予定）**
 - [web-spec.md](web-spec.md) — Phase 1 マイルストーン・UI 方針
-- [original-analysis.md](original-analysis.md) — オリジナル C++ / Teensy 分析
+- [original-analysis.md](original-analysis.md) — C++ / Teensy 分析（電子的つながりの詳細）

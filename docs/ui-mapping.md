@@ -1,14 +1,18 @@
 # オリジナル Collidoscope vs Web版 UI対応表
 
-オリジナル実装の分析は [original-analysis.md](original-analysis.md)、Web版の機能要件は [web-spec.md](web-spec.md) を参照。**物理配置・位置関係の正本**は [hardware-layout.md](hardware-layout.md)（ゾーン ID `SLOT_*` / `WEB_ROW_*`）。
+オリジナル実装の分析は [original-analysis.md](original-analysis.md)、Web版の機能要件は [web-spec.md](web-spec.md) を参照。
 
-## Web 版 UI の基準
+## ドキュメントの管轄
 
-**Phase 1 ではオリジナル版ハードウェアの UI メタファーを基準とする**（縦スライダー、トグルスイッチ、Wavejet 操作感）。新版ハードウェア（縦ノブ + プッシュボタン）は将来、設定で UI バリアント切替として対応する予定。
+| 領域 | 正本 | 信頼度 |
+| --- | --- | --- |
+| **電子的つながり**（MIDI、Pitch Bend、Teensy ピン、処理式、`synthStore` / `waveStore` キー） | **本書「電子的対応」** · [original-analysis.md](original-analysis.md) | **既存分析を正本としてよい** |
+| **物理コントロールの形状・操作軸**（縦フェーダー／ノブなど） | 本書「物理コントロール形状」· Introduction PDF | 資料ベース（配置とは別） |
+| **筐体・Web 画面上の配置** | [layout-specs/README.md](layout-specs/README.md) | ワイヤーフレーム確定後 |
 
-2 バージョン間の差異は物理コントロールの形状のみで、**MIDI メッセージとソフトウェア処理は同一**。Web 版に影響するのは UI の見た目・操作メタファーのみ。
+2 バージョン間の差異は物理コントロールの**形状**のみで、**MIDI メッセージとソフトウェア処理は同一**。Web 版に影響するのは UI の見た目・操作メタファー（配置は `layout-specs` で決める）。
 
-**演奏 UI と設定 UI**: 筐体配置のコントロールは `ControlPanel`（演奏用）に置く。`ConfigPanel` はデバッグ・全パラメータ用であり、Filter / Duration / 選択サイズ等の主要操作をここだけに置かない。
+**演奏 UI と設定 UI**: 筐体配置のコントロールは演奏用コンポーネント（現状 `ControlPanel`、M2.5 でスロット駆動に置換予定）に置く。`ConfigPanel` はデバッグ・全パラメータ用。
 
 ## 調査結果
 
@@ -16,40 +20,75 @@
 
 ---
 
-## バージョン別物理コントロール対応
+## 電子的対応（正本）
 
-公式資料: [`opencollidoscope_downloads/Introduction to Collidoscope.pdf`](../opencollidoscope_downloads/Introduction%20to%20Collidoscope.pdf)
+> C++ `CollidoscopeApp`・Teensy ファームウェア・[Collidoscope MIDI messages reference.pdf](../opencollidoscope_downloads/Collidoscope%20MIDI%20messages%20reference.pdf) に基づく既存分析を **正本としてよい**。バリアント切替（`original` / `new`）でも **MIDI と Store キーは変えない**。
 
-| パラメータ | MIDI | オリジナル版（Web 版の基準） | 新版（将来対応） | Web 版 UI | 状態 |
-| --- | --- | --- | --- | --- | --- |
-| フィルター | CC7 | 縦スライダー（太陽/月アイコン） | 縦ノブ上下移動 | 縦 Slider（M3 予定） | 未実装 |
-| Duration | CC2 | 縦スライダー（粒/雲アイコン） | ノブ回転 | 演奏列・縦 Slider（M2 残り） | **一部** |
-| 選択サイズ | CC1 | Wavejet ノブ回転 | 同左 | 演奏列・縦 Slider（M2 残り） | **一部** |
-| 選択位置 | Pitch Bend | Wavejet 水平移動 | 同左 | 波形直下レール + ドラッグ（M2 残り） | **一部** |
-| ループ | CC4 | トグルフリックスイッチ | プッシュボタン | 演奏列・右端トグル（M3） | Store のみ |
-| 録音 | CC5 | 16mm 赤プッシュボタン（LED リング） | 同左 | 演奏列・ボタン（M2 残りで配置移動） | 済・配置未 |
-| 演奏 | Note On/Off | USB MIDI 鍵盤 | 同左 | 演奏列・`PianoKeyboard`（M2 残りで配置移動） | 済・配置未 |
+| スロット ID | パラメータ | MIDI | マッピング（Web / オリジナル共通） | Web Store / 実装 |
+| --- | --- | --- | --- | --- |
+| `SLOT_KEYBOARD` | 演奏 | Note On/Off | ピッチ付きグレイン（最大 6 ボイス） | `synthStore` noteOn/Off |
+| `SLOT_WAVEJET`（水平） | 選択開始 | Pitch Bend 0〜149 | チャンクインデックス | `waveStore.selection.start` |
+| `SLOT_WAVEJET`（回転） | 選択サイズ | CC1 | MIDI 0〜127 → 1〜37 チャンク | `waveStore.selection.size` |
+| `SLOT_FADER_DURATION` / 新版ノブ回転 | Duration | CC2 | 0〜127 → グレイン持続係数 1.0〜8.0 | `synthStore.grainDurationCoeff` |
+| `SLOT_LOOP_TOGGLE` / `SLOT_LOOP_PUSH` | ループ | CC4 | >0 = ON / 0 = OFF | `synthStore.loop.enabled` |
+| `SLOT_RECORD` | 録音 | CC5 | 2 秒録音トリガー | `audioStore` 録音 |
+| `SLOT_FADER_FILTER` / 新版ノブ上下 | フィルター | CC7 | カットオフ + 選択透明度 0.5〜1.0 | M3: `config.filter` + 音声ノード |
 
-### 1 プレイヤー分の物理レイアウト（オリジナル版）
+詳細（Teensy ピン配線・処理式・ノイズ除去）: [original-analysis.md — MIDI 制御](original-analysis.md#midi-制御)
 
-詳細な俯瞰図・座標系・Web 投影は [hardware-layout.md](hardware-layout.md) を参照。要約:
+---
+
+## 物理コントロール形状（資料ベース）
+
+筐体上の**位置**は [layout-specs/](layout-specs/README.md) で決める。ここでは**入力デバイスの形状・操作軸**のみ。
+
+公式資料: [`Introduction to Collidoscope.pdf`](../opencollidoscope_downloads/Introduction%20to%20Collidoscope.pdf)
+
+| パラメータ | オリジナル版 | 新版 |
+| --- | --- | --- |
+| フィルター | 縦スライダー（太陽/月アイコン） | Short Knob 上下移動 |
+| Duration | 縦スライダー（粒/雲アイコン） | 同ノブ回転 |
+| 選択サイズ | Wavejet ノブ回転 | 同左 |
+| 選択位置 | Wavejet 水平移動 | 同左 |
+| ループ | トグルフリックスイッチ | プッシュボタン |
+| 録音 | 16mm 赤プッシュ（LED リング） | 同左 |
+| 演奏 | USB MIDI 鍵盤 | 同左 |
+
+| スロット ID | 部品 | 操作軸 |
+| --- | --- | --- |
+| `SLOT_FADER_FILTER` | Bourns 縦フェーダー（太陽/月） | 縦 |
+| `SLOT_FADER_DURATION` | Bourns 縦フェーダー（粒/雲） | 縦 |
+| `SLOT_WAVEJET` | SoftPot + エンコーダー + 38mm ノブ | 水平=開始、回転=サイズ |
+| `SLOT_RECORD` | 16mm 赤プッシュ（LED リング） | 押下 |
+| `SLOT_KEYBOARD` | USB MIDI 鍵盤 | — |
+| `SLOT_LOOP_TOGGLE` | 12V トグル | フリック |
+| `SLOT_LOOP_PUSH` | 48m-ss プッシュ（新版） | 押下 |
+
+---
+
+## Web 版 UI 実装状態
+
+**画面上の配置**は暫定（[layout-specs/](layout-specs/README.md) 確定後に更新）。**配線・Store** は上記「電子的対応」を正本とする。
+
+| パラメータ | Web 版 UI（目標コンポーネント） | 配線状態 | 配置状態 | マイルストーン |
+| --- | --- | --- | --- | --- |
+| フィルター | 縦 Slider / Short Knob 縦軸 | 未実装 | 暫定 | M3 |
+| Duration | 縦 Slider / Short Knob 回転 | **一部**（`grainDurationCoeff`） | 暫定 | M2 残り / M3 |
+| 選択サイズ | 縦 Slider（Wavejet 行） | **一部** | 暫定 | M2.5 |
+| 選択位置 | `SelectionRail` + ドラッグ | **一部** | 暫定 | M2 残り |
+| ループ | `LoopControl`（トグル / プッシュ） | Store のみ | 暫定 | M3 |
+| 録音 | `RecordButton` | 済 | 暫定 | M2.5 |
+| 演奏 | `PianoKeyboard` | 済 | 暫定 | M2.5 |
+
+### 筐体配置（暫定メモ）
+
+詳細は [hardware-layout.md](hardware-layout.md)（配置は未検証）。要約:
 
 ```text
 [波形] → 下段に Wavejet 水平レール（SLOT_WAVEJET）
-inward 行: 鍵盤（左）| 波形 | 縦フェーダー×2 + ループトグル（右）
-player_end: マイク + 録音ボタン（筐体端・マイク付近）
+inward 行: 鍵盤（左）| 波形 | 縦フェーダー×2 + ループトグル（右）  ← 暫定
+player_end: マイク + 録音ボタン（筐体端・マイク付近）  ← 暫定
 ```
-
-| スロット ID | 正式名称 | MIDI |
-| --- | --- | --- |
-| `SLOT_FADER_FILTER` | Filter フェーダー（太陽/月） | CC7 |
-| `SLOT_FADER_DURATION` | Duration フェーダー（粒/雲） | CC2 |
-| `SLOT_WAVEJET` | Wavejet（水平=位置、回転=サイズ） | Pitch Bend + CC1 |
-| `SLOT_RECORD` | Record（LED リング付き） | CC5 |
-| `SLOT_KEYBOARD` | USB MIDI Keyboard | Note On/Off |
-| `SLOT_LOOP_TOGGLE` | Loop トグル（新版は `SLOT_LOOP_PUSH`） | CC4 |
-
----
 
 ## 対応表: 視覚要素
 
@@ -68,21 +107,21 @@ player_end: マイク + 録音ボタン（筐体端・マイク付近）
 | Wave 1（黄 / 上半分 / 反転） | 水平ミラー表示 | なし（Phase 1 では 1 波形のみ） | Phase 2 | Phase 2 |
 | 中心線 | 水平軸線 | Canvas `centerLine` | 済 | M1 |
 
-## 対応表: 操作・コントロール
+## 対応表: 操作・コントロール（電子的つながり）
 
-オリジナル列は **オリジナル版ハードウェア**の物理入力を記載。括弧内はデバッグ用 PC キーボード。
+オリジナル列は **オリジナル版ハードウェア**の物理入力 → MIDI → 処理。括弧内はデバッグ用 PC キーボード。MIDI マッピングは上記「電子的対応」と同一。
 
-| パーツ | オリジナル版（物理） | Web版 | 状態 | 対応マイルストーン |
+| パーツ | オリジナル版（物理 → MIDI） | Web版（配線） | Web版（配置） | マイルストーン |
 | --- | --- | --- | --- | --- |
-| 録音トリガー | 録音プッシュボタン → CC5（`r`） | ボタンあり（演奏列外） | **一部** | M2 残り |
-| 選択位置移動 | Wavejet 水平 → Pitch Bend（`a`/`d`） | 波形ドラッグ + レール未実装 | **一部** | M2 残り |
-| 選択サイズ変更 | Wavejet ノブ回転 → CC1（`w`/`s`） | ホイールのみ | **一部** | M2 残り |
-| ループ ON/OFF | トグルスイッチ → CC4（Space） | Store 有り、**UI なし** | **未実装（UI）** | M3 |
-| グレイン duration 係数 | 縦スライダー（粒/雲）→ CC2（`9`/`0`） | 横 Slider（暫定・配置未） | **一部** | M2 残り |
-| フィルターカットオフ | 縦スライダー（太陽/月）→ CC7 | なし | **未実装** | M3 |
-| フルスクリーン | —（`f` のみ） | なし | **未実装** | M4 |
-| ノート演奏 | USB MIDI 鍵盤 → Note On/Off | `PianoKeyboard`（演奏列外） | **一部** | M2 残り |
-| Web MIDI 入力 | RtMidi 全ポート | なし | **未実装** | M4 |
+| 録音トリガー | 録音プッシュ → CC5（`r`） | 済 | 暫定 | M2.5 |
+| 選択位置移動 | Wavejet 水平 → Pitch Bend（`a`/`d`） | **一部** | 暫定 | M2 残り |
+| 選択サイズ変更 | Wavejet ノブ → CC1（`w`/`s`） | **一部** | 暫定 | M2.5 |
+| ループ ON/OFF | トグル → CC4（Space） | Store のみ | 暫定 | M3 |
+| グレイン duration 係数 | 縦スライダー → CC2（`9`/`0`） | **一部** | 暫定 | M2 残り |
+| フィルターカットオフ | 縦スライダー → CC7 | 未実装 | 暫定 | M3 |
+| フルスクリーン | —（`f` のみ） | なし | — | M4 |
+| ノート演奏 | USB MIDI 鍵盤 → Note On/Off | 済 | 暫定 | M2.5 |
+| Web MIDI 入力 | RtMidi 全ポート | なし | — | M4 |
 
 ## 対応表: Web版独自の UI（オリジナルにない）
 
@@ -127,8 +166,9 @@ player_end: マイク + 録音ボタン（筐体端・マイク付近）
 
 ## 関連ドキュメント
 
-- [hardware-layout.md](hardware-layout.md) — **筐体位置関係の正本**（ゾーン ID、バージョン別図、Web 投影）
-- [web-spec.md](web-spec.md) — Phase 1 マイルストーン定義、ハードウェア UI 方針
-- [web-design.md](web-design.md) — コンポーネント設計（`Oscilloscope`、`ControlPanel` 等）
-- [original-analysis.md](original-analysis.md) — オリジナル視覚システム・MIDI マッピング・物理ハードウェア
-- [opencollidoscope_downloads/](../opencollidoscope_downloads/) — 公式 PDF ミラー + CAD 図面 PDF（Introduction、MIDI reference、Physical Build 等）
+- [layout-specs/README.md](layout-specs/README.md) — **筐体・Web 配置（正本・予定）**
+- [hardware-layout.md](hardware-layout.md) — 座標系・資料索引・配置暫定図
+- [web-spec.md](web-spec.md) — Phase 1 マイルストーン定義
+- [web-design.md](web-design.md) — コンポーネント設計
+- [original-analysis.md](original-analysis.md) — **電子的つながりの詳細**（C++ / Teensy）
+- [opencollidoscope_downloads/](../opencollidoscope_downloads/) — 公式 PDF ミラー + CAD

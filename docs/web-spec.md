@@ -5,7 +5,8 @@
 - オリジナル実装の分析: [original-analysis.md](original-analysis.md)
 - アーキテクチャ設計: [web-design.md](web-design.md)
 - UI 対応表: [ui-mapping.md](ui-mapping.md)
-- 筐体位置関係: [hardware-layout.md](hardware-layout.md)
+- 筐体座標系・資料索引: [hardware-layout.md](hardware-layout.md)（**配置は暫定**）
+- **UI 配置の正本（予定）**: [layout-specs/README.md](layout-specs/README.md)
 - 公式資料ミラー: [`opencollidoscope_downloads/`](../opencollidoscope_downloads/)（Introduction、MIDI reference、Physical Build 等）
 
 ## プロジェクトの目的
@@ -32,13 +33,13 @@
 
 ## ハードウェアバージョンと Web 版 UI 方針
 
-オープンソース Collidoscope には **オリジナル版**と**新版**の 2 種類の物理筐体がある（詳細は [original-analysis.md](original-analysis.md) の「物理ハードウェア」、[ui-mapping.md](ui-mapping.md) のバージョン別表）。
+オープンソース Collidoscope には **オリジナル版**と**新版**の 2 種類の物理筐体がある（詳細は [original-analysis.md](original-analysis.md) の「物理ハードウェア」、[ui-mapping.md](ui-mapping.md) の「物理コントロール形状」）。
 
 | 方針 | 内容 |
 | --- | --- |
 | Phase 1 の基準 | **オリジナル版**をデフォルト。M2.5 で **新版 UI バリアント切替**を実装 |
-| MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする |
-| 配置の正本 | [hardware-layout.md](hardware-layout.md) の `SLOT_*` / ゾーン ID。M2.5 で Web グリッドに反映 |
+| MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする（**電子的つながりは既存分析を正本としてよい** → [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)） |
+| **配置の正本** | [layout-specs/README.md](layout-specs/README.md)（ワイヤーフレーム + YAML）。M2.5 で Web グリッドに反映 |
 
 ### オリジナル版を基準とする演奏用コントロール
 
@@ -59,7 +60,7 @@
 | --- | --- | --- |
 | **M1** | 録音して波形が見える | マイク、録音、チャンク波形表示、**設定パネル（折りたたみ・音声タブ）** |
 | **M2** | 選択して演奏できる | 選択 UI、グラニュラーシンセ、ピアノ鍵盤、**設定パネルにグラニュラータブ追加** |
-| **M2.5** | **UI 配置確定** | オリジナル / 新版バリアント切替、スロット駆動レイアウト（[hardware-layout.md](hardware-layout.md)）。Filter / Loop はプレースホルダ可 |
+| **M2.5** | **UI 配置確定** | オリジナル / 新版バリアント切替、スロット駆動レイアウト（[layout-specs/](layout-specs/README.md)）。Filter / Loop はプレースホルダ可 |
 | **M3** | 演奏の質とフィードバック | ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚タブ追加**（M2.5 のスロットへ配線） |
 | **M4** | 拡張・本番運用 | プリセット、JSON 入出力、MIDI、パーティクル、ショートカット |
 
@@ -250,7 +251,7 @@ selectionAlpha = lmap(midiVal, 0, 127, 0, 1)  → 描画時 0.5 + alpha × 0.5
 | **演奏 UI** | `ControlPanel`（新規）+ `WaveDisplay` + `PianoKeyboard` 等 | オリジナル筐体の物理配置を模す。日常の演奏操作のみ |
 | **設定 UI** | `ConfigPanel`（折りたたみ Drawer） | デバッグ・全パラメータ調整。演奏画面の主要操作はここに置かない |
 
-Phase 1 では **オリジナル版筐体**のレイアウトを演奏 UI の基準とする（[ui-mapping.md](ui-mapping.md) 参照）。**位置関係の正本**は [hardware-layout.md](hardware-layout.md)（`SLOT_*` / `WEB_ROW_*` / `WEB_STACK_*`）。
+Phase 1 では **オリジナル版筐体**のレイアウトを演奏 UI の基準とする（[ui-mapping.md](ui-mapping.md) 参照）。**画面上の配置の正本**は [layout-specs/README.md](layout-specs/README.md)（`SLOT_*` / ゾーン・向きは YAML + ワイヤーフレーム）。**電子的配線**は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を正本とする。
 
 ### 全体レイアウト（オリジナル版筐体準拠）
 
