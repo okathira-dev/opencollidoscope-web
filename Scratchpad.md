@@ -134,6 +134,8 @@ TDD 基盤・設定ドメイン
 
 ## 技術判断（確定済み）
 
+ドキュメント管轄の詳細: [docs/README.md](docs/README.md)
+
 | 項目 | 決定 |
 | --- | --- |
 | 音声 | Web Audio API のみ（Tone.js 不使用） |

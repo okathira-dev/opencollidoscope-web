@@ -1,12 +1,12 @@
 # Collidoscope Web版 実装仕様
 
+ドキュメント索引: [README.md](README.md)
+
 本ドキュメントは、Open Collidoscope を Web 技術で再実装する際の**目標・機能要件・設定値**を定義します。
 
 - オリジナル実装の分析: [original-analysis.md](original-analysis.md)
 - アーキテクチャ設計: [web-design.md](web-design.md)
-- UI 対応表: [ui-mapping.md](ui-mapping.md)
-- 筐体座標系・資料索引: [hardware-layout.md](hardware-layout.md)（**配置は暫定**）
-- **UI 配置の正本（予定）**: [layout-specs/README.md](layout-specs/README.md)
+- UI 対応・実装ギャップ: [ui-mapping.md](ui-mapping.md)
 - 公式資料ミラー: [`opencollidoscope_downloads/`](../opencollidoscope_downloads/)（Introduction、MIDI reference、Physical Build 等）
 
 ## プロジェクトの目的
@@ -38,19 +38,10 @@
 | 方針 | 内容 |
 | --- | --- |
 | Phase 1 の基準 | **オリジナル版**をデフォルト。M2.5 で **新版 UI バリアント切替**を実装 |
-| MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする（**電子的つながりは既存分析を正本としてよい** → [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)） |
-| **配置の正本** | [layout-specs/README.md](layout-specs/README.md)（ワイヤーフレーム + YAML）。M2.5 で Web グリッドに反映 |
+| MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする |
+| 配置・形状・実装ギャップ | [ui-mapping.md](ui-mapping.md) · [layout-specs/](layout-specs/README.md) を参照 |
 
-### オリジナル版を基準とする演奏用コントロール
-
-| パラメータ | オリジナル版の物理入力 | Web 版 UI（目標） |
-| --- | --- | --- |
-| フィルター | 縦スライダー（太陽/月） | 縦 Slider（M3） |
-| Duration | 縦スライダー（粒/雲） | 縦 Slider（M2 実装済み） |
-| 選択サイズ | Wavejet ノブ回転 | Slider / ホイール（M3） |
-| 選択位置 | Wavejet 水平移動 | ドラッグ / Slider（M2 実装済み） |
-| ループ | トグルスイッチ | トグル（M3） |
-| 録音 | プッシュボタン | ボタン（M1 実装済み） |
+演奏用コントロールの形状・実装状態は [ui-mapping.md](ui-mapping.md) を参照（本書では重複記載しない）。
 
 ## Phase 1 マイルストーン
 
@@ -71,7 +62,7 @@
 - [x] Vite `?worker&url` による Worklet の TypeScript ビルド（`spike-processor` で `addModule`・440Hz 出力を確認）
 - [x] GitHub Pages 向け [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) による COOP/COEP 迂回（`crossOriginIsolated` / `SharedArrayBuffer` を確認。初回リロードあり）
 
-実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/spike-processor.ts`（スパイク用。M1 本実装時に `recording-processor` へ置き換え）
+実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/recording-processor.ts`（録音）・`granular-processor.ts`（グラニュラー再生）
 
 ### マイルストーンと Store の導入タイミング
 
@@ -155,28 +146,9 @@
 
 公式定義: [`opencollidoscope_downloads/Collidoscope MIDI messages reference.pdf`](../opencollidoscope_downloads/Collidoscope%20MIDI%20messages%20reference.pdf)
 
-| パラメータ | デフォルト | マッピング |
-| --- | --- | --- |
-| ピッチベンド範囲 | 0〜149 | 選択開始（チャンクインデックス） |
-| CC1 | 選択サイズ | 0〜127 → 1〜37 チャンク |
-| CC2 | グレイン持続係数 | 0〜127 → 1.0〜8.0 |
-| CC4 | ループ ON/OFF | 0 = OFF、>0 = ON |
-| CC5 | 録音トリガー | 値は任意（エッジで開始） |
-| CC7 | フィルターカットオフ | 下記参照 |
+MIDI マッピング一覧: [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)。
 
-**CC7 フィルター（Web 版の正）**: `CollidoscopeApp` と同じ指数マッピングを用いる。
-
-```text
-cutoff = pow(maxCutoff / 200, midiVal / 127) × minCutoff
-selectionAlpha = lmap(midiVal, 0, 127, 0, 1)  → 描画時 0.5 + alpha × 0.5
-```
-
-- `midiVal = 0` → 200 Hz（最大カット、選択ハイライトは暗い）
-- `midiVal = 127` → 22050 Hz（フィルターなし、選択ハイライトは明るい）
-
-公式 MIDI リファレンス PDF はオリジナル版フェーダーの**物理位置**（太陽側 = 明るい）で周波数を記述している。Teensy はアナログ値を `map(..., 0, 127)` で MIDI 値に変換するため、PDF の記述とコード上の MIDI→周波数の対応は座標系が異なる場合がある。**Web 版は上記の CollidoscopeApp 式を正とする。**
-
-**物理入力（参考）**: オリジナル版 = 縦スライダー（太陽/月、CC7）、新版 = 縦ストリップセンサー（ノブ上下、同 CC7）。
+**CC7 フィルター（Web 版の正）**: [original-analysis.md — フィルター](original-analysis.md#フィルター) の `CollidoscopeApp` 式と同一（式の記載は同節のみ）。
 
 ### 設定管理要件
 
@@ -248,43 +220,12 @@ selectionAlpha = lmap(midiVal, 0, 127, 0, 1)  → 描画時 0.5 + alpha × 0.5
 
 | UI | コンポーネント | 役割 |
 | --- | --- | --- |
-| **演奏 UI** | `ControlPanel`（新規）+ `WaveDisplay` + `PianoKeyboard` 等 | オリジナル筐体の物理配置を模す。日常の演奏操作のみ |
+| **演奏 UI** | `ControlPanel`（暫定実装済み。M2.5 で `PlayerControlSurface` に置換予定）+ `WaveDisplay` + `PianoKeyboard` 等 | オリジナル筐体の物理配置を模す。日常の演奏操作のみ |
 | **設定 UI** | `ConfigPanel`（折りたたみ Drawer） | デバッグ・全パラメータ調整。演奏画面の主要操作はここに置かない |
 
-Phase 1 では **オリジナル版筐体**のレイアウトを演奏 UI の基準とする（[ui-mapping.md](ui-mapping.md) 参照）。**画面上の配置の正本**は [layout-specs/README.md](layout-specs/README.md)（`SLOT_*` / ゾーン・向きは YAML + ワイヤーフレーム）。**電子的配線**は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を正本とする。
+Phase 1 では **オリジナル版筐体**のレイアウトを演奏 UI の基準とする。配置・コンポーネント状態・実装ギャップは [ui-mapping.md](ui-mapping.md) と [hardware-layout.md — Web 投影](hardware-layout.md#web-版-phase-1-への投影暫定) を参照（本書では重複記載しない）。
 
-### 全体レイアウト（オリジナル版筐体準拠）
-
-```text
-┌─────────────────────────────────────────┐
-│  波形ディスプレイ（WaveDisplay）           │
-├─────────────────────────────────────────┤
-│  Wavejet 水平レール（選択開始）            │
-├──────┬─────────┬────────┬────────┬──────┤
-│Filter│Duration │選択サイズ│ 録音   │ 鍵盤 │ループ│
-│縦    │縦       │(ノブ)   │ボタン  │      │トグル│
-│(M3)  │(M2残)   │(M2残)   │        │      │(M3) │
-└──────┴─────────┴────────┴────────┴──────┘
-```
-
-- Phase 1: 単一シンジンを画面中央に配置
-- 縦積みの暫定 UI（`SynthEngine` 内の単独 Slider 等）は **M2 残り**で上記レイアウトへ置き換える
-- Filter・ループは M3 で同列に実装。M2 残りでは配置枠のみ確保可
-
-### UI コンポーネント
-
-| コンポーネント | 配置 | 機能 |
-| --- | --- | --- |
-| `WaveDisplay` | 上部 | チャンク波形、選択ハイライト、ドラッグ操作 |
-| Wavejet 水平レール | 波形直下 | 選択開始位置（Pitch Bend 相当） |
-| フィルター縦スライダー | 演奏列・左（M3） | 太陽/月アイコン相当（CC7） |
-| Duration 縦スライダー | 演奏列・左（M2 残り） | 粒/雲アイコン相当（CC2） |
-| 選択サイズスライダー | 演奏列・中央（M2 残り） | Wavejet ノブ回転相当（CC1） |
-| 録音ボタン | 演奏列（M2 残り） | 赤プッシュボタン相当（CC5） |
-| ピアノ鍵盤 | 演奏列（M2 残り） | Note On/Off |
-| ループトグル | 演奏列・右端（M3） | トグルスイッチ相当（CC4） |
-| `ConfigPanel` | 画面端 Drawer | 折りたたみ式。全パラメータ（デバッグ用） |
-| プリセット / JSON | `ConfigPanel` 内（M4） | 設定の保存・入出力 |
+暫定 UI（`ControlPanel` 横一列）は M2.5 で `PlayerControlSurface`（スロット駆動）に置換予定。Filter・ループは M3。
 
 ### 設定パネル（折りたたみ GUI）
 

@@ -1,27 +1,19 @@
 # Collidoscope 筐体レイアウト（暫定リファレンス）
 
-> **配置（空間）**: 本書の **ゾーン・スロット位置・Web 投影** は **未検証・暫定**。実装の正本は [layout-specs/README.md](layout-specs/README.md)。
->
-> **電子的つながり（MIDI・信号・Store）**: 本書には載せない。正本は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) と [original-analysis.md](original-analysis.md)（C++ / Teensy 分析・公式 MIDI PDF 突合済み）。**既存分析を当てにしてよい。**
+ドキュメント索引・管轄: [README.md](README.md)
 
-一次資料（PDF・CAD・動画）の索引と座標系用語のリファレンス。
+> **本書が書くこと**: 座標系用語、一次資料索引、暫定配置図、Web 投影メモ。  
+> **本書が書かないこと**: MIDI 表・形状一覧（→ [ui-mapping.md](ui-mapping.md)）、配置の正本（→ [layout-specs/](layout-specs/README.md)）。
 
-**インタラクティブ図（暫定）**: [collidoscope-hardware-layout.canvas.tsx](C:/Users/sardo/.cursor/projects/g-dev-opencollidoscope-web/canvases/collidoscope-hardware-layout.canvas.tsx) — ワイヤーフレーム確定後に同期予定。
+一次資料（PDF・CAD・動画）の索引と座標系用語のリファレンス。ゾーン・スロット位置・Web 投影は **未検証・暫定**。
 
-## ドキュメントの管轄
-
-| 領域 | 正本 | 信頼度 |
-| --- | --- | --- |
-| **筐体上の位置**（ゾーン・並び・Web 画面上のどこ） | [layout-specs/](layout-specs/README.md)（ワイヤーフレーム + YAML） | ワイヤーフレーム確定後 |
-| **電子的つながり**（MIDI CC、Pitch Bend、Teensy ピン、処理式、Store キー） | [ui-mapping.md](ui-mapping.md#電子的対応正本) · [original-analysis.md](original-analysis.md) | **既存分析を正本としてよい** |
-| **物理コントロールの形状・操作軸**（縦フェーダー／ノブ回転など） | [ui-mapping.md](ui-mapping.md#物理コントロール形状資料ベース) · Introduction PDF | 資料ベース（配置とは別） |
-| **座標系用語**（`player_end` 等） | 本書「座標系」 | 用語定義として有効 |
+**インタラクティブ図（暫定）**: Cursor Canvas `collidoscope-hardware-layout.canvas.tsx`（ローカルのみ）— ワイヤーフレーム確定後に同期予定。
 
 ## この文書の使い方（AI エージェント向け）
 
 1. **座標系**（下記）と **資料索引**（下表）を参照する。
-2. **画面上の配置**を実装するときは `docs/layout-specs/` を正本とする。本書の配置図は暫定。
-3. **MIDI 配線・パラメータ処理**を実装するときは [ui-mapping.md](ui-mapping.md#電子的対応正本) を正本とする（本書のスロット表に MIDI 列は載せない）。
+2. **画面上の配置**を実装するときは [layout-specs/](layout-specs/README.md) を正本とする。本書の配置図は暫定。
+3. **MIDI 配線・形状**は [ui-mapping.md](ui-mapping.md) を参照する。
 4. ゾーン ID（`ZONE_*`）とスロット ID（`SLOT_*`）は用語の共有用。
 
 ---
@@ -162,17 +154,9 @@ flowchart TB
 **識別子**: `hw_version=new`  
 **根拠**: Introduction Fig.1, Physical Build PDF, CAD `A-1-3`/`A-1-4`/`PT-5-6`, `CollidoscopeTeensy_new.ino`
 
-### オリジナル版との差分（物理形状のみ・資料ベース）
+### オリジナル版との差分（物理形状のみ）
 
-> MIDI マッピングは両バージョン同一。電子的対応は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を参照。
-
-| スロット ID | オリジナル（物理形状） | 新版（物理形状） |
-| --- | --- | --- |
-| `SLOT_FADER_FILTER` | 縦フェーダー | **`SLOT_SHORT_KNOB`**（縦ストリップ + ノブ上下） |
-| `SLOT_FADER_DURATION` | 縦フェーダー | **同ノブ回転** |
-| `SLOT_LOOP_TOGGLE` | トグル | **`SLOT_LOOP_PUSH`**（48m-ss プッシュ） |
-| `SLOT_WAVEJET` | 同左 | 同左（長尺レール `PT-3-*`） |
-| `SLOT_RECORD` / `SLOT_MIC` | 同左 | 同左（パースペックス `PT-5-6`, `PT-6-2`） |
+形状の詳細は [ui-mapping.md — 物理コントロール形状](ui-mapping.md#物理コントロール形状資料ベース) を参照。主な差分: フェーダー 2 本 → Short Knob 1 個、ループトグル → プッシュボタン。
 
 ```text
   inward ↑
@@ -230,22 +214,7 @@ WEB_ROW_1 Filter → WEB_ROW_2 Duration → WEB_ROW_3 サイズ → WEB_ROW_4 Re
 
 `ControlPanel.tsx` の `flexDirection: row` はこの順序に合わせる。Filter / Loop は M3 までプレースホルダ可。
 
-**意図的な差異**: 物理では録音・ループは `player_end`（マイク端）だが、Web では操作列内にまとめる。プレイヤー端の再現が必要なら `RecordButton` を `WEB_ROW_6` 右外または列端に寄せる設計を検討（現状は中央寄り）。
-
----
-
-## バージョン別コントロール形状（クイック参照・資料ベース）
-
-物理入力の形状差。MIDI は共通 → [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)。
-
-| パラメータ | オリジナル `hw_version=original` | 新版 `hw_version=new` |
-| --- | --- | --- |
-| Filter | `SLOT_FADER_FILTER` 縦フェーダー | `SLOT_SHORT_KNOB` 上下 |
-| Duration | `SLOT_FADER_DURATION` 縦フェーダー | `SLOT_SHORT_KNOB` 回転 |
-| 選択開始 | `SLOT_WAVEJET` 水平 | 同左 |
-| 選択サイズ | `SLOT_WAVEJET` ノブ回転 | 同左 |
-| ループ | `SLOT_LOOP_TOGGLE` | `SLOT_LOOP_PUSH` |
-| 録音 | `SLOT_RECORD` | 同左 |
+**意図的な差異**: 物理では録音・ループは `player_end`（マイク端）だが、Web では操作列内にまとめる。
 
 ---
 
@@ -261,7 +230,8 @@ WEB_ROW_1 Filter → WEB_ROW_2 Duration → WEB_ROW_3 サイズ → WEB_ROW_4 Re
 
 ## 関連ドキュメント
 
-- [ui-mapping.md](ui-mapping.md) — **電子的対応（正本）**・Web 版機能対応
-- [layout-specs/README.md](layout-specs/README.md) — **配置（正本・予定）**
+- [README.md](README.md) — ドキュメント索引・管轄
+- [ui-mapping.md](ui-mapping.md) — 電子的対応・形状・Web 実装状態
+- [layout-specs/README.md](layout-specs/README.md) — 配置（正本・予定）
 - [web-spec.md](web-spec.md) — Phase 1 マイルストーン・UI 方針
-- [original-analysis.md](original-analysis.md) — C++ / Teensy 分析（電子的つながりの詳細）
+- [original-analysis.md](original-analysis.md) — C++ / Teensy 分析

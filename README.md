@@ -27,7 +27,9 @@ The revision is [18:f1ff1a81be20](https://code.soundsoftware.ac.uk/projects/open
 
 | Document | Description |
 | --- | --- |
+| [docs/README.md](docs/README.md) | Documentation index — what to write where (single source of truth) |
 | [docs/original-analysis.md](docs/original-analysis.md) | Analysis of the original C++ implementation |
+| [docs/ui-mapping.md](docs/ui-mapping.md) | Electronic mapping, physical controls, Web UI gap analysis |
 | [docs/web-spec.md](docs/web-spec.md) | Web version goals, features, and configuration |
 | [docs/web-design.md](docs/web-design.md) | Web version architecture and porting design |
 

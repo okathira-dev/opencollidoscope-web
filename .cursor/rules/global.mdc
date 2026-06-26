@@ -25,7 +25,7 @@ alwaysApply: true
 
 - **日付ベースのメモは残さない**。前後関係は手順順序・因果関係で表現する。
 - 対象: `Scratchpad.md`、`.serena/memories/*.md`、`README.md`、`.cursor` 配下の説明文。
-- 主要ドキュメント: [docs/original-analysis.md](mdc:docs/original-analysis.md)、[docs/web-spec.md](mdc:docs/web-spec.md)、[docs/web-design.md](mdc:docs/web-design.md)。
+- 主要ドキュメント: [docs/README.md](mdc:docs/README.md)（索引）、[docs/ui-mapping.md](mdc:docs/ui-mapping.md)、[docs/original-analysis.md](mdc:docs/original-analysis.md)、[docs/web-spec.md](mdc:docs/web-spec.md)、[docs/web-design.md](mdc:docs/web-design.md)。
 
 ## 他のルールファイルとの連携
 

@@ -43,10 +43,13 @@ opencollidoscope/   # オリジナル C++ ソース（参照用）
 
 ## 主要ドキュメント
 
-- `docs/hardware-layout.md` — **筐体位置関係の正本**（`SLOT_*` / `WEB_ROW_*`、バージョン別図、AI エージェント向け）
-- `docs/ui-mapping.md` — オリジナル vs Web 機能・MIDI 対応表
-- `docs/original-analysis.md` — オリジナル C++ 実装の分析
-- `docs/web-spec.md` — Web版実装仕様（未整備・意図的選択の正本を含む）
+索引（管轄・正本の一覧）: `docs/README.md`
+
+- `docs/ui-mapping.md` — 電子的対応・物理形状・Web 実装ギャップ（正本）
+- `docs/layout-specs/` — 筐体・Web 配置（ワイヤーフレーム確定後の正本）
+- `docs/hardware-layout.md` — 座標系・資料索引・配置暫定図
+- `docs/original-analysis.md` — オリジナル C++ 実装の分析（処理式・Teensy）
+- `docs/web-spec.md` — Web版実装仕様（マイルストーン・機能要件）
 - `docs/web-design.md` — Web版設計書（アーキテクチャ、Mermaid 図）
 - `Scratchpad.md` — 短期タスクログ
 - `.serena/memories/` — 長期知識（アーキテクチャ分析、コーディング規約等）
