@@ -4,7 +4,7 @@
 
 オリジナル実装の分析は [original-analysis.md](original-analysis.md)、Web版の機能要件は [web-spec.md](web-spec.md) を参照。
 
-**演奏 UI と設定 UI**: 筐体配置のコントロールは演奏用コンポーネント（現状 `ControlPanel`、M2.5 でスロット駆動に置換予定）に置く。`ConfigPanel` はデバッグ・全パラメータ用。
+**演奏 UI と設定 UI**: 筐体配置のコントロールは演奏用コンポーネント（`PlayerControlSurface`）に置く。`ConfigPanel` はデバッグ・全パラメータ用。
 
 ## 調査結果
 
@@ -19,6 +19,8 @@
 | スロット ID | パラメータ | MIDI | マッピング（Web / オリジナル共通） | Web Store / 実装 |
 | --- | --- | --- | --- | --- |
 | `SLOT_KEYBOARD` | 演奏 | Note On/Off | ピッチ付きグレイン（最大 6 ボイス） | `synthStore` noteOn/Off |
+| `SLOT_KEYBOARD_OCTAVE_UP` | オクターブ + | —（鍵盤内部） | 表示音域を 1 オクターブ上へ | `synthStore` keyboardOctaveOffset |
+| `SLOT_KEYBOARD_OCTAVE_DOWN` | オクターブ - | —（鍵盤内部） | 表示音域を 1 オクターブ下へ | 同上 |
 | `SLOT_WAVEJET`（水平） | 選択開始 | Pitch Bend 0〜149 | チャンクインデックス | `waveStore.selection.start` |
 | `SLOT_WAVEJET`（回転） | 選択サイズ | CC1 | MIDI 0〜127 → 1〜37 チャンク | `waveStore.selection.size` |
 | `SLOT_FADER_DURATION` / 新版ノブ回転 | Duration | CC2 | 0〜127 → グレイン持続係数 1.0〜8.0 | `synthStore.grainDurationCoeff` |
@@ -32,7 +34,9 @@
 
 ## 物理コントロール形状（資料ベース）
 
-筐体上の**位置**は [layout-specs/](layout-specs/README.md) で決める。ここでは**入力デバイスの形状・操作軸**のみ。
+筐体上の**画面上の配置**は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名（例: `keyboards-a`, `display-red`）が正本。**MIDI・Store・部品形状・操作向き**は本書の `SLOT_*` が正本。配置資料にそれらを重複記載しない。
+
+配置ブロック名 → `SLOT_*` の対応: [layout-specs/README.md — Web 移植対応](layout-specs/README.md#web-移植対応m25-参考)
 
 公式資料: [`Introduction to Collidoscope.pdf`](../opencollidoscope_downloads/Introduction%20to%20Collidoscope.pdf)
 
@@ -42,7 +46,10 @@
 | `SLOT_FADER_DURATION` | Duration | 縦スライダー（粒/雲） | 同ノブ回転 | Bourns 縦フェーダー | 縦 / 回転 |
 | `SLOT_WAVEJET` | 選択位置・サイズ | 水平移動 / ノブ回転 | 同左 | SoftPot + エンコーダー + 38mm ノブ | 水平=開始、回転=サイズ |
 | `SLOT_RECORD` | 録音 | 16mm 赤プッシュ（LED リング） | 同左 | 16mm 赤プッシュ | 押下 |
-| `SLOT_KEYBOARD` | 演奏 | USB MIDI 鍵盤 | 同左 | USB MIDI 鍵盤 | — |
+| `SLOT_KEYBOARD` | 演奏 | USB MIDI 鍵盤（C3–C5、25 鍵・中央 C4） | 同左 | USB MIDI 鍵盤 | — |
+| `SLOT_KEYBOARD_OCTAVE_UP` | オクターブ + | 鍵盤横プッシュ | — | 鍵盤本体ボタン | 押下 |
+| `SLOT_KEYBOARD_OCTAVE_DOWN` | オクターブ - | 鍵盤横プッシュ | — | 鍵盤本体ボタン | 押下 |
+| `SLOT_SPEAKER` | 放音穴 | 円形グリル（装飾） | — | 筐体内蔵スピーカー | — |
 | `SLOT_LOOP_TOGGLE` | ループ | トグルフリックスイッチ | — | 12V トグル | フリック |
 | `SLOT_LOOP_PUSH` | ループ | — | プッシュボタン | 48m-ss プッシュ | 押下 |
 
@@ -50,17 +57,20 @@
 
 ## Web 版 UI 実装状態
 
-**画面上の配置**は暫定（[hardware-layout.md — Web 投影](hardware-layout.md#web-版-phase-1-への投影暫定)、確定後は [layout-specs/](layout-specs/README.md)）。**配線・Store** は上記「電子的対応」を正本とする。
+**画面上の配置**は [layout-specs/original/](layout-specs/README.md) を正本とし、`PlayerControlSurface` + `original-layout.ts`（180 度投影）で実装。**配線・Store** は上記「電子的対応」を正本とする。
 
 | パラメータ | Web 版 UI | 配線状態 | 配置状態 | マイルストーン |
 | --- | --- | --- | --- | --- |
-| フィルター | 縦 Slider / Short Knob 縦軸 | 未実装 | 暫定 | M3 |
-| Duration | 縦 Slider / Short Knob 回転 | 済（暫定） | 暫定 | 配置確定 M2.5 |
-| 選択サイズ | 縦 Slider | 済（暫定） | 暫定 | 配置確定 M2.5 |
-| 選択位置 | `SelectionRail` + ドラッグ | 済（暫定） | 暫定 | 配置確定 M2.5 |
-| ループ | `ControlPanel` 内 Switch | Store のみ | 暫定 | M3 |
-| 録音 | `RecordButton` | 済 | 暫定 | 配置確定 M2.5 |
-| 演奏 | `PianoKeyboard` | 済 | 暫定 | 配置確定 M2.5 |
+| フィルター | 横 Slider（`HorizontalSlider`）/ Short Knob 回転 | 未実装 | 済（A/B 配置） | M3 |
+| Duration | 横 Slider（`HorizontalSlider`）/ Short Knob 回転 | 済（A 側） | 済（A/B 配置） | M2.5 |
+| 選択サイズ | なし（ホイールのみ） | 済 | — | — |
+| 選択位置 | `SelectionRail` + ドラッグ | 済（A 側） | 済（A/B 配置） | M2.5 |
+| ループ | `Switch`（各端） | Store のみ | 済（A/B 配置） | M3 |
+| 録音 | `RecordButton` | 済（A 側） | 済（A/B 配置） | M2.5 |
+| 演奏 | `PianoKeyboard`（25 鍵） | 済（A 側） | 済（A/B 配置） | M2.5 |
+| オクターブ +/- | `OctaveButton` ×2 | 済（A 側） | 済（A/B 配置） | M2.5 |
+| スピーカーグリル | `SpeakerGrille`（装飾） | — | 済（A/B 配置） | M2.5 |
+| Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 / M3 |
 
 デバッグ用 PC キーボード: `r`=録音、`a`/`d`=選択位置、`w`/`s`=選択サイズ、`9`/`0`=Duration、`Space`=ループ、`f`=フルスクリーン（M4 予定）。
 
@@ -100,15 +110,17 @@
 | 音声タブ | 録音時間、チャンク数等 | M1 |
 | グラニュラータブ | グレイン数、ボイス数、エンベロープ等 | M2 |
 
-## M2 残り UI（暫定実装済み — M2.5 で layout-specs に基づき再配置）
+## M2.5 UI 配置（オリジナル版・実装済み）
 
-以下は `ControlPanel` 内に暫定実装済み。M2.5 でワイヤーフレーム正本に従い `PlayerControlSurface`（スロット駆動）へ置換予定。配置の詳細は [hardware-layout.md — Web 投影](hardware-layout.md#web-版-phase-1-への投影暫定)。
+`PlayerControlSurface` が `layout-specs/original/layout.css` を 180 度投影した 12 行グリッドで A/B 両面を描画する。
 
-1. **`ControlPanel`** — 演奏用コントロール列（`ConfigPanel` とは別）
-2. **`SelectionRail`** — 波形直下、選択開始
-3. **選択サイズ・Duration 縦スライダー** — `VerticalSlider`
-4. **`RecordButton` + `PianoKeyboard`** — 演奏列内
-5. **Filter・ループの配置枠** — M3 実装に備えたプレースホルダ
+1. **`PlayerControlSurface`** — `original-layout.ts` の `ORIGINAL_LAYOUT_WEB_TEMPLATE` 駆動
+2. **`HorizontalSlider`** — Filter / Duration（`slider-moon-sun-*` / `slider-small-big-*`）
+3. **`SelectionRail`** — Wavejet 開始位置のみ（サイズスライダー UI なし）
+4. **`RecordButton` + `PianoKeyboard` + `OctaveButton`** — A 側は配線済み、B 側は配置のみ
+5. **Filter・ループ** — 各端に配置枠あり（M3 で配線）
+
+暫定 `ControlPanel` は `SynthEngine` から外れている（ファイルは残存）。
 
 ## M3 で実装すべき UI 要素
 
@@ -123,12 +135,12 @@
 
 - **選択境界の終点表示** — 現在は始点ノブのみ
 - **チャンクリセットアニメーション** — 優先度低
-- **新版 UI バリアント** — フィルター/Duration をノブ操作、ループをプッシュボタンに変更（M2.5）
+- **新版 UI バリアント** — `new/layout.html` 作成後に `new-layout.ts` + `VariantSwitcher`（M2.5 後続）
 
 ## 関連ドキュメント
 
 - [README.md](README.md) — ドキュメント索引・管轄
-- [layout-specs/README.md](layout-specs/README.md) — 筐体・Web 配置（正本・予定）
+- [layout-specs/README.md](layout-specs/README.md) — 画面上の配置正本（kebab-case ブロック名 + `-a`/`-b` ゾーン接尾辞）
 - [hardware-layout.md](hardware-layout.md) — 座標系・資料索引・配置暫定図
 - [web-spec.md](web-spec.md) — Phase 1 マイルストーン定義
 - [web-design.md](web-design.md) — コンポーネント設計

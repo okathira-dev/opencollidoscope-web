@@ -2,6 +2,11 @@ import { create } from "zustand";
 
 import { midiNoteToRate } from "../domain/audio/index.ts";
 import { GranularSynthesizer } from "../features/synth-engine/granular-synthesizer.ts";
+import {
+  clampKeyboardOctaveOffset,
+  MAX_KEYBOARD_OCTAVE_OFFSET,
+  MIN_KEYBOARD_OCTAVE_OFFSET,
+} from "../features/synth-engine/keyboard-layout.ts";
 import { getAudioStoreState } from "./audio-store.ts";
 import { getConfigState, subscribeConfig } from "./config-store.ts";
 import { getWaveStoreState, subscribeWaveSelection } from "./wave-store.ts";
@@ -11,12 +16,14 @@ interface SynthState {
   grainDurationCoeff: number;
   loop: { enabled: boolean };
   activeNotes: number[];
+  keyboardOctaveOffset: number;
 
   initializeSynth: () => Promise<void>;
   noteOn: (midiNote: number) => void;
   noteOff: (midiNote: number) => void;
   setLoopEnabled: (enabled: boolean) => void;
   setGrainDurationCoeff: (coeff: number) => void;
+  shiftKeyboardOctave: (delta: number) => void;
   syncBuffer: (buffer: Float32Array) => void;
   syncSelection: () => void;
   syncConfig: () => void;
@@ -42,6 +49,7 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
   grainDurationCoeff: 1.0,
   loop: { enabled: false },
   activeNotes: [],
+  keyboardOctaveOffset: 0,
 
   initializeSynth: async () => {
     const audioContext = getAudioStoreState().audioContext;
@@ -93,6 +101,19 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
     );
     synthesizer?.setGrainDurationCoeff(clamped);
     set({ grainDurationCoeff: clamped });
+  },
+
+  shiftKeyboardOctave: (delta) => {
+    const state = get();
+    const nextOffset = clampKeyboardOctaveOffset(state.keyboardOctaveOffset + delta);
+    if (nextOffset === state.keyboardOctaveOffset) {
+      return;
+    }
+
+    for (const midiNote of state.activeNotes) {
+      synthesizer?.noteOff(midiNote);
+    }
+    set({ keyboardOctaveOffset: nextOffset, activeNotes: [] });
   },
 
   syncBuffer: (buffer) => {
@@ -161,6 +182,22 @@ export function useSetGrainDurationCoeff() {
   return useSynthStoreInternal((state) => state.setGrainDurationCoeff);
 }
 
+export function useKeyboardOctaveOffset(): number {
+  return useSynthStoreInternal((state) => state.keyboardOctaveOffset);
+}
+
+export function useShiftKeyboardOctave() {
+  return useSynthStoreInternal((state) => state.shiftKeyboardOctave);
+}
+
+export function useCanShiftKeyboardOctaveUp(): boolean {
+  return useSynthStoreInternal((state) => state.keyboardOctaveOffset < MAX_KEYBOARD_OCTAVE_OFFSET);
+}
+
+export function useCanShiftKeyboardOctaveDown(): boolean {
+  return useSynthStoreInternal((state) => state.keyboardOctaveOffset > MIN_KEYBOARD_OCTAVE_OFFSET);
+}
+
 export function useSyncSynthBuffer() {
   return useSynthStoreInternal((state) => state.syncBuffer);
 }
@@ -192,5 +229,6 @@ export function disposeSynth(): void {
     isInitialized: false,
     activeNotes: [],
     loop: { enabled: false },
+    keyboardOctaveOffset: 0,
   });
 }

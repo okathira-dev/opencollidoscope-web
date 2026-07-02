@@ -14,8 +14,9 @@ import {
   useSetLoopEnabled,
 } from "../../../stores/synth-store.ts";
 import { useSetWaveSelection, useWaveSelection } from "../../../stores/wave-store.ts";
-import { PianoKeyboard } from "./PianoKeyboard.tsx";
+import { KeyboardCluster } from "./KeyboardCluster.tsx";
 import { RecordButton } from "./RecordButton.tsx";
+import { SpeakerGrille } from "./SpeakerGrille.tsx";
 import { VerticalSlider } from "./VerticalSlider.tsx";
 
 export interface ControlPanelProps {
@@ -148,9 +149,11 @@ export function ControlPanel({
 
         <Divider orientation="vertical" flexItem sx={{ borderColor: "#333" }} />
 
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <PianoKeyboard disabled={pianoDisabled} />
-        </Box>
+        <SpeakerGrille size={56} />
+
+        <Divider orientation="vertical" flexItem sx={{ borderColor: "#333" }} />
+
+        <KeyboardCluster disabled={pianoDisabled} />
 
         <Divider orientation="vertical" flexItem sx={{ borderColor: "#333" }} />
 

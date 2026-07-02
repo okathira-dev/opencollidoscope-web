@@ -7,14 +7,22 @@
 
 一次資料（PDF・CAD・動画）の索引と座標系用語のリファレンス。ゾーン・スロット位置・Web 投影は **未検証・暫定**。
 
-**インタラクティブ図（暫定）**: Cursor Canvas `collidoscope-hardware-layout.canvas.tsx`（ローカルのみ）— ワイヤーフレーム確定後に同期予定。
+**インタラクティブ図（暫定）**: Cursor Canvas `collidoscope-hardware-layout.canvas.tsx`（ローカルのみ）— 配置仕様確定後に同期予定。
 
-## この文書の使い方（AI エージェント向け）
+## この文書の使い方
+
+### 人間（配置仕様を作るとき）
+
+1. 本書の **座標系**と **資料索引**で用語と一次資料の場所を確認する。
+2. 資料を開いたまま [CSS Grid Wireframe Planner](https://devtooleasy.com/css/grid-wireframe-planner) で筐体俯瞰を GUI 配置する（手順は [layout-specs/README.md](layout-specs/README.md)）。
+3. エクスポートした `<variant>/layout.html` を正本とし、本書の暫定図は必要に応じて更新する。
+
+### AI エージェント向け
 
 1. **座標系**（下記）と **資料索引**（下表）を参照する。
-2. **画面上の配置**を実装するときは [layout-specs/](layout-specs/README.md) を正本とする。本書の配置図は暫定。
+2. **画面上の配置**を実装するときは [layout-specs/](layout-specs/README.md) の kebab-case ブロック名を正本とする。本書の `SLOT_*` 図・`WEB_STACK_*` 表は inward 投影の解説用。
 3. **MIDI 配線・形状**は [ui-mapping.md](ui-mapping.md) を参照する。
-4. ゾーン ID（`ZONE_*`）とスロット ID（`SLOT_*`）は用語の共有用。
+4. 俯瞰グリッドの **`-a` = 上端（`ZONE_PLAYER_A` / Wave 0 赤）、`-b` = 下端（`ZONE_PLAYER_B` / Wave 1 黄）**（一次資料画像と同じ向き）。`SLOT_*` は Web 移植層の用語。
 
 ---
 
@@ -63,13 +71,17 @@ flowchart TB
 ```
 
 ```text
-                    Player B の player_end
+                    Player B の player_end（Wave 1 黄）
     ┌──────────────────────────────────────────────────┐
     │  [B: KB]  │     Wave 1 黄・反転表示      │ [B: 操作] │
     │───────────┼──────────────────────────────┼──────────│
     │  [A: KB]  │     Wave 0 赤・正立表示      │ [A: 操作] │
     └──────────────────────────────────────────────────┘
-                    Player A の player_end
+                    Player A の player_end（Wave 0 赤）
+
+    ※ inward 断面図（上=B / 下=A）。俯瞰グリッド（layout-specs）の row 0 は
+      資料画像どおり **上 = プレイヤー A 端（赤）**。Web 実装は 180 度投影で
+      **画面下 = A 端（鍵盤帯）**、**画面上 = B 端**。
 
     各プレイヤー: lateral_left ≈ 鍵盤 / lateral_right ≈ パラメータ操作
     各プレイヤー: player_end 隅に XLR マイク + 録音（+ ループ on パースペックス）
@@ -95,7 +107,7 @@ flowchart TB
          ┌────────────────────────────────────────────────┐
          │  SLOT_KEYBOARD      SLOT_WAVE_DISPLAY           │
   lat_L  │  (USB MIDI KB)      (モニター半分)    lat_R      │
-         │                      SLOT_FADER_FILTER            │
+         │  OCT+/-             SLOT_FADER_FILTER            │
          │                      SLOT_FADER_DURATION          │
          │                      SLOT_LOOP_TOGGLE             │
          ├────────────────────────────────────────────────┤
@@ -114,6 +126,7 @@ flowchart TB
     subgraph inward_row [inward 行]
       direction LR
       KB[SLOT_KEYBOARD lateral_left]
+      OCT[SLOT_KEYBOARD_OCTAVE lateral_left]
       WAVE2[波形]
       F1[SLOT_FADER_FILTER]
       F2[SLOT_FADER_DURATION]
@@ -130,7 +143,7 @@ flowchart TB
 
 ### スロット配置（暫定・未検証）
 
-> ゾーン・平面図はワイヤーフレーム確定まで **参考のみ**。部品名・操作軸は [ui-mapping.md](ui-mapping.md#物理コントロール形状資料ベース)、MIDI は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を参照。
+> ゾーン・平面図は配置仕様確定まで **参考のみ**。部品名・操作軸は [ui-mapping.md](ui-mapping.md#物理コントロール形状資料ベース)、MIDI は [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本) を参照。
 
 | スロット ID | ゾーン（暫定） |
 | --- | --- |
@@ -139,6 +152,8 @@ flowchart TB
 | `SLOT_FADER_FILTER` | `inward` / `lateral_right` |
 | `SLOT_FADER_DURATION` | `inward` / `lateral_right` |
 | `SLOT_KEYBOARD` | `inward` / `lateral_left` |
+| `SLOT_KEYBOARD_OCTAVE_UP` / `SLOT_KEYBOARD_OCTAVE_DOWN` | `inward` / `lateral_left`（鍵盤横） |
+| `SLOT_SPEAKER` | `inward` / 鍵盤とフェーダー列の間（放音穴・非操作） |
 | `SLOT_RECORD` | `player_end` |
 | `SLOT_LOOP_TOGGLE` | `inward` / `lateral_right` |
 | `SLOT_MIC` | `player_end` 隅 |
@@ -175,13 +190,22 @@ CAD `A-1-4` Top Plate Assembly 部品: `PT-5-5` XLR×2, `PT-5-4` ITW Loop×2, `P
 
 ---
 
-## Web 版 Phase 1 への投影（暫定）
+## Web 版 Phase 1 への投影
 
-> **本節全体は未検証・暫定。** 正本は [layout-specs/README.md](layout-specs/README.md)。MIDI / Store の配線は [ui-mapping.md](ui-mapping.md#電子的対応正本) を参照（配置とは別）。
+> 配置の正本は [layout-specs/original/](layout-specs/README.md)。以下は inward 視点の解説用メモ。
 
-Phase 1 は **単一エンジン（Wave 0）** を画面中央に縦積み。以下は M2 暫定 `ControlPanel` 時代のメモであり、ワイヤーフレーム確定後に置き換える。
+M2.5（オリジナル版）では `layout.css` の 12 行を **180 度回転** して Web に投影する。
 
-### 画面スタック（上 → 下・暫定）
+- **画面上部**: プレイヤー B（黄）— 鍵盤・スライダー・Wavejet（配置のみ）
+- **中央上**: `display-yellow`（Wave 1 配置枠）
+- **中央下**: `display-red`（`WaveDisplay`・Wave 0）
+- **画面下部**: プレイヤー A（赤）— 鍵盤・スライダー・Wavejet（A 側は配線済み）
+
+実装: `PlayerControlSurface` + `original-layout.ts` の `ORIGINAL_LAYOUT_WEB_TEMPLATE`。
+
+### 旧暫定メモ（`ControlPanel` 横一列 — 撤去済み）
+
+以下は M2 暫定 `ControlPanel` 時代のメモ。`SynthEngine` からは外れている。
 
 ```text
 ┌─────────────────────────────────────────┐  WEB_STACK_1
@@ -193,28 +217,11 @@ Phase 1 は **単一エンジン（Wave 0）** を画面中央に縦積み。以
 └─────────────────────────────────────────┘
 ```
 
-### 物理スロット → Web コンポーネント（配置・暫定）
-
-| 物理スロット ID | Web コンポーネント | 画面位置（暫定） |
-| --- | --- | --- |
-| `SLOT_WAVE_DISPLAY` | `WaveDisplay` | `WEB_STACK_1` |
-| `SLOT_WAVEJET`（水平） | `SelectionRail` | `WEB_STACK_2` |
-| `SLOT_WAVEJET`（回転） | `VerticalSlider`（ラベル: サイズ） | `WEB_ROW_3` |
-| `SLOT_FADER_FILTER` | `VerticalSlider`（Filter） | `WEB_ROW_1` |
-| `SLOT_FADER_DURATION` | `VerticalSlider`（Duration） | `WEB_ROW_2` |
-| `SLOT_RECORD` | `RecordButton` | `WEB_ROW_4` |
-| `SLOT_KEYBOARD` | `PianoKeyboard` | `WEB_ROW_5` |
-| `SLOT_LOOP_TOGGLE` | `Switch`（トグル） | `WEB_ROW_6` |
-
-### Web 横一列の順序（`WEB_ROW_*` = 左から右）
-
-```text
-WEB_ROW_1 Filter → WEB_ROW_2 Duration → WEB_ROW_3 サイズ → WEB_ROW_4 Record → WEB_ROW_5 Keyboard → WEB_ROW_6 Loop
-```
-
-`ControlPanel.tsx` の `flexDirection: row` はこの順序に合わせる。Filter / Loop は M3 までプレースホルダ可。
-
-**意図的な差異**: 物理では録音・ループは `player_end`（マイク端）だが、Web では操作列内にまとめる。
+| 物理スロット ID | Web コンポーネント（旧暫定） |
+| --- | --- |
+| `SLOT_WAVEJET`（回転） | ~~`VerticalSlider`（サイズ）~~ → **UI 削除**（実機にない） |
+| `SLOT_FADER_FILTER` | ~~`VerticalSlider`~~ → `HorizontalSlider` |
+| `SLOT_FADER_DURATION` | ~~`VerticalSlider`~~ → `HorizontalSlider` |
 
 ---
 
@@ -232,6 +239,6 @@ WEB_ROW_1 Filter → WEB_ROW_2 Duration → WEB_ROW_3 サイズ → WEB_ROW_4 Re
 
 - [README.md](README.md) — ドキュメント索引・管轄
 - [ui-mapping.md](ui-mapping.md) — 電子的対応・形状・Web 実装状態
-- [layout-specs/README.md](layout-specs/README.md) — 配置（正本・予定）
+- [layout-specs/README.md](layout-specs/README.md) — 配置正本（`<variant>/layout.html`、kebab-case ブロック名 + `-a`/`-b`）
 - [web-spec.md](web-spec.md) — Phase 1 マイルストーン・UI 方針
 - [original-analysis.md](original-analysis.md) — C++ / Teensy 分析

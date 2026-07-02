@@ -18,6 +18,8 @@ const KNOB_RADIUS = 8;
 
 interface WaveDisplayProps {
   color: string;
+  height?: string | number;
+  minHeight?: number;
 }
 
 function getAnimationScale(updatedAt: number, now: number): number {
@@ -134,7 +136,7 @@ function drawChunks(
   }
 }
 
-export function WaveDisplay({ color }: WaveDisplayProps) {
+export function WaveDisplay({ color, height = "40vh", minHeight = 200 }: WaveDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chunks = useWaveChunks();
   const selection = useWaveSelection();
@@ -262,8 +264,8 @@ export function WaveDisplay({ color }: WaveDisplayProps) {
       onPointerCancel={handlePointerUp}
       style={{
         width: "100%",
-        height: "40vh",
-        minHeight: 200,
+        height,
+        minHeight,
         display: "block",
         backgroundColor: "#000000",
         cursor: isDragging ? "grabbing" : selection.isNull ? "default" : "grab",

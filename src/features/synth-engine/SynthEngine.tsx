@@ -1,4 +1,13 @@
-import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from "@mui/material";
+
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -15,9 +24,10 @@ import {
 } from "../../stores/synth-store.ts";
 import { useWaveSelection } from "../../stores/wave-store.ts";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
-import { ControlPanel } from "./components/ControlPanel.tsx";
-import { SelectionRail } from "./components/SelectionRail.tsx";
-import { WaveDisplay } from "./components/WaveDisplay.tsx";
+import {
+  type PlayerBOrientation,
+  PlayerControlSurface,
+} from "./components/PlayerControlSurface.tsx";
 
 export interface SynthEngineProps {
   engineId: number;
@@ -36,6 +46,7 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
   const selection = useWaveSelection();
 
   const [initError, setInitError] = useState<string | null>(null);
+  const [playerBOrientation, setPlayerBOrientation] = useState<PlayerBOrientation>("facing");
 
   const handleInitialize = useCallback(async () => {
     setInitError(null);
@@ -87,13 +98,32 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
         </Button>
       ) : (
         <Stack spacing={2} sx={{ width: "100%", maxWidth: 1400 }}>
-          <WaveDisplay color={color} />
-          <SelectionRail disabled={selection.isNull} />
-          <ControlPanel
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <ToggleButtonGroup
+              value={playerBOrientation}
+              exclusive
+              size="small"
+              aria-label="プレイヤー B の向き"
+              onChange={(_, value: PlayerBOrientation | null) => {
+                if (value !== null) {
+                  setPlayerBOrientation(value);
+                }
+              }}
+            >
+              <ToggleButton value="facing" aria-label="向き合いモード">
+                向き合い
+              </ToggleButton>
+              <ToggleButton value="stacked" aria-label="二段モード">
+                二段
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          <PlayerControlSurface
             disabled={!isInitialized}
             hasRecordedBuffer={hasRecordedBuffer}
             isSynthInitialized={isSynthInitialized}
             color={color}
+            playerBOrientation={playerBOrientation}
           />
         </Stack>
       )}

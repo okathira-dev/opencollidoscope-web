@@ -297,6 +297,8 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
+**演奏面の配置（M2.5 original 完了）**: `PlayerControlSurface` が `original-layout.ts`（180 度投影）で 12 行グリッドを駆動。配置の正本は [layout-specs/original/](layout-specs/README.md) の kebab-case ブロック名。A 側は機能配線済み、B 側は配置のみ。横スライダー（`HorizontalSlider`）、Wavejet サイズ UI なし。new 版・バリアント切替は後続。
+
 ### WaveDisplay
 
 Canvas ベース。Props で `chunks`, `selection`, `cursors`, `color` を受け取り、`requestAnimationFrame` で描画。
