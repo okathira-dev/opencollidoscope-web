@@ -121,7 +121,6 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 | --- | --- | --- |
 | `plus-button-*` | MIDI 鍵盤のオクターブ + | 鍵盤横の配置。USB MIDI 鍵盤本体の機能（Teensy ピンなし） |
 | `minus-button-*` | MIDI 鍵盤のオクターブ - | 同上 |
-| `circle-hole-speaker-*` | 筐体内蔵スピーカー放音穴 | Focusrite ライン出力 → スピーカー（`ContextJack.cpp` の `speakerPorts`）。操作部品ではない |
 
 `keyboards-*` は USB MIDI 鍵盤本体（C 起点 2 オクターブ + 次の C、計 25 鍵。Web デフォルトは C3–C5 で中央が C4 = 原音）。`mic-*` は XLR マイク入力（Teensy 非経由、アナログ入力）。
 
@@ -134,7 +133,6 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 | `keyboards-a` / `keyboards-b` | 各端 | `SLOT_KEYBOARD` | `PianoKeyboard` | C3–C5（25 鍵・中央 C4） |
 | `plus-button-*` | 各端 | `SLOT_KEYBOARD_OCTAVE_UP` | `OctaveButton` | オクターブ + |
 | `minus-button-*` | 各端 | `SLOT_KEYBOARD_OCTAVE_DOWN` | `OctaveButton` | オクターブ - |
-| `circle-hole-speaker-*` | 各端 | `SLOT_SPEAKER` | `SpeakerGrille` | 装飾のみ・音声なし |
 | `slider-moon-sun-a` / `slider-moon-sun-b` | 各端 | `SLOT_FADER_FILTER` | `HorizontalSlider` | original・横スライダー |
 | `slider-small-big-a` / `slider-small-big-b` | 各端 | `SLOT_FADER_DURATION` | `HorizontalSlider` | original・横スライダー |
 | `wavejet-a` / `wavejet-b` | 各端 | `SLOT_WAVEJET` | `SelectionRail` | 開始位置のみ（サイズ UI なし） |

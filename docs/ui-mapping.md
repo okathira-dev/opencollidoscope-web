@@ -49,7 +49,6 @@
 | `SLOT_KEYBOARD` | 演奏 | USB MIDI 鍵盤（C3–C5、25 鍵・中央 C4） | 同左 | USB MIDI 鍵盤 | — |
 | `SLOT_KEYBOARD_OCTAVE_UP` | オクターブ + | 鍵盤横プッシュ | — | 鍵盤本体ボタン | 押下 |
 | `SLOT_KEYBOARD_OCTAVE_DOWN` | オクターブ - | 鍵盤横プッシュ | — | 鍵盤本体ボタン | 押下 |
-| `SLOT_SPEAKER` | 放音穴 | 円形グリル（装飾） | — | 筐体内蔵スピーカー | — |
 | `SLOT_LOOP_TOGGLE` | ループ | トグルフリックスイッチ | — | 12V トグル | フリック |
 | `SLOT_LOOP_PUSH` | ループ | — | プッシュボタン | 48m-ss プッシュ | 押下 |
 
@@ -69,7 +68,6 @@
 | 録音 | `RecordButton` | 済（A 側） | 済（A/B 配置） | M2.5 |
 | 演奏 | `PianoKeyboard`（25 鍵） | 済（A 側） | 済（A/B 配置） | M2.5 |
 | オクターブ +/- | `OctaveButton` ×2 | 済（A 側） | 済（A/B 配置） | M2.5 |
-| スピーカーグリル | `SpeakerGrille`（装飾） | — | 済（A/B 配置） | M2.5 |
 | Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 / M3 |
 
 デバッグ用 PC キーボード: `r`=録音、`a`/`d`=選択位置、`w`/`s`=選択サイズ、`9`/`0`=Duration、`Space`=ループ、`f`=フルスクリーン（M4 予定）。
@@ -120,7 +118,7 @@
 4. **`RecordButton` + `PianoKeyboard` + `OctaveButton`** — A 側は配線済み、B 側は配置のみ
 5. **Filter・ループ** — 各端に配置枠あり（M3 で配線）
 
-暫定 `ControlPanel` は `SynthEngine` から外れている（ファイルは残存）。
+暫定 `ControlPanel` は `SynthEngine` から外れ、ファイルも削除済み。
 
 ## M3 で実装すべき UI 要素
 

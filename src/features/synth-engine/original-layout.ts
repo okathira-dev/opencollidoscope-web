@@ -13,12 +13,12 @@ export function playerModuleAreas(zone: OriginalLayoutZone, display: "red" | "ye
   const kb = r("keyboards");
   const wj = r("wavejet");
   return [
-    `. ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} .`,
-    `${r("mic")} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} .`,
-    `${r("record-button")} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} .`,
-    `. ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} .`,
-    `. ${r("slider-moon-sun")} ${r("slider-moon-sun")} ${r("slider-moon-sun")} ${r("circle-hole-speaker")} ${r("plus-button")} ${kb} ${kb} ${kb} ${kb} ${kb} ${r("toggle-switch")}`,
-    `. ${r("slider-small-big")} ${r("slider-small-big")} ${r("slider-small-big")} ${r("circle-hole-speaker")} ${r("minus-button")} ${kb} ${kb} ${kb} ${kb} ${kb} ${r("toggle-switch")}`,
+    `. ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d}`,
+    `${r("mic")} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d}`,
+    `${r("record-button")} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d} ${d}`,
+    `. ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj} ${wj}`,
+    `${r("slider-moon-sun")} ${r("slider-moon-sun")} ${r("slider-moon-sun")} ${r("plus-button")} ${kb} ${kb} ${kb} ${kb} ${kb} ${kb} ${kb} ${r("toggle-switch")}`,
+    `${r("slider-small-big")} ${r("slider-small-big")} ${r("slider-small-big")} ${r("minus-button")} ${kb} ${kb} ${kb} ${kb} ${kb} ${kb} ${kb} ${r("toggle-switch")}`,
   ];
 }
 
@@ -28,5 +28,8 @@ export function playerModuleTemplate(zone: OriginalLayoutZone, display: "red" | 
     .join(" ");
 }
 
-/** ディスプレイ 3 行 = 1fr、操作帯 3 行 = auto */
+/** グリッドの縦の配分 */
 export const PLAYER_MODULE_GRID_ROWS = "1fr 1fr 1fr auto auto auto";
+
+/** グリッドの横の配分 */
+export const PLAYER_MODULE_GRID_COLUMNS = "auto 1fr 1fr auto repeat(7, 1fr) auto";

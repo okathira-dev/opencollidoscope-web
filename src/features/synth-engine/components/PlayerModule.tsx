@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import {
   type OriginalLayoutZone,
+  PLAYER_MODULE_GRID_COLUMNS,
   PLAYER_MODULE_GRID_ROWS,
   playerModuleTemplate,
 } from "../original-layout.ts";
@@ -15,7 +16,6 @@ import { OctaveButton } from "./OctaveButton.tsx";
 import { PianoKeyboard } from "./PianoKeyboard.tsx";
 import { RecordButton } from "./RecordButton.tsx";
 import { SelectionRail } from "./SelectionRail.tsx";
-import { SpeakerGrille } from "./SpeakerGrille.tsx";
 
 export interface PlayerModuleProps {
   zone: OriginalLayoutZone;
@@ -81,7 +81,7 @@ export function PlayerModule({
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+        gridTemplateColumns: PLAYER_MODULE_GRID_COLUMNS,
         gridTemplateRows: PLAYER_MODULE_GRID_ROWS,
         gridTemplateAreas: template,
         gap: 1,
@@ -186,10 +186,6 @@ export function PlayerModule({
 
       <Box sx={{ ...slotSx(s("plus-button")), opacity: interactive ? 1 : 0.4 }}>
         <OctaveButton direction="up" disabled={interactive ? pianoDisabled : true} />
-      </Box>
-
-      <Box sx={slotSx(s("circle-hole-speaker"))}>
-        <SpeakerGrille size={56} />
       </Box>
 
       <Box sx={{ ...slotSx(s("slider-moon-sun")), opacity: interactive ? 1 : 0.4 }}>
