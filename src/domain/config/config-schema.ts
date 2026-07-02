@@ -6,7 +6,7 @@ const audioConfigSchema = z.object({
   sampleRate: z.number().positive().default(44100),
   chunkCount: z.number().int().min(1).max(1000).default(150),
   waveLength: z.number().positive().min(0.1).max(10).default(2.0),
-  maxSelectionSize: z.number().int().min(1).max(37).default(37),
+  maxSelectionSize: z.number().int().min(1).max(1000).default(37),
   attenuation: z.number().min(0).max(1).default(0.25118864315096),
 });
 

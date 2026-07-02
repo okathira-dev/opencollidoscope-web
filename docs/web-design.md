@@ -1,8 +1,9 @@
 # Collidoscope Web版 設計書
 
+ドキュメント索引: [README.md](README.md)
+
 本ドキュメントは、Open Collidoscope の Web 再実装における**アーキテクチャと設計方針**を定義します。
 
-- オリジナル実装の分析: [original-analysis.md](original-analysis.md)
 - 機能要件・設定値: [web-spec.md](web-spec.md)
 
 **注意**: 本書の TypeScript コード例は設計思想の伝達用です。実装時はライブラリ API・型・エラーハンドリングを実態に合わせて再設計してください。
@@ -172,14 +173,17 @@ graph LR
         WaveDisplay
         PianoKeyboard
         ControlPanel
+        ConfigPanel
     end
 
     AudioStore --> MainApp
     WaveStore --> WaveDisplay
     SynthStore --> SynthEngine
-    ConfigStore --> ControlPanel
+    ConfigStore --> ConfigPanel
     UIStore --> MainApp
     SynthStore --> PianoKeyboard
+    SynthStore --> ControlPanel
+    WaveStore --> ControlPanel
 ```
 
 ### AudioStore
@@ -292,6 +296,8 @@ interface SynthEngineProps {
 ```
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
+
+**演奏面の配置（M2.5 original 完了）**: `PlayerControlSurface` が `original-layout.ts`（180 度投影）で 12 行グリッドを駆動。配置の正本は [layout-specs/original/](layout-specs/README.md) の kebab-case ブロック名。A 側は機能配線済み、B 側は配置のみ。横スライダー（`HorizontalSlider`）、Wavejet サイズ UI なし。new 版・バリアント切替は後続。
 
 ### WaveDisplay
 

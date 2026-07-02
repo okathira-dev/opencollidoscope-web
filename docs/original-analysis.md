@@ -1,6 +1,10 @@
 # Open Collidoscope オリジナル実装分析
 
-本ドキュメントは、リポジトリ同梱の C++/Cinder 実装（`opencollidoscope/`）を読み解いた結果をまとめたものです。Web版の実装方針は [web-spec.md](web-spec.md) と [web-design.md](web-design.md) を参照してください。
+ドキュメント索引: [README.md](README.md)
+
+本ドキュメントは、リポジトリ同梱の C++/Cinder 実装（`opencollidoscope/`）と公式 Downloads（`opencollidoscope_downloads/`）を読み解いた結果をまとめたものです。Web版の実装方針は [web-spec.md](web-spec.md) と [web-design.md](web-design.md) を参照してください。
+
+MIDI マッピング一覧・物理形状は [ui-mapping.md](ui-mapping.md) を正本とし、本書は **C++ / Teensy の処理式・ピン配線** に限定する。
 
 ## Collidoscope とは
 
@@ -21,6 +25,72 @@
 | 物理インターフェース | 2人が向かい合って演奏するためのデュアル操作面 |
 
 1台の Collidoscope は **2つの完全に独立した音声処理システム** で構成されます。各システムは独自の録音バッファ、グラニュラーシンセ、フィルター、波形表示、MIDI チャンネルを持ちます。
+
+### 物理ハードウェア
+
+公式資料（`opencollidoscope_downloads/`）に基づく筐体・部品の概要。Web 版 UI の基準は **オリジナル版**（縦スライダー + トグルスイッチ）とする。
+
+#### 筐体構成
+
+| 要素 | 内容 |
+| --- | --- |
+| フレーム | 30mm × 30mm アルミ押出材 + アングルブラケット |
+| スライダーレール | 8mm クロムスライダーロッド、3D プリント製ハウジング |
+| 木製パネル | 3mm 合板レーザーカット積層（ヒンジ付き側面で輸送時折りたたみ可） |
+| 前面オーバーレイ | アクリル（パースペックス）— 録音・ループスイッチ取り付け、画面とフラッシュ |
+| ディスプレイ | 1 台のモニターをアクリルで上下 2 分割表示（Wave 0 下半分 / Wave 1 上半分反転） |
+
+組み立て手順（**新版のみ**）: [`opencollidoscope_downloads/Collidoscope Physical Build.pdf`](../opencollidoscope_downloads/Collidoscope%20Physical%20Build.pdf)  
+座標系・資料索引: [hardware-layout.md](hardware-layout.md)（**配置は暫定**。正本は [layout-specs/README.md](layout-specs/README.md)）
+
+#### 電子部品
+
+| 部品 | 型式・備考 | 役割 |
+| --- | --- | --- |
+| Raspberry Pi 3 Model B | Raspbian Jessie | `CollidoscopeApp` 実行、HDMI 表示、USB MIDI 受信 |
+| Teensy++ 2.0 | USB MIDI デバイス | センサー読み取り → MIDI 送出（`CollidoscopeTeensy`） |
+| Focusrite Scarlett 2i2 | USB オーディオ IF | マイク入力 2ch、スピーカー出力 2ch（JACK 経由） |
+| マイク | IMG Stage Line DMG700（XLR グースネック） | 録音入力（カーディオイド） |
+| USB MIDI キーボード | 汎用クラスコンプライアント | ノート演奏、オクターブ切替 |
+| モニター | オリジナル版: LG 21:9 25UM65 / 新版: Dell 29 UltraSharp | 波形・オシロスコープ表示 |
+
+#### ハードウェア 2 バージョン
+
+MIDI メッセージと `CollidoscopeApp` の処理は両バージョンで同一。差異は**物理コントロールの形状**のみ → [ui-mapping.md — 物理コントロール形状](ui-mapping.md#物理コントロール形状資料ベース)。
+
+#### Wavejet（選択コントロール）
+
+波形直下の水平レール上を移動する複合コントロール:
+
+| 部品 | 型式 | 役割 |
+| --- | --- | --- |
+| ストリップセンサー | Spectra Symbol SP-L-0200-103（200mm SoftPot） | 水平位置 → Pitch Bend（選択開始 0〜149） |
+| ロータリーエンコーダー | Bourns PEC11R-4025F（25mm シャフト） | ノブ回転 → CC1（選択サイズ 1〜37） |
+| ワイパー | Spectra Symbol WP-M1-01-03-014-DI | ストリップセンサーへの圧力接触 |
+| アルミノブ | 38mm ストローハット型 | エンコーダーシャフトに装着 |
+
+#### その他の物理コントロール（1 プレイヤー分）
+
+スロット一覧・形状・操作軸: [ui-mapping.md — 物理コントロール形状](ui-mapping.md#物理コントロール形状資料ベース)。
+
+**鍵盤クラスタ（1 プレイヤー分）**: USB MIDI 鍵盤は C 起点で 2 オクターブ + 次の C（計 25 鍵）。Web デフォルト表示は C3–C5 とし、中央の C4 が MIDI 60（rate 1.0 = 録音原音）に対応。鍵盤横にオクターブ +/- ボタン（Teensy 非接続、鍵盤本体機能）。鍵盤とフェーダー列の間に円形スピーカー放音穴（装飾・非操作）。
+
+俯瞰図・Web 投影: [hardware-layout.md](hardware-layout.md)（暫定）、[layout-specs/](layout-specs/README.md)（正本: `<variant>/layout.html`、kebab-case ブロック名）。
+
+#### Teensy ピン配線（Wave 1 = 赤 / ch 1）
+
+Introduction to Collidoscope より。Wave 2（黄 / ch 2）は F1, F4, INT2/3, INT6/7, B3, B4, D5 が対応。
+
+| センサー | Teensy ピン | オリジナル版 | 新版 |
+| --- | --- | --- | --- |
+| 選択開始（Strip） | F0 | Wavejet 水平 | 同左 |
+| フィルター | F2 | 縦フェーダー | 縦ストリップセンサー |
+| Duration | F3 | 縦フェーダー | —（INT4/INT5 へ） |
+| 選択サイズ | INT0/INT1 | エンコーダー | 同左 |
+| Duration | INT4/INT5 | — | エンコーダー |
+| ループ | B0 | トグルスイッチ | プッシュボタン |
+| 録音 | B1 | プッシュボタン | 同左 |
+| 録音 LED | D4 | LED リング | 同左 |
 
 ## ソースコード構造
 
@@ -193,6 +263,13 @@ struct PGrain {
 - `FilterLowPassNode`、Q = 0.707（Butterworth）
 - カットオフ: 200Hz〜22050Hz
 - MIDI CC7 で指数的に制御: `pow(maxCutoff/200, midiVal/127) × minCutoff`
+- 同時に選択ハイライトの透明度を更新: `alpha = lmap(midiVal, 0, 127, 0, 1)` → 描画時 `0.5 + alpha × 0.5`
+
+**MIDI 値とカットオフ（コード上の正）**: `midiVal=0` → 200Hz（最大カット、選択は暗い）、`midiVal=127` → 22050Hz（フィルターなし、選択は明るい）。
+
+公式 MIDI リファレンス PDF はフェーダーの**物理位置**（太陽側 = 明るい音）で記述している。オリジナル版 Teensy は `map(analog, 0, 1024, 0, 127)` でフェーダー位置をそのまま MIDI 値に変換するため、PDF の「物理位置 → 周波数」とコードの「MIDI 値 → 周波数」は座標系が異なる場合がある。Web 版は **CollidoscopeApp の式**を正とする。
+
+**物理入力（バージョン別）**: [ui-mapping.md — 物理コントロール形状](ui-mapping.md#物理コントロール形状資料ベース) を参照。
 
 ## チャンク・波形システム
 
@@ -224,19 +301,11 @@ struct PGrain {
 
 ## MIDI 制御
 
-MIDI チャンネル = 波形インデックス（ch 0 → Wave 0、ch 1 → Wave 1）。
+> マッピング一覧の正本: [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)。以下は C++ / Teensy 実装の補足。
 
-Teensy ファームウェア（`CollidoscopeTeensy_new.ino`）も同一マッピングを出力します。
+MIDI チャンネル = 波形インデックス（ch 1 → Wave 0 赤、ch 2 → Wave 1 黄）。公式資料では engine 1/2 と表記。
 
-| 入力 | マッピング |
-| --- | --- |
-| Note On/Off | ピッチ付きグレイン再生（最大 6 ボイス） |
-| Pitch Bend（0〜149） | 選択開始位置（チャンクインデックス） |
-| CC 1 | 選択サイズ（MIDI 0〜127 → 1〜37 チャンク） |
-| CC 2 | グレイン持続係数（0〜127 → 1.0〜8.0） |
-| CC 4 | ループ ON（>0）/ OFF（0） |
-| CC 5 | 録音トリガー |
-| CC 7 | フィルターカットオフ + 選択範囲の透明度 |
+Teensy ファームウェア（`CollidoscopeTeensy_original.ino` / `CollidoscopeTeensy_new.ino`）は同一 MIDI マッピングを出力。
 
 Pitch Bend と CC7 はセンサノイズ対策のため、波形ごとに最新値のみ保持（重複除去）。
 
@@ -340,3 +409,16 @@ array<MIDIMessage, NUM_WAVES> mPitchBendMessages;
 3. **録音バッファの共有**: 録音と再生が同一バッファを参照するシンプルな構造
 4. **2 波形は完全独立**: 配列インデックスで分離。Web 版 Phase 1 では 1 要素のみ実装可能
 5. **視覚と音声の同期**: カーソル・パーティクルはオーディオスレッドのコールバックで駆動
+
+## 公式資料リファレンス
+
+リポジトリ内ミラー: [`opencollidoscope_downloads/`](../opencollidoscope_downloads/)（[README](../opencollidoscope_downloads/README.md)）
+
+| 資料 | 内容 |
+| --- | --- |
+| [hardware-layout.md](hardware-layout.md) | 座標系用語・資料索引・配置暫定図（**配置の正本は [layout-specs/](layout-specs/README.md)**） |
+| [Introduction to Collidoscope.pdf](../opencollidoscope_downloads/Introduction%20to%20Collidoscope.pdf) | 楽器の使い方、部品型番、Teensy 配線、2 バージョン比較 |
+| [Collidoscope MIDI messages reference.pdf](../opencollidoscope_downloads/Collidoscope%20MIDI%20messages%20reference.pdf) | 全 MIDI CC の公式定義 |
+| [Collidoscope Software instructions.pdf](../opencollidoscope_downloads/Collidoscope%20Software%20instructions.pdf) | Pi / Teensy セットアップ、キーボードデバッグ、ビルド |
+| [Collidoscope Physical Build.pdf](../opencollidoscope_downloads/Collidoscope%20Physical%20Build.pdf) | **新版**筐体組み立て手順、CAD 図面参照 |
+| [`CAD/Drawings/*.PDF`](../opencollidoscope_downloads/CAD/Drawings/) | **新版**筐体 2D 図面（SolidWorks / STEP / IGS は[公式 Downloads](https://code.soundsoftware.ac.uk/projects/opencollidoscope)） |

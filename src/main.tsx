@@ -5,8 +5,15 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App.tsx";
 
-// MUIのテーマを作成
-const theme = createTheme();
+const theme = createTheme({
+  palette: {
+    mode: "dark",
+    background: {
+      default: "#000000",
+      paper: "#121212",
+    },
+  },
+});
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

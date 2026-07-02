@@ -1,6 +1,13 @@
 # Collidoscope Web版 実装仕様
 
-本ドキュメントは、Open Collidoscope を Web 技術で再実装する際の**目標・機能要件・設定値**を定義します。オリジナル実装の分析は [original-analysis.md](original-analysis.md)、アーキテクチャ設計は [web-design.md](web-design.md) を参照してください。
+ドキュメント索引: [README.md](README.md)
+
+本ドキュメントは、Open Collidoscope を Web 技術で再実装する際の**目標・機能要件・設定値**を定義します。
+
+- オリジナル実装の分析: [original-analysis.md](original-analysis.md)
+- アーキテクチャ設計: [web-design.md](web-design.md)
+- UI 対応・実装ギャップ: [ui-mapping.md](ui-mapping.md)
+- 公式資料ミラー: [`opencollidoscope_downloads/`](../opencollidoscope_downloads/)（Introduction、MIDI reference、Physical Build 等）
 
 ## プロジェクトの目的
 
@@ -24,6 +31,18 @@
 
 コンポーネントは Phase 1 から `engineId` を受け取れる形で設計し、Phase 2 で複製可能にする。
 
+## ハードウェアバージョンと Web 版 UI 方針
+
+オープンソース Collidoscope には **オリジナル版**と**新版**の 2 種類の物理筐体がある（詳細は [original-analysis.md](original-analysis.md) の「物理ハードウェア」、[ui-mapping.md](ui-mapping.md) の「物理コントロール形状」）。
+
+| 方針 | 内容 |
+| --- | --- |
+| Phase 1 の基準 | **オリジナル版**をデフォルト。M2.5 でオリジナル版配置を完成し、**新版 UI バリアント切替**は new 版 layout 作成後に後続 |
+| MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする |
+| 配置・形状・実装ギャップ | [ui-mapping.md](ui-mapping.md) · [layout-specs/](layout-specs/README.md)（`<variant>/layout.html`）を参照 |
+
+演奏用コントロールの形状・実装状態は [ui-mapping.md](ui-mapping.md) を参照（本書では重複記載しない）。
+
 ## Phase 1 マイルストーン
 
 仕様上 Phase 1 に含まれる機能を、実装順に分割する。M1〜M3 で「演奏できる最小版」、M4 で拡張と運用面を完成させる。
@@ -32,7 +51,8 @@
 | --- | --- | --- |
 | **M1** | 録音して波形が見える | マイク、録音、チャンク波形表示、**設定パネル（折りたたみ・音声タブ）** |
 | **M2** | 選択して演奏できる | 選択 UI、グラニュラーシンセ、ピアノ鍵盤、**設定パネルにグラニュラータブ追加** |
-| **M3** | 演奏の質とフィードバック | ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚タブ追加** |
+| **M2.5** | **UI 配置確定（オリジナル版）** | `layout-specs/original/` を参照した 180 度投影グリッド、`PlayerControlSurface` で A/B 両面配置。Filter / Loop / B 側はプレースホルダ可。横スライダー、Wavejet サイズ UI なし |
+| **M3** | 演奏の質とフィードバック | ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚タブ追加**（M2.5 のスロットへ配線） |
 | **M4** | 拡張・本番運用 | プリセット、JSON 入出力、MIDI、パーティクル、ショートカット |
 
 **設定 UI**: デバッグとパラメータ確認のため、**M1 から折りたたみ式の設定パネルを常設**する。普段は最小化（アイコンまたは細いバー）し、クリックで展開して GUI から `ConfigManager` 経由で値を変更できる。プリセット保存・JSON 入出力は **M4** で追加する。
@@ -42,7 +62,7 @@
 - [x] Vite `?worker&url` による Worklet の TypeScript ビルド（`spike-processor` で `addModule`・440Hz 出力を確認）
 - [x] GitHub Pages 向け [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) による COOP/COEP 迂回（`crossOriginIsolated` / `SharedArrayBuffer` を確認。初回リロードあり）
 
-実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/spike-processor.ts`（スパイク用。M1 本実装時に `recording-processor` へ置き換え）
+実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/recording-processor.ts`（録音）・`granular-processor.ts`（グラニュラー再生）
 
 ### マイルストーンと Store の導入タイミング
 
@@ -124,14 +144,11 @@
 
 ### MIDI 設定
 
-| パラメータ | デフォルト |
-| --- | --- |
-| ピッチベンド範囲 | 0〜149 |
-| CC1 | 選択サイズ |
-| CC2 | グレイン持続時間 |
-| CC4 | ループ ON/OFF |
-| CC5 | 録音トリガー |
-| CC7 | フィルターカットオフ |
+公式定義: [`opencollidoscope_downloads/Collidoscope MIDI messages reference.pdf`](../opencollidoscope_downloads/Collidoscope%20MIDI%20messages%20reference.pdf)
+
+MIDI マッピング一覧: [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)。
+
+**CC7 フィルター（Web 版の正）**: [original-analysis.md — フィルター](original-analysis.md#フィルター) の `CollidoscopeApp` 式と同一（式の記載は同節のみ）。
 
 ### 設定管理要件
 
@@ -169,10 +186,10 @@
 
 ### 選択操作
 
-| 操作 | UI |
-| --- | --- |
-| 選択開始位置 | スライダーのノブを水平ドラッグ（0〜チャンク数-1） |
-| 選択サイズ | ノブ上でマウスホイール（1〜最大選択サイズ） |
+| 操作 | 筐体 UI | 補助操作 |
+| --- | --- | --- |
+| 選択開始位置 | Wavejet 水平レール（波形直下） | 波形ドラッグ、横ホイール |
+| 選択サイズ | Wavejet ノブ相当の縦スライダー（演奏列） | 波形上ホイール |
 
 ### グラニュラーシンセシス
 
@@ -199,20 +216,16 @@
 
 ## UI 仕様
 
-### 全体レイアウト
+### 演奏 UI と設定 UI の分離
 
-- Phase 1: 単一シンセエンジンを画面中央に配置
-- 各エンジン: 波形表示、ピアノ鍵盤、コントロールパネル
+| UI | コンポーネント | 役割 |
+| --- | --- | --- |
+| **演奏 UI** | `PlayerControlSurface` + `WaveDisplay` + `PianoKeyboard` 等 | オリジナル筐体の物理配置を模す。日常の演奏操作のみ |
+| **設定 UI** | `ConfigPanel`（折りたたみ Drawer） | デバッグ・全パラメータ調整。演奏画面の主要操作はここに置かない |
 
-### UI コンポーネント
+Phase 1 では **プレイヤー A（Wave 0・赤）** を機能面の基準とし、画面上は **180 度投影** により A 端が下部（鍵盤帯）、B 端が上部に来る（[layout-specs — 座標系と Web 投影](layout-specs/README.md#座標系と-web-投影)）。配置の正本は [layout-specs/original/](layout-specs/README.md)。コンポーネント状態・実装ギャップは [ui-mapping.md](ui-mapping.md) を参照。
 
-| コンポーネント | 機能 |
-| --- | --- |
-| ピアノ鍵盤 | クリック / PC キーボード（A,S,D,F...）で MIDI ノート送信 |
-| スライダー | Selection Start, Selection Size, Duration, Filter（演奏用の主要操作） |
-| ボタン | Record, Loop ON/OFF |
-| 設定パネル | 折りたたみ式。全パラメータを GUI で編集（デバッグ・調整用） |
-| プリセット / JSON | 設定の名前付き保存とファイル入出力（M4） |
+`ControlPanel` 暫定横一列は `SynthEngine` から外れ、`PlayerControlSurface`（12 行グリッド・A/B 両面）に置換済み。Filter・ループは M3。
 
 ### 設定パネル（折りたたみ GUI）
 
@@ -226,7 +239,7 @@
 | 反映 | 変更はリアルタイムで音声エンジン・Worklet に伝播 |
 | 段階的拡張 | M1: 音声タブ → M2: グラニュラー → M3: フィルター・視覚 → M4: MIDI・プリセット |
 
-実装時は MUI の `Drawer`（`anchor="right"`, `variant="persistent"`）または浮動 `Paper` を想定。オリジナルの物理ノブに相当する「演奏用コントロール」と、設定パネルの「全パラメータ調整」を役割分担する。
+実装時は MUI の `Drawer`（`anchor="right"`, `variant="persistent"`）または浮動 `Paper` を想定。**演奏用コントロールは `PlayerControlSurface` に筐体配置で置き、全パラメータ調整は `ConfigPanel` に限定する**（[ui-mapping.md](ui-mapping.md) 参照）。
 
 ### キーボードショートカット
 

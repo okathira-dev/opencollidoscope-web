@@ -8,8 +8,6 @@ updates:
     versioning-strategy: "increase"
     cooldown:
       default-days: 3
-    include:
-      - "*"
     groups:
       react-core:
         patterns:
@@ -46,8 +44,6 @@ updates:
     open-pull-requests-limit: 1000
     cooldown:
       default-days: 3
-    include:
-      - "*"
     groups:
       github-actions-core:
         patterns:

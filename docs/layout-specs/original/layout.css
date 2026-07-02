@@ -1,0 +1,127 @@
+/* CSS */
+body {
+  margin: 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  grid-template-areas:
+    "toggle-switch-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a minus-button-a slider-small-big-a slider-small-big-a slider-small-big-a"
+    "toggle-switch-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a plus-button-a slider-moon-sun-a slider-moon-sun-a slider-moon-sun-a"
+    "wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a ."
+    "display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red record-button-a"
+    "display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red mic-a"
+    "display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red ."
+    ". display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow"
+    "mic-b display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow"
+    "record-button-b display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow"
+    ". wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b"
+    "slider-moon-sun-b slider-moon-sun-b slider-moon-sun-b plus-button-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b  toggle-switch-b"
+    "slider-small-big-b slider-small-big-b slider-small-big-b minus-button-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b toggle-switch-b";
+  gap: 4px;
+  width: min(100%, 960px);
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 2px solid #333;
+  background-color: #e8e8e8;
+}
+
+.grid-layout > div {
+  box-sizing: border-box;
+  border: 2px solid #333;
+  background: #fff;
+  padding: 4px;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.display-red {
+  grid-area: display-red;
+  background: #fde8ec;
+}
+
+.display-yellow {
+  grid-area: display-yellow;
+  background: #fff8e0;
+}
+
+.wavejet-a {
+  grid-area: wavejet-a;
+}
+
+.wavejet-b {
+  grid-area: wavejet-b;
+}
+
+.mic-a {
+  grid-area: mic-a;
+}
+
+.mic-b {
+  grid-area: mic-b;
+}
+
+.record-button-a {
+  grid-area: record-button-a;
+}
+
+.record-button-b {
+  grid-area: record-button-b;
+}
+
+.keyboards-a {
+  grid-area: keyboards-a;
+}
+
+.keyboards-b {
+  grid-area: keyboards-b;
+}
+
+.plus-button-a {
+  grid-area: plus-button-a;
+}
+
+.plus-button-b {
+  grid-area: plus-button-b;
+}
+
+.minus-button-a {
+  grid-area: minus-button-a;
+}
+
+.minus-button-b {
+  grid-area: minus-button-b;
+}
+
+.slider-moon-sun-a {
+  grid-area: slider-moon-sun-a;
+}
+
+.slider-moon-sun-b {
+  grid-area: slider-moon-sun-b;
+}
+
+.slider-small-big-a {
+  grid-area: slider-small-big-a;
+}
+
+.slider-small-big-b {
+  grid-area: slider-small-big-b;
+}
+
+.toggle-switch-a {
+  grid-area: toggle-switch-a;
+}
+
+.toggle-switch-b {
+  grid-area: toggle-switch-b;
+}
