@@ -42,11 +42,12 @@
 
 | スロット ID | パラメータ | オリジナル版 | 新版 | 部品 | 操作軸 |
 | --- | --- | --- | --- | --- | --- |
-| `SLOT_FADER_FILTER` | フィルター | 縦スライダー（太陽/月） | Short Knob 上下 | Bourns 縦フェーダー | 縦 |
-| `SLOT_FADER_DURATION` | Duration | 縦スライダー（粒/雲） | 同ノブ回転 | Bourns 縦フェーダー | 縦 / 回転 |
+| `SLOT_FADER_FILTER` | フィルター | 縦スライダー（太陽/月） | Vertical Mobile Knob 上下 | Bourns 縦フェーダー / SoftPot 縦 | 縦 |
+| `SLOT_FADER_DURATION` | Duration | 縦スライダー（粒/雲） | 同ノブ回転 | Bourns 縦フェーダー / エンコーダー | 縦 / 回転 |
 | `SLOT_WAVEJET` | 選択位置・サイズ | 水平移動 / ノブ回転 | 同左 | SoftPot + エンコーダー + 38mm ノブ | 水平=開始、回転=サイズ |
+| `SLOT_SHORT_KNOB` | Filter + Duration | — | Vertical Mobile Knob（縦レール + ノブ） | Wavejet と同部品・縦配置 | 縦=Filter、回転=Duration |
 | `SLOT_RECORD` | 録音 | 16mm 赤プッシュ（LED リング） | 同左 | 16mm 赤プッシュ | 押下 |
-| `SLOT_KEYBOARD` | 演奏 | USB MIDI 鍵盤（C3–C5、25 鍵・中央 C4） | 同左 | USB MIDI 鍵盤 | — |
+| `SLOT_KEYBOARD` | 演奏 | USB MIDI 鍵盤（C3-C5、25 鍵・中央 C4） | USB MIDI 鍵盤（C3-C6、37 鍵） | USB MIDI 鍵盤 | — |
 | `SLOT_KEYBOARD_OCTAVE_UP` | オクターブ + | 鍵盤横プッシュ | — | 鍵盤本体ボタン | 押下 |
 | `SLOT_KEYBOARD_OCTAVE_DOWN` | オクターブ - | 鍵盤横プッシュ | — | 鍵盤本体ボタン | 押下 |
 | `SLOT_LOOP_TOGGLE` | ループ | トグルフリックスイッチ | — | 12V トグル | フリック |
@@ -60,13 +61,13 @@
 
 | パラメータ | Web 版 UI | 配線状態 | 配置状態 | マイルストーン |
 | --- | --- | --- | --- | --- |
-| フィルター | 横 Slider（`HorizontalSlider`）/ Short Knob 回転 | 未実装 | 済（A/B 配置） | M3 |
-| Duration | 横 Slider（`HorizontalSlider`）/ Short Knob 回転 | 済（A 側） | 済（A/B 配置） | M2.5 |
+| フィルター | 横 Slider（`HorizontalSlider`）/ `VerticalMobileKnob` 縦ドラッグ | 未実装 | 済（A/B 配置） | M3 |
+| Duration | 横 Slider（`HorizontalSlider`）/ `VerticalMobileKnob` ホイール | 済（A 側） | 済（A/B 配置） | M2.5 |
 | 選択サイズ | なし（ホイールのみ） | 済 | — | — |
 | 選択位置 | `SelectionRail` + ドラッグ | 済（A 側） | 済（A/B 配置） | M2.5 |
-| ループ | `Switch`（各端） | Store のみ | 済（A/B 配置） | M3 |
+| ループ | `Switch`（各端）/ `LoopPushButton`（new） | Store のみ | 済（A/B 配置） | M3 |
 | 録音 | `RecordButton` | 済（A 側） | 済（A/B 配置） | M2.5 |
-| 演奏 | `PianoKeyboard`（25 鍵） | 済（A 側） | 済（A/B 配置） | M2.5 |
+| 演奏 | `PianoKeyboard`（25 鍵 / new は 37 鍵） | 済（A 側） | 済（A/B 配置） | M2.5 |
 | オクターブ +/- | `OctaveButton` ×2 | 済（A 側） | 済（A/B 配置） | M2.5 |
 | Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 / M3 |
 
@@ -112,11 +113,23 @@
 
 `PlayerControlSurface` が `layout-specs/original/layout.css` を 180 度投影した 12 行グリッドで A/B 両面を描画する。
 
-1. **`PlayerControlSurface`** — `original-layout.ts` の `ORIGINAL_LAYOUT_WEB_TEMPLATE` 駆動
+1. **`PlayerControlSurface`** — `original-layout.ts` の `playerModuleTemplate` 駆動
 2. **`HorizontalSlider`** — Filter / Duration（`slider-moon-sun-*` / `slider-small-big-*`）
 3. **`SelectionRail`** — Wavejet 開始位置のみ（サイズスライダー UI なし）
 4. **`RecordButton` + `PianoKeyboard` + `OctaveButton`** — A 側は配線済み、B 側は配置のみ
 5. **Filter・ループ** — 各端に配置枠あり（M3 で配線）
+
+## M2.5 UI 配置（新版・実装済み）
+
+`PlayerControlSurface` の `variant="new"` で `NewPlayerModule` を使用。`new-layout.ts` は zone 非依存の単一テンプレート（B は `rotate(180deg)`）。
+
+1. **`new-layout.ts`** — `playerModuleAreas` / `playerModuleTemplate`（A/B 共通構造）
+2. **`VerticalMobileKnob`** — Wavejet 対称の縦レール + ホイール（`vertical-mobile-knob-*`、上下=Filter、ホイール=Duration）
+3. **`LoopPushButton`** — ループプッシュ（`loop-button-*`）
+4. **`PianoKeyboard`** — C3-C6（37 鍵、`octaveCount=3`）
+5. **A/B 両面・向き合い/二段モード** — オリジナル版と同様
+6. **B 側は配置のみ** — オーバーレイ + `WaveDisplayPlaceholder`
+7. **バリアント切替** — `SynthEngine` の ToggleButtonGroup（暫定）。`uiStore` 統合は後続。
 
 暫定 `ControlPanel` は `SynthEngine` から外れ、ファイルも削除済み。
 
@@ -133,7 +146,7 @@
 
 - **選択境界の終点表示** — 現在は始点ノブのみ
 - **チャンクリセットアニメーション** — 優先度低
-- **新版 UI バリアント** — `new/layout.html` 作成後に `new-layout.ts` + `VariantSwitcher`（M2.5 後続）
+- **新版 UI バリアント** — M2.5 配置済み。`uiStore` + `VariantSwitcher` は後続
 
 ## 関連ドキュメント
 

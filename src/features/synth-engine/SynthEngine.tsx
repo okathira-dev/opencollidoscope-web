@@ -25,6 +25,7 @@ import {
 import { useWaveSelection } from "../../stores/wave-store.ts";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
 import {
+  type HardwareVariant,
   type PlayerBOrientation,
   PlayerControlSurface,
 } from "./components/PlayerControlSurface.tsx";
@@ -47,6 +48,7 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
 
   const [initError, setInitError] = useState<string | null>(null);
   const [playerBOrientation, setPlayerBOrientation] = useState<PlayerBOrientation>("facing");
+  const [hwVariant, setHwVariant] = useState<HardwareVariant>("original");
 
   const handleInitialize = useCallback(async () => {
     setInitError(null);
@@ -98,7 +100,25 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
         </Button>
       ) : (
         <Stack spacing={2} sx={{ width: "100%", maxWidth: 1400 }}>
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
+            <ToggleButtonGroup
+              value={hwVariant}
+              exclusive
+              size="small"
+              aria-label="筐体バリアント"
+              onChange={(_, value: HardwareVariant | null) => {
+                if (value !== null) {
+                  setHwVariant(value);
+                }
+              }}
+            >
+              <ToggleButton value="original" aria-label="オリジナル版">
+                Original
+              </ToggleButton>
+              <ToggleButton value="new" aria-label="新版">
+                New
+              </ToggleButton>
+            </ToggleButtonGroup>
             <ToggleButtonGroup
               value={playerBOrientation}
               exclusive
@@ -124,6 +144,7 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
             isSynthInitialized={isSynthInitialized}
             color={color}
             playerBOrientation={playerBOrientation}
+            variant={hwVariant}
           />
         </Stack>
       )}

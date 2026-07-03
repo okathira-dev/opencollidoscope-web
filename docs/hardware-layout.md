@@ -171,7 +171,7 @@ flowchart TB
 
 ### オリジナル版との差分（物理形状のみ）
 
-形状の詳細は [ui-mapping.md — 物理コントロール形状](ui-mapping.md#物理コントロール形状資料ベース) を参照。主な差分: フェーダー 2 本 → Short Knob 1 個、ループトグル → プッシュボタン。
+形状の詳細は [ui-mapping.md — 物理コントロール形状](ui-mapping.md#物理コントロール形状資料ベース) を参照。主な差分: フェーダー 2 本 → Vertical Mobile Knob 1 個（Wavejet と同部品・縦配置）、ループトグル → プッシュボタン、鍵盤 C3-C6。
 
 ```text
   inward ↑
@@ -201,7 +201,7 @@ M2.5（オリジナル版）では `layout.css` の 12 行を **180 度回転** 
 - **中央下**: `display-red`（`WaveDisplay`・Wave 0）
 - **画面下部**: プレイヤー A（赤）— 鍵盤・スライダー・Wavejet（A 側は配線済み）
 
-実装: `PlayerControlSurface` + `original-layout.ts` の `ORIGINAL_LAYOUT_WEB_TEMPLATE`。
+実装: `PlayerControlSurface` + `original-layout.ts`（オリジナル）/ `new-layout.ts`（新版）。新版は zone 非依存の単一テンプレートで、B 側は `rotate(180deg)` で向き合い表示。
 
 ### 旧暫定メモ（`ControlPanel` 横一列 — 撤去済み）
 

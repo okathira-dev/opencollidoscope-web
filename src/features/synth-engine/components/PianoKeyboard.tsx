@@ -7,46 +7,60 @@ import {
   useNoteOff,
   useNoteOn,
 } from "../../../stores/synth-store.ts";
-import { buildKeyboardLayout, relativeToMidiNote } from "../keyboard-layout.ts";
-
-const { whiteKeys: WHITE_KEYS, blackKeys: BLACK_KEYS } = buildKeyboardLayout();
+import { buildKeyboardLayout, keyboardTopMidi, relativeToMidiNote } from "../keyboard-layout.ts";
 
 const KEY_HEIGHT = 140;
 const BLACK_KEY_WIDTH = 18;
 const BLACK_KEY_HEIGHT = 90;
-const WHITE_KEY_COUNT = WHITE_KEYS.length;
-/** 白鍵 1 列分の幅（%）と、それに対する黒鍵サイズ比 */
-const WHITE_KEY_WIDTH_PERCENT = 100 / WHITE_KEY_COUNT;
-const BLACK_KEY_WIDTH_PERCENT = WHITE_KEY_WIDTH_PERCENT * (BLACK_KEY_WIDTH / 28);
-const BLACK_KEY_HEIGHT_RATIO = BLACK_KEY_HEIGHT / KEY_HEIGHT;
 
-const PC_KEY_TO_RELATIVE: Record<string, number> = {};
-for (const key of WHITE_KEYS) {
-  if (key.pcKey) {
-    PC_KEY_TO_RELATIVE[key.pcKey] = key.relativeSemitone;
-  }
-}
-for (const key of BLACK_KEYS) {
-  if (key.pcKey) {
-    PC_KEY_TO_RELATIVE[key.pcKey] = key.relativeSemitone;
-  }
-}
-
-function blackKeyLeftPercent(whiteOffset: number): string {
-  const centerPercent = (whiteOffset / WHITE_KEY_COUNT) * 100;
-  return `calc(${centerPercent}% - ${BLACK_KEY_WIDTH_PERCENT / 2}%)`;
+function keyboardRangeLabel(octaveCount: number): string {
+  const { whiteKeys, blackKeys } = buildKeyboardLayout(octaveCount);
+  const topNote = keyboardTopMidi(octaveCount);
+  const topOctave = Math.floor(topNote / 12) - 1;
+  return `C3-C${topOctave}（${whiteKeys.length + blackKeys.length} 鍵・中央 C4 = 原音）`;
 }
 
 interface PianoKeyboardProps {
   disabled?: boolean;
+  octaveCount?: number;
 }
 
-export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
+export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboardProps) {
   const noteOn = useNoteOn();
   const noteOff = useNoteOff();
   const activeNotes = useActiveNotes();
   const octaveOffset = useKeyboardOctaveOffset();
   const pressedPcKeysRef = useRef<Set<string>>(new Set());
+
+  const { whiteKeys, blackKeys } = useMemo(() => buildKeyboardLayout(octaveCount), [octaveCount]);
+
+  const whiteKeyCount = whiteKeys.length;
+  const whiteKeyWidthPercent = 100 / whiteKeyCount;
+  const blackKeyWidthPercent = whiteKeyWidthPercent * (BLACK_KEY_WIDTH / 28);
+  const blackKeyHeightRatio = BLACK_KEY_HEIGHT / KEY_HEIGHT;
+
+  const pcKeyToRelative = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const key of whiteKeys) {
+      if (key.pcKey) {
+        map[key.pcKey] = key.relativeSemitone;
+      }
+    }
+    for (const key of blackKeys) {
+      if (key.pcKey) {
+        map[key.pcKey] = key.relativeSemitone;
+      }
+    }
+    return map;
+  }, [whiteKeys, blackKeys]);
+
+  const blackKeyLeftPercent = useCallback(
+    (whiteOffset: number) => {
+      const centerPercent = (whiteOffset / whiteKeyCount) * 100;
+      return `calc(${centerPercent}% - ${blackKeyWidthPercent / 2}%)`;
+    },
+    [whiteKeyCount, blackKeyWidthPercent],
+  );
 
   const resolveMidiNote = useCallback(
     (relativeSemitone: number) => relativeToMidiNote(relativeSemitone, octaveOffset),
@@ -80,7 +94,7 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
       }
 
       const key = event.key.toLowerCase();
-      const relativeSemitone = PC_KEY_TO_RELATIVE[key];
+      const relativeSemitone = pcKeyToRelative[key];
       if (relativeSemitone === undefined || pressedPcKeysRef.current.has(key)) {
         return;
       }
@@ -92,7 +106,7 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
 
     const handleKeyUp = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      const relativeSemitone = PC_KEY_TO_RELATIVE[key];
+      const relativeSemitone = pcKeyToRelative[key];
       if (relativeSemitone === undefined) {
         return;
       }
@@ -109,7 +123,7 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [disabled, handleNoteOn, handleNoteOff]);
+  }, [disabled, handleNoteOn, handleNoteOff, pcKeyToRelative]);
 
   const isActive = useCallback(
     (relativeSemitone: number) => activeNotes.includes(resolveMidiNote(relativeSemitone)),
@@ -120,8 +134,8 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
     () => ({
       position: "absolute" as const,
       top: 0,
-      width: `${BLACK_KEY_WIDTH_PERCENT}%`,
-      height: `${BLACK_KEY_HEIGHT_RATIO * 100}%`,
+      width: `${blackKeyWidthPercent}%`,
+      height: `${blackKeyHeightRatio * 100}%`,
       border: "1px solid #111",
       borderRadius: "0 0 4px 4px",
       cursor: disabled ? "not-allowed" : "pointer",
@@ -133,14 +147,14 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
       fontSize: "0.5rem",
       zIndex: 1,
     }),
-    [disabled],
+    [disabled, blackKeyWidthPercent, blackKeyHeightRatio],
   );
 
   return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        鍵盤: C3–C5（25 鍵・中央 C4 = 原音）/ PC: A S D F G H J K（白）W E T Y U（黒）/ オクターブ ±
-        {octaveOffset}
+        鍵盤: {keyboardRangeLabel(octaveCount)} / PC: A S D F G H J K（白）W E T Y U（黒）/
+        オクターブ ±{octaveOffset}
       </Typography>
 
       <Box
@@ -152,7 +166,7 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
         }}
       >
         <Box sx={{ display: "flex", width: "100%" }}>
-          {WHITE_KEYS.map((key) => (
+          {whiteKeys.map((key) => (
             <Box
               key={key.relativeSemitone}
               component="button"
@@ -195,7 +209,7 @@ export function PianoKeyboard({ disabled = false }: PianoKeyboardProps) {
           ))}
         </Box>
 
-        {BLACK_KEYS.map((key) => (
+        {blackKeys.map((key) => (
           <Box
             key={key.relativeSemitone}
             component="button"

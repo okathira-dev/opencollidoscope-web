@@ -297,7 +297,7 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
-**演奏面の配置（M2.5 original 完了）**: `PlayerControlSurface` が `original-layout.ts`（180 度投影）で 12 行グリッドを駆動。配置の正本は [layout-specs/original/](layout-specs/README.md) の kebab-case ブロック名。A 側は機能配線済み、B 側は配置のみ。横スライダー（`HorizontalSlider`）、Wavejet サイズ UI なし。new 版・バリアント切替は後続。
+**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み、B 側は配置のみ。バリアント切替は `SynthEngine` の ToggleButtonGroup（暫定、`uiStore` は後続）。
 
 ### WaveDisplay
 

@@ -7,6 +7,7 @@ import {
   KEYBOARD_CENTER_MIDI,
   KEYBOARD_CENTER_RELATIVE_SEMITONE,
   KEYBOARD_TOP_MIDI,
+  keyboardTopMidi,
   relativeToMidiNote,
 } from "./keyboard-layout.ts";
 
@@ -19,7 +20,16 @@ describe("buildKeyboardLayout", () => {
     expect(whiteKeys.at(-1)?.relativeSemitone).toBe(24);
   });
 
-  it("E–F / B–C の黒鍵なし区間に黒鍵を置かない", () => {
+  it("37 鍵（白 22 + 黒 15）を octaveCount=3 で生成する", () => {
+    const { whiteKeys, blackKeys } = buildKeyboardLayout(3);
+    expect(whiteKeys).toHaveLength(22);
+    expect(blackKeys).toHaveLength(15);
+    expect(whiteKeys[0]?.relativeSemitone).toBe(0);
+    expect(whiteKeys.at(-1)?.relativeSemitone).toBe(36);
+    expect(keyboardTopMidi(3)).toBe(KEYBOARD_BASE_MIDI + 36);
+  });
+
+  it("E-F / B-C の黒鍵なし区間に黒鍵を置かない", () => {
     const { blackKeys } = buildKeyboardLayout();
     const offsets = blackKeys.map((key) => key.whiteOffset);
 
@@ -32,7 +42,7 @@ describe("buildKeyboardLayout", () => {
 });
 
 describe("relativeToMidiNote", () => {
-  it("デフォルトオフセットで C3–C5、中央が C4（原音）", () => {
+  it("デフォルトオフセットで C3-C5、中央が C4（原音）", () => {
     expect(relativeToMidiNote(0, 0)).toBe(KEYBOARD_BASE_MIDI);
     expect(relativeToMidiNote(24, 0)).toBe(KEYBOARD_TOP_MIDI);
     expect(relativeToMidiNote(KEYBOARD_CENTER_RELATIVE_SEMITONE, 0)).toBe(KEYBOARD_CENTER_MIDI);

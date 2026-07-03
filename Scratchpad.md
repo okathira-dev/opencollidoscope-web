@@ -13,41 +13,19 @@
 
 **次フェーズの優先順位**:
 
-1. **M2.5 new 版** — `layout-specs/new/` 作成 → `new-layout.ts` + Web 配置実装
-2. **M2.5 バリアント切替** — `uiStore` + `VariantSwitcher`（new 版配置完了後）
-3. **M3** — 配線・視覚フィードバック
-4. **M4** — 拡張
+1. **M2.5 バリアント切替** — `uiStore` + `VariantSwitcher`（new 版配置完了。暫定は SynthEngine ToggleButtonGroup）
+2. **M3** — 配線・視覚フィードバック
+3. **M4** — 拡張
 
 ---
 
-### M2.5 new 版: UI 配置（現在のフォーカス）
+### M2.5 バリアント切替（現在のフォーカス）
 
-**前提**: オリジナル版配置は完了。new 版は同手順で実施する。
-
-**参照**: オリジナル実装 — `PlayerModule` / `original-layout.ts` / `PlayerControlSurface`（向き合い・二段モード）
-
-**ゴール**: `hw_version=new` の配置ブロックどおりに Web UI が並ぶ（機能配線は M3）。
-
-#### 1. 配置仕様（人間）
-
-- [ ] Introduction Fig.1・Physical Build / CAD を人間が再確認
-- [ ] `docs/layout-specs/new/layout.html` + `layout.css` — Wireframe Planner 出力 + `-a`/`-b` 接尾辞
-- [ ] `new/wireframe.png` — 任意
-- [ ] オリジナル vs 新版の **差分表**（例: `slider-moon-sun-*` → `short-knob-*`、`toggle-switch-*` → `push-button-*`）
-
-#### 2. Web 実装（コード）
-
-- [ ] `new-layout.ts` — new 版 `playerModuleAreas` / `playerModuleTemplate` 定義
-- [ ] `PlayerModule` の new 版分岐（または `NewPlayerModule`）— ノブ・プッシュボタン等の形状差
-- [ ] `PlayerControlSurface` のバリアント分岐 — `original` / `new` でモジュール定義・コンポーネントを切替
-- [ ] A/B 両面・向き合い/二段モードを new 版でも再現
-- [ ] B 側は配置のみ（オーバーレイ + `WaveDisplayPlaceholder`）
-
-#### 3. バリアント切替（new 版配置完了後）
+**前提**: new 版 UI 配置は完了。`SynthEngine` に暫定 ToggleButtonGroup あり。
 
 - [ ] `uiStore` に `hwVersion: "original" | "new"` を追加
 - [ ] `VariantSwitcher` UI — `SynthEngine` から `PlayerControlSurface` へ渡す
-- [ ] ドキュメント同期（layout-specs / web-spec / ui-mapping / hardware-layout）
+- [ ] ドキュメント同期（web-spec / hardware-layout）
 
 ---
 
@@ -74,6 +52,21 @@
 ---
 
 ## 完了済みタスク
+
+### M2.5 new 版: UI 配置確定
+
+- [x] `new/layout.html` + `layout.css` — A 側は B の 180 度点対称、`loop-button-*`
+- [x] `new-layout.ts` — zone 非依存の単一テンプレート（B は `rotate(180deg)`）
+- [x] `NewPlayerModule` — 6×12 グリッド・`VerticalMobileKnob` / `LoopPushButton`
+- [x] `VerticalMobileKnob` — Wavejet 対称の縦レール + ホイール（上下=Filter、ホイール=Duration）
+- [x] `PianoKeyboard` — new 版は C3-C6（37 鍵、`octaveCount=3`）
+- [x] `PlayerControlSurface` — `variant` prop で original/new 切替
+- [x] A/B 両面・向き合い/二段モード
+- [x] B 側配置のみ — オーバーレイ + `WaveDisplayPlaceholder`
+- [x] `SynthEngine` 暫定バリアント切替（ToggleButtonGroup）
+- [x] ドキュメント同期（layout-specs / ui-mapping / web-spec / web-design / hardware-layout）
+- [ ] `new/wireframe.png` — 任意
+- [ ] Introduction Fig.1・Physical Build / CAD を人間が再確認 — 任意
 
 ### M2.5 オリジナル版: UI 配置確定
 
@@ -149,4 +142,5 @@ TDD 基盤・設定ドメイン
 - M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声タブ）、Zustand ストア4つ。
 - M2 コア完了。PGranular 移植、選択 UI、PianoKeyboard、synthStore。
 - M2.5 オリジナル版完了。`PlayerModule` ベースの A/B 配置、向き合い/二段モード、横スライダー、B 側プレースホルダ。
-- 次: **new 版 layout-specs 作成** → **`new-layout.ts` + Web 配置** → **バリアント切替** → M3。
+- M2.5 new 版完了。`NewPlayerModule` + `new-layout.ts`（単一テンプレート）、`VerticalMobileKnob`、C3-C6 鍵盤、`loop-button-*`。
+- 次: **uiStore バリアント切替** → M3。

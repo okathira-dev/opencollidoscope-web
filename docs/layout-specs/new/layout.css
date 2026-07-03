@@ -1,0 +1,119 @@
+/* CSS */
+body {
+  margin: 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  grid-template-areas:
+    "keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a minus-button-a vertical-mobile-knob-a"
+    "keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a keyboards-a plus-button-a vertical-mobile-knob-a"
+    "wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a wavejet-a vertical-mobile-knob-a"
+    "display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red loop-button-a"
+    "display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red record-button-a"
+    "display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red display-red mic-a"
+    "mic-b display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow"
+    "record-button-b display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow"
+    "loop-button-b display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow display-yellow"
+    "vertical-mobile-knob-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b wavejet-b"
+    "vertical-mobile-knob-b plus-button-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b"
+    "vertical-mobile-knob-b minus-button-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b keyboards-b";
+  gap: 4px;
+  width: min(100%, 960px);
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 2px solid #333;
+  background-color: #e8e8e8;
+}
+
+.grid-layout > div {
+  box-sizing: border-box;
+  border: 2px solid #333;
+  background: #fff;
+  padding: 4px;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.display-red {
+  grid-area: display-red;
+  background: #fde8ec;
+}
+
+.display-yellow {
+  grid-area: display-yellow;
+  background: #fff8e0;
+}
+
+.wavejet-a {
+  grid-area: wavejet-a;
+}
+
+.wavejet-b {
+  grid-area: wavejet-b;
+}
+
+.mic-a {
+  grid-area: mic-a;
+}
+
+.mic-b {
+  grid-area: mic-b;
+}
+
+.record-button-a {
+  grid-area: record-button-a;
+}
+
+.record-button-b {
+  grid-area: record-button-b;
+}
+
+.loop-button-a {
+  grid-area: loop-button-a;
+}
+
+.loop-button-b {
+  grid-area: loop-button-b;
+}
+
+.vertical-mobile-knob-a {
+  grid-area: vertical-mobile-knob-a;
+}
+
+.vertical-mobile-knob-b {
+  grid-area: vertical-mobile-knob-b;
+}
+
+.keyboards-a {
+  grid-area: keyboards-a;
+}
+
+.keyboards-b {
+  grid-area: keyboards-b;
+}
+
+.plus-button-a {
+  grid-area: plus-button-a;
+}
+
+.plus-button-b {
+  grid-area: plus-button-b;
+}
+
+.minus-button-a {
+  grid-area: minus-button-a;
+}
+
+.minus-button-b {
+  grid-area: minus-button-b;
+}

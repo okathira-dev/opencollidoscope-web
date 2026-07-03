@@ -36,7 +36,7 @@ Planner で両端に同名ブロックができる場合、保存前に **手動
 - **layout グリッド**: 一次資料（Fig.2 等）の俯瞰と同じ向き。**row 0 = 上 = プレイヤー A 端（赤）**。
 - **Web 実装（M2.5 original）**: `layout.css` の 12 行を **180 度回転（上下+左右反転）** して投影する。投影後は **画面上部 = プレイヤー B 端（黄）**、**画面下部 = プレイヤー A 端（赤）の鍵盤帯**（手前）。
 - 実装コード: `src/features/synth-engine/original-layout.ts` の `ORIGINAL_LAYOUT_WEB_TEMPLATE`（`layout-specs` を実行時に読み込まない）。
-- **new 版**の投影はオリジナル版完了後に同手順で実施。`uiStore` + `VariantSwitcher` は new 版 layout 作成とセットで後続。
+- **new 版**の投影は `new-layout.ts` で 180 度投影後のグリッドを定義。zone 非依存の単一テンプレート（B は `PlayerControlSurface` で `rotate(180deg)`）。`variant="new"` で `NewPlayerModule` を使用。
 
 ### セマンティクス
 
@@ -122,7 +122,7 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 | `plus-button-*` | MIDI 鍵盤のオクターブ + | 鍵盤横の配置。USB MIDI 鍵盤本体の機能（Teensy ピンなし） |
 | `minus-button-*` | MIDI 鍵盤のオクターブ - | 同上 |
 
-`keyboards-*` は USB MIDI 鍵盤本体（C 起点 2 オクターブ + 次の C、計 25 鍵。Web デフォルトは C3–C5 で中央が C4 = 原音）。`mic-*` は XLR マイク入力（Teensy 非経由、アナログ入力）。
+`keyboards-*` は USB MIDI 鍵盤本体（C 起点 2 オクターブ + 次の C、計 25 鍵。Web デフォルトは C3-C5 で中央が C4 = 原音）。`mic-*` は XLR マイク入力（Teensy 非経由、アナログ入力）。
 
 ## Web 移植対応（M2.5 参考）
 
@@ -130,7 +130,7 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 
 | 配置ブロック（例） | ゾーン | `SLOT_*`（Web） | コンポーネント | 備考 |
 | --- | --- | --- | --- | --- |
-| `keyboards-a` / `keyboards-b` | 各端 | `SLOT_KEYBOARD` | `PianoKeyboard` | C3–C5（25 鍵・中央 C4） |
+| `keyboards-a` / `keyboards-b` | 各端 | `SLOT_KEYBOARD` | `PianoKeyboard` | C3-C5（25 鍵・中央 C4） |
 | `plus-button-*` | 各端 | `SLOT_KEYBOARD_OCTAVE_UP` | `OctaveButton` | オクターブ + |
 | `minus-button-*` | 各端 | `SLOT_KEYBOARD_OCTAVE_DOWN` | `OctaveButton` | オクターブ - |
 | `slider-moon-sun-a` / `slider-moon-sun-b` | 各端 | `SLOT_FADER_FILTER` | `HorizontalSlider` | original・横スライダー |
@@ -142,7 +142,22 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 | `record-button-a` / `record-button-b` | 各端 | `SLOT_RECORD` | `RecordButton` | |
 | `mic-a` / `mic-b` | 各端 | `SLOT_MIC` | — | Web 未実装可 |
 
-新版（`new/`）では `slider-moon-sun-*` 等が `short-knob-*` 等に置き換わる。差分はバリアント間のブロック名比較で記録する。
+### 新版（`new/`）追加ブロック
+
+| 配置ブロック（例） | ゾーン | `SLOT_*`（Web） | コンポーネント | 備考 |
+| --- | --- | --- | --- | --- |
+| `vertical-mobile-knob-a` / `vertical-mobile-knob-b` | 各端 | `SLOT_SHORT_KNOB` | `VerticalMobileKnob` | 縦レール=Filter、ホイール=Duration（Wavejet 対称） |
+| `loop-button-a` / `loop-button-b` | 各端 | `SLOT_LOOP_PUSH` | `LoopPushButton` | 48m-ss プッシュ（LED） |
+| `keyboards-a` / `keyboards-b` | 各端 | `SLOT_KEYBOARD` | `PianoKeyboard` | C3-C6（37 鍵、`octaveCount=3`） |
+| その他共有ブロック | — | 上表と同じ | 同上 | `wavejet-*` / `display-*` / `record-*` / `mic-*` / `plus-button-*` / `minus-button-*` |
+
+### オリジナル版のみ（新版では置換）
+
+| 配置ブロック | 新版での置換 |
+| --- | --- |
+| `slider-moon-sun-*` | `vertical-mobile-knob-*`（Filter 成分） |
+| `slider-small-big-*` | `vertical-mobile-knob-*`（Duration 成分） |
+| `toggle-switch-*` | `loop-button-*` |
 
 ## 一次資料（照合用・トレースしない）
 
@@ -153,7 +168,7 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 
 ## M2.5 への引き渡し
 
-M2.5（**オリジナル版のみ**）は `layout.css` の `grid-template-areas` とブロック名を**参照して**、上記対応表経由で `SLOT_*` / React コンポーネントにマッピングする。`layout-specs` を実行時入力として直接読み込む必要はない（`original-layout.ts` で 180 度投影後のグリッドを定義）。
+M2.5 は `layout.css` の `grid-template-areas` とブロック名を**参照して**、上記対応表経由で `SLOT_*` / React コンポーネントにマッピングする。`layout-specs` を実行時入力として直接読み込む必要はない（`original-layout.ts` / `new-layout.ts` で 180 度投影後のグリッドを定義）。
 
 - 配置ブロック → `SLOT_*`: 本 README の「Web 移植対応」+ [ui-mapping.md](../ui-mapping.md)
 - 形状・向き・MIDI 配線: 同書および [original-analysis.md](../original-analysis.md)（M3 で配線）

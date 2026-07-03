@@ -15,11 +15,13 @@ import {
 } from "../../../stores/synth-store.ts";
 import { useWaveSelection } from "../../../stores/wave-store.ts";
 import { PLAYER_A_COLOR, PLAYER_B_COLOR } from "../original-layout.ts";
+import { NewPlayerModule } from "./NewPlayerModule.tsx";
 import { PlayerModule } from "./PlayerModule.tsx";
 import { WaveDisplay } from "./WaveDisplay.tsx";
 import { WaveDisplayPlaceholder } from "./WaveDisplayPlaceholder.tsx";
 
 export type PlayerBOrientation = "facing" | "stacked";
+export type HardwareVariant = "original" | "new";
 
 export interface PlayerControlSurfaceProps {
   disabled?: boolean;
@@ -27,6 +29,7 @@ export interface PlayerControlSurfaceProps {
   isSynthInitialized?: boolean;
   color?: string;
   playerBOrientation?: PlayerBOrientation;
+  variant?: HardwareVariant;
 }
 
 export function PlayerControlSurface({
@@ -35,6 +38,7 @@ export function PlayerControlSurface({
   isSynthInitialized = false,
   color = PLAYER_A_COLOR,
   playerBOrientation = "facing",
+  variant = "original",
 }: PlayerControlSurfaceProps) {
   const config = useConfig();
   const audioConfig = useConfigAudio();
@@ -49,6 +53,7 @@ export function PlayerControlSurface({
 
   const selectionDisabled = disabled || selection.isNull;
   const pianoDisabled = !hasRecordedBuffer || !isSynthInitialized;
+  const ModuleComponent = variant === "new" ? NewPlayerModule : PlayerModule;
 
   const handleRecordToggle = useCallback(async () => {
     if (isRecording) {
@@ -72,7 +77,7 @@ export function PlayerControlSurface({
       : "録音";
 
   const playerBModule = (
-    <PlayerModule
+    <ModuleComponent
       zone="b"
       displayColor="yellow"
       color={PLAYER_B_COLOR}
@@ -149,7 +154,7 @@ export function PlayerControlSurface({
         </Box>
 
         <Box sx={{ flex: 1, minHeight: 0 }}>
-          <PlayerModule
+          <ModuleComponent
             zone="a"
             displayColor="red"
             color={color}

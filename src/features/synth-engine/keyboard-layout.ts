@@ -13,7 +13,7 @@ const WHITE_SEMITONES_PER_OCTAVE = [0, 2, 4, 5, 7, 9, 11] as const;
 /**
  * 黒鍵中心を隣接白鍵の境界（whiteIndex + 1）に合わせる。
  * whiteOffset は白鍵インデックス基準（半音均等ではない）。
- * E–F・B–C には黒鍵がないため 3.0 / 7.0 は使わず、F# は 4.0、次オクターブ C# は 8.0 (=7+1) になる。
+ * E-F・B-C には黒鍵がないため 3.0 / 7.0 は使わず、F# は 4.0、次オクターブ C# は 8.0 (=7+1) になる。
  */
 const BLACK_PATTERN = [
   { semitone: 1, whiteOffset: 1.0 },
@@ -41,11 +41,18 @@ function noteLabel(relativeSemitone: number): string {
   return names[relativeSemitone % 12] ?? "C";
 }
 
-export function buildKeyboardLayout(): { whiteKeys: WhiteKeyDef[]; blackKeys: BlackKeyDef[] } {
+export function keyboardTopMidi(octaveCount: number): number {
+  return KEYBOARD_BASE_MIDI + octaveCount * OCTAVE_SHIFT_SEMITONES;
+}
+
+export function buildKeyboardLayout(octaveCount = 2): {
+  whiteKeys: WhiteKeyDef[];
+  blackKeys: BlackKeyDef[];
+} {
   const whiteKeys: WhiteKeyDef[] = [];
   const blackKeys: BlackKeyDef[] = [];
 
-  for (let octave = 0; octave < 2; octave++) {
+  for (let octave = 0; octave < octaveCount; octave++) {
     for (const semitone of WHITE_SEMITONES_PER_OCTAVE) {
       whiteKeys.push({
         relativeSemitone: octave * 12 + semitone,
@@ -62,7 +69,7 @@ export function buildKeyboardLayout(): { whiteKeys: WhiteKeyDef[]; blackKeys: Bl
   }
 
   whiteKeys.push({
-    relativeSemitone: 24,
+    relativeSemitone: octaveCount * 12,
     label: "C",
   });
 
