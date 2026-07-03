@@ -201,7 +201,7 @@ M2.5（オリジナル版）では `layout.css` の 12 行を **180 度回転** 
 - **中央下**: `display-red`（`WaveDisplay`・Wave 0）
 - **画面下部**: プレイヤー A（赤）— 鍵盤・スライダー・Wavejet（A 側は配線済み）
 
-実装: `PlayerControlSurface` + `original-layout.ts`（オリジナル）/ `new-layout.ts`（新版）。新版は zone 非依存の単一テンプレートで、B 側は `rotate(180deg)` で向き合い表示。
+実装: `PlayerControlSurface` + `original-layout.ts`（オリジナル）/ `new-layout.ts`（新版）。新版は zone 非依存の単一テンプレートで、B 側は `rotate(180deg)` で向き合い表示。実行時のアクティブバリアントは `uiStore.hardwareVariant`、プレイヤー配置モードは `uiStore.playerLayout`（`facing` / `stacked` / `solo`）で選択する。
 
 ### 旧暫定メモ（`ControlPanel` 横一列 — 撤去済み）
 
@@ -228,6 +228,7 @@ M2.5（オリジナル版）では `layout.css` の 12 行を **180 度回転** 
 ## 実装チェックリスト（エージェント用）
 
 - [ ] 参照資料の `hw_version` が Phase 1 方針（`original`）と一致しているか
+- [ ] `hardwareVariant` / `playerLayout` を `uiStore` から読んでいるか（`SynthEngine` のローカル state に置かない）
 - [ ] Wavejet 水平操作を `ControlPanel` 行に置いていないか（`SelectionRail` = `WEB_STACK_2`）
 - [ ] 選択サイズを物理フェーダーと混同していないか（オリジナルは **ノブ回転**、Web は縦スライダーでメタファー）
 - [ ] CAD の ITW プッシュ / Short Rail をオリジナル版のトグル・フェーダー説明に使っていないか

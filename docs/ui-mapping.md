@@ -108,6 +108,8 @@
 | 設定 FAB（歯車アイコン） | パネル開閉 | M1 |
 | 音声タブ | 録音時間、チャンク数等 | M1 |
 | グラニュラータブ | グレイン数、ボイス数、エンベロープ等 | M2 |
+| 筐体バリアント切替 | `VariantSwitcher`（`uiStore.hardwareVariant`） | M2.5 |
+| プレイヤー配置モード | 向き合い / 二段（`uiStore.playerLayout`）。ソロは M3 | M2.5 / M3 |
 
 ## M2.5 UI 配置（オリジナル版・実装済み）
 
@@ -118,6 +120,7 @@
 3. **`SelectionRail`** — Wavejet 開始位置のみ（サイズスライダー UI なし）
 4. **`RecordButton` + `PianoKeyboard` + `OctaveButton`** — A 側は配線済み、B 側は配置のみ
 5. **Filter・ループ** — 各端に配置枠あり（M3 で配線）
+6. **バリアント切替** — `VariantSwitcher`（`uiStore.hardwareVariant`）。配置モードは `uiStore.playerLayout`（向き合い/二段。ソロは M3）
 
 ## M2.5 UI 配置（新版・実装済み）
 
@@ -127,26 +130,26 @@
 2. **`VerticalMobileKnob`** — Wavejet 対称の縦レール + ホイール（`vertical-mobile-knob-*`、上下=Filter、ホイール=Duration）
 3. **`LoopPushButton`** — ループプッシュ（`loop-button-*`）
 4. **`PianoKeyboard`** — C3-C6（37 鍵、`octaveCount=3`）
-5. **A/B 両面・向き合い/二段モード** — オリジナル版と同様
+5. **A/B 両面・向き合い/二段モード** — `uiStore.playerLayout`（`facing` / `stacked`）。ソロは M3
 6. **B 側は配置のみ** — オーバーレイ + `WaveDisplayPlaceholder`
-7. **バリアント切替** — `SynthEngine` の ToggleButtonGroup（暫定）。`uiStore` 統合は後続。
+7. **バリアント切替** — `VariantSwitcher`（`uiStore.hardwareVariant`）。配置モード切替は `SynthEngine` 上部の ToggleButtonGroup
 
 暫定 `ControlPanel` は `SynthEngine` から外れ、ファイルも削除済み。
 
 ## M3 で実装すべき UI 要素
 
-1. **ループ ON/OFF トグル** — `synthStore.loop.enabled` は既存
-2. **フィルターカットオフ縦スライダー** — `BiquadFilterNode`（処理式は [original-analysis.md — フィルター](original-analysis.md#フィルター)）
-3. **選択アルファのフィルター連動**
-4. **オシロスコープ** — `AnalyserNode` + Canvas
-5. **再生カーソル** — Worklet トリガーメッセージ
-6. **ConfigPanel にフィルター・視覚タブ追加**
+1. **ソロモード** — `playerLayout: "solo"` の UI 選択肢 + Player B 非表示（Player A フルサイズ）
+2. **ループ ON/OFF トグル** — `synthStore.loop.enabled` は既存
+3. **フィルターカットオフ縦スライダー** — `BiquadFilterNode`（処理式は [original-analysis.md — フィルター](original-analysis.md#フィルター)）
+4. **選択アルファのフィルター連動**
+5. **オシロスコープ** — `AnalyserNode` + Canvas
+6. **再生カーソル** — Worklet トリガーメッセージ
+7. **ConfigPanel にフィルター・視覚タブ追加**
 
 ## 追加で検討すべき項目
 
 - **選択境界の終点表示** — 現在は始点ノブのみ
 - **チャンクリセットアニメーション** — 優先度低
-- **新版 UI バリアント** — M2.5 配置済み。`uiStore` + `VariantSwitcher` は後続
 
 ## 関連ドキュメント
 

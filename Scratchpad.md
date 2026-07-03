@@ -13,26 +13,27 @@
 
 **次フェーズの優先順位**:
 
-1. **M2.5 バリアント切替** — `uiStore` + `VariantSwitcher`（new 版配置完了。暫定は SynthEngine ToggleButtonGroup）
-2. **M3** — 配線・視覚フィードバック
-3. **M4** — 拡張
+1. **M3** — 配線・視覚フィードバック
+2. **M4** — 拡張
 
 ---
 
-### M2.5 バリアント切替（現在のフォーカス）
+### M2.5 バリアント切替（完了）
 
-**前提**: new 版 UI 配置は完了。`SynthEngine` に暫定 ToggleButtonGroup あり。
+**前提**: new 版 UI 配置は完了。
 
-- [ ] `uiStore` に `hwVersion: "original" | "new"` を追加
-- [ ] `VariantSwitcher` UI — `SynthEngine` から `PlayerControlSurface` へ渡す
-- [ ] ドキュメント同期（web-spec / hardware-layout）
+- [x] `uiStore` に `hardwareVariant: "original" | "new"` を追加
+- [x] `uiStore` に `playerLayout: "facing" | "stacked" | "solo"` を追加（`solo` の UI・描画は M3 先頭タスク）
+- [x] `VariantSwitcher` UI — `SynthEngine` から `uiStore` 連携
+- [x] ドキュメント同期（web-spec / hardware-layout / web-design）
 
 ---
 
-### M3: ループ・フィルター・オシロスコープ（配置確定後）
+### M3: ループ・フィルター・オシロスコープ（現在のフォーカス）
 
 **前提**: M2.5 でスロット位置は固定。M3 は **配線と視覚フィードバック** のみ。
 
+- [ ] **ソロモード** — `playerLayout: "solo"` の UI 選択肢追加 + Player B 非表示描画（Player A フルサイズ）
 - [ ] ループ ON/OFF — オリジナル=トグル / 新版=プッシュ
 - [ ] フィルター + Duration — 配置仕様で定義されたコントロール形状に接続
 - [ ] 選択アルファのフィルター連動（透明度 0.5〜1.0）
@@ -63,9 +64,8 @@
 - [x] `PlayerControlSurface` — `variant` prop で original/new 切替
 - [x] A/B 両面・向き合い/二段モード
 - [x] B 側配置のみ — オーバーレイ + `WaveDisplayPlaceholder`
-- [x] `SynthEngine` 暫定バリアント切替（ToggleButtonGroup）
+- [x] `SynthEngine` 暫定バリアント切替（ToggleButtonGroup）→ `VariantSwitcher` + `uiStore` に置換
 - [x] ドキュメント同期（layout-specs / ui-mapping / web-spec / web-design / hardware-layout）
-- [ ] `new/wireframe.png` — 任意
 - [ ] Introduction Fig.1・Physical Build / CAD を人間が再確認 — 任意
 
 ### M2.5 オリジナル版: UI 配置確定
@@ -80,7 +80,6 @@
 - [x] B 側配置のみ — オーバーレイ + `WaveDisplayPlaceholder`（Wave 0 データ非表示）
 - [x] `ControlPanel` を `SynthEngine` から外し `PlayerControlSurface` に置換
 - [x] ドキュメント同期（layout-specs / web-spec / web-design / ui-mapping / hardware-layout）
-- [ ] `original/wireframe.png` — 任意
 
 ### M2 残り: 演奏 UI（筐体レイアウト）— 暫定版
 
@@ -132,7 +131,8 @@ TDD 基盤・設定ドメイン
 | **UI 配置の正本** | **`docs/layout-specs/<variant>/layout.html`（kebab-case + `-a`/`-b`）** |
 | **Web 配置実装** | **`PlayerModule`（6×12）×2 + `original-layout.ts` / `new-layout.ts`** |
 | **電子的つながりの正本** | **`ui-mapping.md` · `original-analysis.md`** |
-| **UI バリアント** | **`original` / `new` を `uiStore` で切替（new 版配置後）** |
+| **UI バリアント** | **`original` / `new` を `uiStore.hardwareVariant` で切替** |
+| **プレイヤー配置** | **`uiStore.playerLayout`（`facing` / `stacked` / `solo`）。`solo` の UI・描画は M3 先頭** |
 | **配置 vs 機能** | **M2.5=配置確定、M3=機能配線** |
 | ディレクトリ | `src/features/synth-engine/` + `src/stores/` + `src/domain/` |
 
@@ -143,4 +143,5 @@ TDD 基盤・設定ドメイン
 - M2 コア完了。PGranular 移植、選択 UI、PianoKeyboard、synthStore。
 - M2.5 オリジナル版完了。`PlayerModule` ベースの A/B 配置、向き合い/二段モード、横スライダー、B 側プレースホルダ。
 - M2.5 new 版完了。`NewPlayerModule` + `new-layout.ts`（単一テンプレート）、`VerticalMobileKnob`、C3-C6 鍵盤、`loop-button-*`。
-- 次: **uiStore バリアント切替** → M3。
+- M2.5 バリアント切替完了。`uiStore.hardwareVariant` + `playerLayout`、`VariantSwitcher`。
+- 次: **M3**（ソロモード → 配線・視覚フィードバック）。

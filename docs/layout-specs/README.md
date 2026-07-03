@@ -69,8 +69,6 @@ CSS Grid Wireframe Planner で 12 列グリッド上にブロックを配置
 docs/layout-specs/<variant>/layout.html + layout.css に保存
         ↓
 ブラウザで開き、一次資料と見比べて矛盾がないか確認
-        ↓
-（任意）Planner の Download PNG → wireframe.png
 ```
 
 ## 配置作成 GUI（確定）
@@ -80,7 +78,6 @@ docs/layout-specs/<variant>/layout.html + layout.css に保存
 | ツール | [CSS Grid Wireframe Planner](https://devtooleasy.com/css/grid-wireframe-planner) |
 | 操作 | 空セルをドラッグでブロック作成。ダブルクリックで名前変更。Delete で削除 |
 | 正本への保存 | `layout.html` + `layout.css`（HTML に `<link href="layout.css">` を付ける） |
-| 任意 | Download PNG / Copy ASCII |
 
 Planner の詳細: [公式 How to Use](https://devtooleasy.com/css/grid-wireframe-planner)（行数 1〜20、12 列、ブロックは重ね不可）。
 
@@ -105,13 +102,12 @@ Planner の詳細: [公式 How to Use](https://devtooleasy.com/css/grid-wirefram
 | `original/layout.css` | 上記のグリッド定義 |
 | `new/layout.html` | 新版（`hw_version=new`）配置の**唯一の正本** |
 | `new/layout.css` | 上記のグリッド定義 |
-| `<variant>/wireframe.png` | 任意（人間確認・PR 用。Planner から取得可） |
 
 ## プレビューのルール
 
 1. **矩形 + ブロック名ラベル**（質感・実機トレースは不要）
 2. 色は 2〜3 色、影・グラデなし
-3. 矛盾時は **`layout.html` / `layout.css` が正本**、PNG は補助
+3. 矛盾時は **`layout.html` / `layout.css` が正本**
 
 ## 未接続ブロックの同定（original）
 

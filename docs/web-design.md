@@ -231,6 +231,8 @@ interface ConfigState {
 ```typescript
 interface UIState {
   isConfigPanelOpen: boolean;  // false = 最小化（デフォルト）
+  hardwareVariant: "original" | "new";  // デフォルト "original"
+  playerLayout: "facing" | "stacked" | "solo";  // デフォルト "facing"。solo の UI・描画は M3
   keyboardLayout: KeyMap;
   selectedEngine: number;
   isFullscreen: boolean;
@@ -238,10 +240,12 @@ interface UIState {
   openConfigPanel: () => void;
   closeConfigPanel: () => void;
   toggleConfigPanel: () => void;
+  setHardwareVariant: (variant: "original" | "new") => void;
+  setPlayerLayout: (layout: "facing" | "stacked" | "solo") => void;
 }
 ```
 
-パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1。
+パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1（`isConfigPanelOpen`）、M2.5（`hardwareVariant`, `playerLayout`）。
 
 ### WaveStore
 
@@ -297,7 +301,15 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
-**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み、B 側は配置のみ。バリアント切替は `SynthEngine` の ToggleButtonGroup（暫定、`uiStore` は後続）。
+**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。`solo`（Player B 非表示）は M3 先頭タスク。
+
+### VariantSwitcher
+
+筐体バリアント（`original` / `new`）の切替 UI。`uiStore.hardwareVariant` を読み書きする。`SynthEngine` 上部に配置。音声・MIDI・Store キーは切替しない。
+
+### PlayerControlSurface
+
+`variant`（`HardwareVariant`）と `playerLayout`（`PlayerLayout`）を受け取り、`PlayerModule` / `NewPlayerModule` を選択して A/B を描画。`playerLayout === "solo"` の非表示描画は M3 で実装予定。
 
 ### WaveDisplay
 

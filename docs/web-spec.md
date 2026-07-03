@@ -37,7 +37,7 @@
 
 | 方針 | 内容 |
 | --- | --- |
-| Phase 1 の基準 | **オリジナル版**をデフォルト。M2.5 で両バリアントの UI 配置を完成（`uiStore` による本切替は後続） |
+| Phase 1 の基準 | **オリジナル版**をデフォルト。M2.5 で両バリアントの UI 配置と `uiStore` による本切替を完成 |
 | MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする |
 | 配置・形状・実装ギャップ | [ui-mapping.md](ui-mapping.md) · [layout-specs/](layout-specs/README.md)（`<variant>/layout.html`）を参照 |
 
@@ -51,8 +51,8 @@
 | --- | --- | --- |
 | **M1** | 録音して波形が見える | マイク、録音、チャンク波形表示、**設定パネル（折りたたみ・音声タブ）** |
 | **M2** | 選択して演奏できる | 選択 UI、グラニュラーシンセ、ピアノ鍵盤、**設定パネルにグラニュラータブ追加** |
-| **M2.5** | **UI 配置確定（両バリアント）** | `layout-specs/original/` + `new/` を参照した 180 度投影グリッド、`PlayerControlSurface` で A/B 両面配置。オリジナル=`PlayerModule`、新版=`NewPlayerModule`（`VerticalMobileKnob`、C3-C6 鍵盤）。Filter / Loop / B 側はプレースホルダ可 |
-| **M3** | 演奏の質とフィードバック | ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚タブ追加**（M2.5 のスロットへ配線） |
+| **M2.5** | **UI 配置確定（両バリアント）+ バリアント切替** | `layout-specs/original/` + `new/` を参照した 180 度投影グリッド、`PlayerControlSurface` で A/B 両面配置。オリジナル=`PlayerModule`、新版=`NewPlayerModule`（`VerticalMobileKnob`、C3-C6 鍵盤）。`uiStore.hardwareVariant` + `VariantSwitcher`、`uiStore.playerLayout`（向き合い/二段。`solo` は M3）。Filter / Loop / B 側はプレースホルダ可 |
+| **M3** | 演奏の質とフィードバック | ソロモード（Player B 非表示）、ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚タブ追加**（M2.5 のスロットへ配線） |
 | **M4** | 拡張・本番運用 | プリセット、JSON 入出力、MIDI、パーティクル、ショートカット |
 
 **設定 UI**: デバッグとパラメータ確認のため、**M1 から折りたたみ式の設定パネルを常設**する。普段は最小化（アイコンまたは細いバー）し、クリックで展開して GUI から `ConfigManager` 経由で値を変更できる。プリセット保存・JSON 入出力は **M4** で追加する。
@@ -70,6 +70,7 @@
 | --- | --- |
 | M1 | `audioStore`, `waveStore`, `configStore`, `uiStore`（`isConfigPanelOpen`）, 折りたたみ `ConfigPanel` |
 | M2 | `synthStore`, グラニュラータブ |
+| M2.5 | `uiStore` 拡張（`hardwareVariant`, `playerLayout`）, `VariantSwitcher` |
 | M3 | フィルター・視覚タブ（Store は既存を拡張） |
 | M4 | プリセット API（`configStore`）、MIDI、パーティクル |
 

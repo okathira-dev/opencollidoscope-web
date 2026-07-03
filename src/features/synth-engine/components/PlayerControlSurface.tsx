@@ -13,6 +13,7 @@ import {
   useSetGrainDurationCoeff,
   useSetLoopEnabled,
 } from "../../../stores/synth-store.ts";
+import type { HardwareVariant, PlayerLayout } from "../../../stores/ui-store.ts";
 import { useWaveSelection } from "../../../stores/wave-store.ts";
 import { PLAYER_A_COLOR, PLAYER_B_COLOR } from "../original-layout.ts";
 import { NewPlayerModule } from "./NewPlayerModule.tsx";
@@ -20,16 +21,17 @@ import { PlayerModule } from "./PlayerModule.tsx";
 import { WaveDisplay } from "./WaveDisplay.tsx";
 import { WaveDisplayPlaceholder } from "./WaveDisplayPlaceholder.tsx";
 
-export type PlayerBOrientation = "facing" | "stacked";
-export type HardwareVariant = "original" | "new";
-
 export interface PlayerControlSurfaceProps {
   disabled?: boolean;
   hasRecordedBuffer?: boolean;
   isSynthInitialized?: boolean;
   color?: string;
-  playerBOrientation?: PlayerBOrientation;
+  playerLayout?: PlayerLayout;
   variant?: HardwareVariant;
+}
+
+function shouldRotatePlayerB(playerLayout: PlayerLayout): boolean {
+  return playerLayout === "facing" || playerLayout === "solo";
 }
 
 export function PlayerControlSurface({
@@ -37,7 +39,7 @@ export function PlayerControlSurface({
   hasRecordedBuffer = false,
   isSynthInitialized = false,
   color = PLAYER_A_COLOR,
-  playerBOrientation = "facing",
+  playerLayout = "facing",
   variant = "original",
 }: PlayerControlSurfaceProps) {
   const config = useConfig();
@@ -123,7 +125,7 @@ export function PlayerControlSurface({
           <Box
             sx={{
               height: "100%",
-              ...(playerBOrientation === "facing" ? { transform: "rotate(180deg)" } : undefined),
+              ...(shouldRotatePlayerB(playerLayout) ? { transform: "rotate(180deg)" } : undefined),
             }}
           >
             {playerBModule}

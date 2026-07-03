@@ -22,13 +22,12 @@ import {
   useSyncSynthBuffer,
   useSyncSynthSelection,
 } from "../../stores/synth-store.ts";
+import type { PlayerLayout } from "../../stores/ui-store.ts";
+import { useHardwareVariant, usePlayerLayout, useSetPlayerLayout } from "../../stores/ui-store.ts";
 import { useWaveSelection } from "../../stores/wave-store.ts";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
-import {
-  type HardwareVariant,
-  type PlayerBOrientation,
-  PlayerControlSurface,
-} from "./components/PlayerControlSurface.tsx";
+import { PlayerControlSurface } from "./components/PlayerControlSurface.tsx";
+import { VariantSwitcher } from "./components/VariantSwitcher.tsx";
 
 export interface SynthEngineProps {
   engineId: number;
@@ -45,10 +44,11 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
   const syncSynthBuffer = useSyncSynthBuffer();
   const syncSynthSelection = useSyncSynthSelection();
   const selection = useWaveSelection();
+  const hardwareVariant = useHardwareVariant();
+  const playerLayout = usePlayerLayout();
+  const setPlayerLayout = useSetPlayerLayout();
 
   const [initError, setInitError] = useState<string | null>(null);
-  const [playerBOrientation, setPlayerBOrientation] = useState<PlayerBOrientation>("facing");
-  const [hwVariant, setHwVariant] = useState<HardwareVariant>("original");
 
   const handleInitialize = useCallback(async () => {
     setInitError(null);
@@ -101,32 +101,15 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
       ) : (
         <Stack spacing={2} sx={{ width: "100%", maxWidth: 1400 }}>
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
+            <VariantSwitcher />
             <ToggleButtonGroup
-              value={hwVariant}
+              value={playerLayout === "solo" ? "facing" : playerLayout}
               exclusive
               size="small"
-              aria-label="筐体バリアント"
-              onChange={(_, value: HardwareVariant | null) => {
-                if (value !== null) {
-                  setHwVariant(value);
-                }
-              }}
-            >
-              <ToggleButton value="original" aria-label="オリジナル版">
-                Original
-              </ToggleButton>
-              <ToggleButton value="new" aria-label="新版">
-                New
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <ToggleButtonGroup
-              value={playerBOrientation}
-              exclusive
-              size="small"
-              aria-label="プレイヤー B の向き"
-              onChange={(_, value: PlayerBOrientation | null) => {
-                if (value !== null) {
-                  setPlayerBOrientation(value);
+              aria-label="プレイヤー配置モード"
+              onChange={(_, value: PlayerLayout | null) => {
+                if (value !== null && value !== "solo") {
+                  setPlayerLayout(value);
                 }
               }}
             >
@@ -143,8 +126,8 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
             hasRecordedBuffer={hasRecordedBuffer}
             isSynthInitialized={isSynthInitialized}
             color={color}
-            playerBOrientation={playerBOrientation}
-            variant={hwVariant}
+            playerLayout={playerLayout}
+            variant={hardwareVariant}
           />
         </Stack>
       )}
