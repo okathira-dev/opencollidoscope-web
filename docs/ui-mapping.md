@@ -26,7 +26,7 @@
 | `SLOT_FADER_DURATION` / 新版ノブ回転 | Duration | CC2 | 0〜127 → グレイン持続係数 1.0〜8.0 | `synthStore.grainDurationCoeff` |
 | `SLOT_LOOP_TOGGLE` / `SLOT_LOOP_PUSH` | ループ | CC4 | >0 = ON / 0 = OFF | `synthStore.loop.enabled` |
 | `SLOT_RECORD` | 録音 | CC5 | 2 秒録音トリガー | `audioStore` 録音 |
-| `SLOT_FADER_FILTER` / 新版ノブ上下 | フィルター | CC7 | カットオフ + 選択透明度 0.5〜1.0 | `config.filter` + 音声ノード（M3 予定） |
+| `SLOT_FADER_FILTER` / 新版ノブ上下 | フィルター | CC7 | カットオフ + 選択透明度 0.5〜1.0 | `synthStore.filterCutoff` + `config.filter`（範囲）+ `BiquadFilterNode` |
 
 詳細（Teensy ピン配線・処理式・ノイズ除去）: [original-analysis.md — MIDI 制御](original-analysis.md#midi-制御)
 
@@ -61,11 +61,11 @@
 
 | パラメータ | Web 版 UI | 配線状態 | 配置状態 | マイルストーン |
 | --- | --- | --- | --- | --- |
-| フィルター | 横 Slider（`HorizontalSlider`）/ `VerticalMobileKnob` 縦ドラッグ | 未実装 | 済（A/B 配置） | M3 |
+| フィルター | 横 Slider（`HorizontalSlider`）/ `VerticalMobileKnob` 縦ドラッグ | 済（A 側） | 済（A/B 配置） | M3 |
 | Duration | 横 Slider（`HorizontalSlider`）/ `VerticalMobileKnob` ホイール | 済（A 側） | 済（A/B 配置） | M2.5 |
 | 選択サイズ | なし（ホイールのみ） | 済 | — | — |
 | 選択位置 | `SelectionRail` + ドラッグ | 済（A 側） | 済（A/B 配置） | M2.5 |
-| ループ | `Switch`（各端）/ `LoopPushButton`（new） | Store のみ | 済（A/B 配置） | M3 |
+| ループ | `Switch`（各端）/ `LoopPushButton`（new） | 済（A 側） | 済（A/B 配置） | M3 |
 | 録音 | `RecordButton` | 済（A 側） | 済（A/B 配置） | M2.5 |
 | 演奏 | `PianoKeyboard`（25 鍵 / new は 37 鍵） | 済（A 側） | 済（A/B 配置） | M2.5 |
 | オクターブ +/- | `OctaveButton` ×2 | 済（A 側） | 済（A/B 配置） | M2.5 |
@@ -84,10 +84,10 @@
 | チャンク出現アニメーション | 3 フレームポップアップ | `updatedAt` ベースのパルス | 済 | M1 |
 | チャンクリセットアニメーション | 10 フレーム縮小 | なし | **未実装** | — |
 | 選択ハイライト | 半透明カラー塗り | Canvas 半透明 fill | 済 | M2 |
-| 選択境界バー | 始点・終点に全高バー（50% alpha） | 始点にノブ（円）のみ、終点なし | **差異あり** | M3 |
-| 選択アルファ（フィルター連動） | フィルター CC7 で透明度 0.5〜1.0 | なし | **未実装** | M3 |
-| 再生カーソル | 白色、アクティブチャンクを白描画 | なし | **未実装** | M3 |
-| オシロスコープ | 白 PolyLine、波形背後に描画 | なし | **未実装** | M3 |
+| 選択境界バー | 始点・終点に全高バー（50% alpha） | 始点・終点バー + 始点ノブ（ドラッグ用） | **差異あり**（始点ノブは Web 独自） | M3 |
+| 選択アルファ（フィルター連動） | フィルター CC7 で透明度 0.5〜1.0 | `selectionAlphaFromFilter` + チャンク着色 | 済 | M3 |
+| 再生カーソル | 白色、アクティブチャンクを白描画 | 全ボイスのグレイントリガーで白チャンク | 済 | M3 |
+| オシロスコープ | 白 PolyLine、波形背後に描画 | `AnalyserNode` + Canvas（`WaveDisplay` 背面） | 済 | M3 |
 | パーティクル | 白点、`durationCoeff > 1` で発生 | なし | **未実装** | M4 |
 | Wave 1（黄 / 上半分 / 反転） | 水平ミラー表示 | なし（Phase 1 では 1 波形のみ） | Phase 2 | Phase 2 |
 | 中心線 | 水平軸線 | Canvas `centerLine` | 済 | M1 |
@@ -109,7 +109,7 @@
 | 音声タブ | 録音時間、チャンク数等 | M1 |
 | グラニュラータブ | グレイン数、ボイス数、エンベロープ等 | M2 |
 | 筐体バリアント切替 | `VariantSwitcher`（`uiStore.hardwareVariant`） | M2.5 |
-| プレイヤー配置モード | 向き合い / 二段（`uiStore.playerLayout`）。ソロは M3 | M2.5 / M3 |
+| プレイヤー配置モード | 向き合い / 二段 / ソロ（`uiStore.playerLayout`） | M2.5 / M3 |
 
 ## M2.5 UI 配置（オリジナル版・実装済み）
 
@@ -119,8 +119,8 @@
 2. **`HorizontalSlider`** — Filter / Duration（`slider-moon-sun-*` / `slider-small-big-*`）
 3. **`SelectionRail`** — Wavejet 開始位置のみ（サイズスライダー UI なし）
 4. **`RecordButton` + `PianoKeyboard` + `OctaveButton`** — A 側は配線済み、B 側は配置のみ
-5. **Filter・ループ** — 各端に配置枠あり（M3 で配線）
-6. **バリアント切替** — `VariantSwitcher`（`uiStore.hardwareVariant`）。配置モードは `uiStore.playerLayout`（向き合い/二段。ソロは M3）
+5. **Filter・ループ** — A 側は配線済み、B 側は配置のみ（Phase 2）
+6. **バリアント切替** — `VariantSwitcher`（`uiStore.hardwareVariant`）。配置モードは `uiStore.playerLayout`（向き合い/二段/ソロ）
 
 ## M2.5 UI 配置（新版・実装済み）
 
@@ -130,25 +130,25 @@
 2. **`VerticalMobileKnob`** — Wavejet 対称の縦レール + ホイール（`vertical-mobile-knob-*`、上下=Filter、ホイール=Duration）
 3. **`LoopPushButton`** — ループプッシュ（`loop-button-*`）
 4. **`PianoKeyboard`** — C3-C6（37 鍵、`octaveCount=3`）
-5. **A/B 両面・向き合い/二段モード** — `uiStore.playerLayout`（`facing` / `stacked`）。ソロは M3
+5. **A/B 両面・向き合い/二段/ソロモード** — `uiStore.playerLayout`
 6. **B 側は配置のみ** — オーバーレイ + `WaveDisplayPlaceholder`
 7. **バリアント切替** — `VariantSwitcher`（`uiStore.hardwareVariant`）。配置モード切替は `SynthEngine` 上部の ToggleButtonGroup
 
 暫定 `ControlPanel` は `SynthEngine` から外れ、ファイルも削除済み。
 
-## M3 で実装すべき UI 要素
+## M3 UI 要素（完了）
 
-1. **ソロモード** — `playerLayout: "solo"` の UI 選択肢 + Player B 非表示（Player A フルサイズ）
-2. **ループ ON/OFF トグル** — `synthStore.loop.enabled` は既存
-3. **フィルターカットオフ縦スライダー** — `BiquadFilterNode`（処理式は [original-analysis.md — フィルター](original-analysis.md#フィルター)）
-4. **選択アルファのフィルター連動**
+1. **ソロモード** — `playerLayout: "solo"` + Player B 非表示
+2. **ループ ON/OFF** — `synthStore.loop.enabled`、A 側 `Switch` / `LoopPushButton`
+3. **フィルターカットオフ** — `synthStore.filterCutoff` → `BiquadFilterNode`
+4. **選択アルファのフィルター連動** — `selectionAlphaFromFilter`
 5. **オシロスコープ** — `AnalyserNode` + Canvas
-6. **再生カーソル** — Worklet トリガーメッセージ
-7. **ConfigPanel にフィルター・視覚タブ追加**
+6. **再生カーソル** — Worklet `cursorTrigger` / `cursorEnd` → `waveStore.cursors`
+7. **ConfigPanel フィルター・視覚タブ**
+8. **選択境界の終点バー**
 
 ## 追加で検討すべき項目
 
-- **選択境界の終点表示** — 現在は始点ノブのみ
 - **チャンクリセットアニメーション** — 優先度低
 
 ## 関連ドキュメント

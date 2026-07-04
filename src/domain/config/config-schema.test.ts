@@ -82,4 +82,14 @@ describe("validateConfigDependencies", () => {
       "最大選択サイズはチャンク数以下で設定してください",
     );
   });
+
+  it("minCutoff が maxCutoff 以上だとエラーになる", () => {
+    const config = parseCollidoscopeConfig({
+      filter: { minCutoff: 10000, maxCutoff: 500 },
+    });
+
+    expect(() => validateConfigDependencies(config)).toThrow(
+      "最小カットオフは最大カットオフより小さく設定してください",
+    );
+  });
 });

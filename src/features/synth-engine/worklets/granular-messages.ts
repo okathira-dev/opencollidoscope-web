@@ -58,6 +58,7 @@ export type GranularWorkletInputMessage =
 export interface GranularCursorTriggerMessage {
   type: "cursorTrigger";
   voiceId: number;
+  samplePosition: number;
 }
 
 export interface GranularCursorEndMessage {

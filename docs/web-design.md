@@ -232,7 +232,7 @@ interface ConfigState {
 interface UIState {
   isConfigPanelOpen: boolean;  // false = 最小化（デフォルト）
   hardwareVariant: "original" | "new";  // デフォルト "original"
-  playerLayout: "facing" | "stacked" | "solo";  // デフォルト "facing"。solo の UI・描画は M3
+  playerLayout: "facing" | "stacked" | "solo";  // デフォルト "facing"
   keyboardLayout: KeyMap;
   selectedEngine: number;
   isFullscreen: boolean;
@@ -268,7 +268,7 @@ interface WaveState {
 ```typescript
 interface SynthState {
   grainDurationCoeff: number;
-  filter: { cutoff: number };
+  filterCutoff: number;  // MIDI 0–127。演奏 UI と `BiquadFilterNode` に反映
   loop: { enabled: boolean };
 
   noteOn: (midiNote: number) => void;
@@ -279,7 +279,7 @@ interface SynthState {
 }
 ```
 
-**導入タイミング**: M2（M1 では未使用）。
+**導入タイミング**: M2（M1 では未使用）。`filterCutoff` は M3 で追加。
 
 ## コンポーネント設計
 
@@ -301,7 +301,7 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
-**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。`solo`（Player B 非表示）は M3 先頭タスク。
+**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み（M3 までにループ・フィルター・視覚 FB 完了）、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段/ソロ）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。
 
 ### VariantSwitcher
 
@@ -309,7 +309,7 @@ Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, Con
 
 ### PlayerControlSurface
 
-`variant`（`HardwareVariant`）と `playerLayout`（`PlayerLayout`）を受け取り、`PlayerModule` / `NewPlayerModule` を選択して A/B を描画。`playerLayout === "solo"` の非表示描画は M3 で実装予定。
+`variant`（`HardwareVariant`）と `playerLayout`（`PlayerLayout`）を受け取り、`PlayerModule` / `NewPlayerModule` を選択して A/B を描画。`playerLayout === "solo"` のとき Player B を非表示にする。
 
 ### WaveDisplay
 

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { midiNoteToRate } from "../domain/audio/index.ts";
+import { computeChunkIndex, midiNoteToRate } from "../domain/audio/index.ts";
 import { GranularSynthesizer } from "../features/synth-engine/granular-synthesizer.ts";
 import {
   clampKeyboardOctaveOffset,
@@ -14,6 +14,7 @@ import { getWaveStoreState, subscribeWaveSelection } from "./wave-store.ts";
 interface SynthState {
   isInitialized: boolean;
   grainDurationCoeff: number;
+  filterCutoff: number;
   loop: { enabled: boolean };
   activeNotes: number[];
   keyboardOctaveOffset: number;
@@ -23,6 +24,7 @@ interface SynthState {
   noteOff: (midiNote: number) => void;
   setLoopEnabled: (enabled: boolean) => void;
   setGrainDurationCoeff: (coeff: number) => void;
+  setFilterCutoff: (value: number) => void;
   shiftKeyboardOctave: (delta: number) => void;
   syncBuffer: (buffer: Float32Array) => void;
   syncSelection: () => void;
@@ -47,6 +49,7 @@ function removeActiveNote(notes: number[], midiNote: number): number[] {
 const useSynthStoreInternal = create<SynthState>((set, get) => ({
   isInitialized: false,
   grainDurationCoeff: 1.0,
+  filterCutoff: 127,
   loop: { enabled: false },
   activeNotes: [],
   keyboardOctaveOffset: 0,
@@ -60,6 +63,26 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
     synthesizer = new GranularSynthesizer(audioContext);
     await synthesizer.initialize();
     get().syncConfig();
+
+    synthesizer.setMessageHandler((message) => {
+      const audioState = getAudioStoreState();
+      const config = getConfigState().config;
+      const waveStore = getWaveStoreState();
+
+      if (!audioState.recordedBuffer) {
+        return;
+      }
+
+      if (message.type === "cursorTrigger") {
+        const samplesPerChunk = Math.round(
+          audioState.recordedBuffer.length / config.audio.chunkCount,
+        );
+        const chunkIndex = computeChunkIndex(message.samplePosition, samplesPerChunk);
+        waveStore.setCursor(message.voiceId, chunkIndex);
+      } else if (message.type === "cursorEnd") {
+        waveStore.removeCursor(message.voiceId);
+      }
+    });
 
     const recordedBuffer = getAudioStoreState().recordedBuffer;
     if (recordedBuffer) {
@@ -103,6 +126,12 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
     set({ grainDurationCoeff: clamped });
   },
 
+  setFilterCutoff: (value) => {
+    const clamped = Math.max(0, Math.min(127, Math.round(value)));
+    synthesizer?.setFilterCutoff(clamped);
+    set({ filterCutoff: clamped });
+  },
+
   shiftKeyboardOctave: (delta) => {
     const state = get();
     const nextOffset = clampKeyboardOctaveOffset(state.keyboardOctaveOffset + delta);
@@ -140,6 +169,7 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
   syncConfig: () => {
     synthesizer?.updateConfig(getConfigState().config);
     synthesizer?.setGrainDurationCoeff(get().grainDurationCoeff);
+    synthesizer?.setFilterCutoff(get().filterCutoff);
     if (get().loop.enabled) {
       synthesizer?.setLooping(true);
     }
@@ -156,6 +186,10 @@ export function useGrainDurationCoeff(): number {
 
 export function useLoopEnabled(): boolean {
   return useSynthStoreInternal((state) => state.loop.enabled);
+}
+
+export function useFilterCutoff(): number {
+  return useSynthStoreInternal((state) => state.filterCutoff);
 }
 
 export function useActiveNotes(): number[] {
@@ -180,6 +214,10 @@ export function useSetLoopEnabled() {
 
 export function useSetGrainDurationCoeff() {
   return useSynthStoreInternal((state) => state.setGrainDurationCoeff);
+}
+
+export function useSetFilterCutoff() {
+  return useSynthStoreInternal((state) => state.setFilterCutoff);
 }
 
 export function useKeyboardOctaveOffset(): number {
@@ -210,6 +248,11 @@ export function useSyncSynthConfig() {
   return useSynthStoreInternal((state) => state.syncConfig);
 }
 
+export function useAnalyserNode(): AnalyserNode | null {
+  const isInitialized = useIsSynthInitialized();
+  return isInitialized ? (synthesizer?.getAnalyserNode() ?? null) : null;
+}
+
 export function getSynthStoreState(): SynthState {
   return useSynthStoreInternal.getState();
 }
@@ -229,6 +272,7 @@ export function disposeSynth(): void {
     isInitialized: false,
     activeNotes: [],
     loop: { enabled: false },
+    filterCutoff: 127,
     keyboardOctaveOffset: 0,
   });
 }

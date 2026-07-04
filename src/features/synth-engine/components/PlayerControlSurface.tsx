@@ -8,8 +8,10 @@ import {
 } from "../../../stores/audio-store.ts";
 import { useConfig, useConfigAudio } from "../../../stores/config-store.ts";
 import {
+  useFilterCutoff,
   useGrainDurationCoeff,
   useLoopEnabled,
+  useSetFilterCutoff,
   useSetGrainDurationCoeff,
   useSetLoopEnabled,
 } from "../../../stores/synth-store.ts";
@@ -50,6 +52,8 @@ export function PlayerControlSurface({
   const selection = useWaveSelection();
   const grainDurationCoeff = useGrainDurationCoeff();
   const setGrainDurationCoeff = useSetGrainDurationCoeff();
+  const filterCutoff = useFilterCutoff();
+  const setFilterCutoff = useSetFilterCutoff();
   const loopEnabled = useLoopEnabled();
   const setLoopEnabled = useSetLoopEnabled();
 
@@ -91,6 +95,9 @@ export function PlayerControlSurface({
       onDurationChange={() => {}}
       durationMin={config.granular.grainDurationRange.min}
       durationMax={config.granular.grainDurationRange.max}
+      filterValue={0}
+      onFilterChange={() => {}}
+      filterDisabled
       loopEnabled={false}
       onLoopChange={() => {}}
       isRecording={false}
@@ -121,39 +128,43 @@ export function PlayerControlSurface({
           minHeight: "clamp(700px, 85vh, 960px)",
         }}
       >
-        <Box sx={{ position: "relative", flex: 1, minHeight: 0 }}>
-          <Box
-            sx={{
-              height: "100%",
-              ...(shouldRotatePlayerB(playerLayout) ? { transform: "rotate(180deg)" } : undefined),
-            }}
-          >
-            {playerBModule}
-          </Box>
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "rgba(0, 0, 0, 0.5)",
-              borderRadius: 1,
-              pointerEvents: "none",
-              zIndex: 1,
-            }}
-          >
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: "center", px: 2, lineHeight: 1.5 }}
+        {playerLayout !== "solo" && (
+          <Box sx={{ position: "relative", flex: 1, minHeight: 0 }}>
+            <Box
+              sx={{
+                height: "100%",
+                ...(shouldRotatePlayerB(playerLayout)
+                  ? { transform: "rotate(180deg)" }
+                  : undefined),
+              }}
             >
-              Player B（Wave 1）
-              <br />
-              配置のみ — 機能配線は M3 以降
-            </Typography>
+              {playerBModule}
+            </Box>
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "rgba(0, 0, 0, 0.5)",
+                borderRadius: 1,
+                pointerEvents: "none",
+                zIndex: 1,
+              }}
+            >
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: "center", px: 2, lineHeight: 1.5 }}
+              >
+                Player B（Wave 1）
+                <br />
+                配置のみ — 機能配線は Phase 2 以降
+              </Typography>
+            </Box>
           </Box>
-        </Box>
+        )}
 
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <ModuleComponent
@@ -161,13 +172,17 @@ export function PlayerControlSurface({
             displayColor="red"
             color={color}
             interactive={!disabled}
-            displayContent={<WaveDisplay color={color} height="100%" minHeight={0} />}
+            displayContent={
+              <WaveDisplay color={color} filterCutoff={filterCutoff} height="100%" minHeight={0} />
+            }
             pianoDisabled={pianoDisabled}
             selectionDisabled={selectionDisabled}
             grainDurationCoeff={grainDurationCoeff}
             onDurationChange={handleDurationChange}
             durationMin={config.granular.grainDurationRange.min}
             durationMax={config.granular.grainDurationRange.max}
+            filterValue={filterCutoff}
+            onFilterChange={setFilterCutoff}
             loopEnabled={loopEnabled}
             onLoopChange={setLoopEnabled}
             isRecording={isRecording}

@@ -12,12 +12,27 @@ import { buildKeyboardLayout, keyboardTopMidi, relativeToMidiNote } from "../key
 const KEY_HEIGHT = 140;
 const BLACK_KEY_WIDTH = 18;
 const BLACK_KEY_HEIGHT = 90;
+const KEY_DATA_ATTR = "data-relative-semitone";
 
 function keyboardRangeLabel(octaveCount: number): string {
   const { whiteKeys, blackKeys } = buildKeyboardLayout(octaveCount);
   const topNote = keyboardTopMidi(octaveCount);
   const topOctave = Math.floor(topNote / 12) - 1;
   return `C3-C${topOctave}（${whiteKeys.length + blackKeys.length} 鍵・中央 C4 = 原音）`;
+}
+
+function resolveKeyFromPoint(clientX: number, clientY: number): number | null {
+  const element = document.elementFromPoint(clientX, clientY);
+  const keyElement = element?.closest(`[${KEY_DATA_ATTR}]`);
+  if (!keyElement) {
+    return null;
+  }
+  const value = keyElement.getAttribute(KEY_DATA_ATTR);
+  if (value === null) {
+    return null;
+  }
+  const semitone = Number(value);
+  return Number.isFinite(semitone) ? semitone : null;
 }
 
 interface PianoKeyboardProps {
@@ -31,6 +46,9 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
   const activeNotes = useActiveNotes();
   const octaveOffset = useKeyboardOctaveOffset();
   const pressedPcKeysRef = useRef<Set<string>>(new Set());
+  const keyboardRef = useRef<HTMLDivElement>(null);
+  const pointerDragActiveRef = useRef(false);
+  const activePointerKeyRef = useRef<number | null>(null);
 
   const { whiteKeys, blackKeys } = useMemo(() => buildKeyboardLayout(octaveCount), [octaveCount]);
 
@@ -67,6 +85,16 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
     [octaveOffset],
   );
 
+  const handleNoteOff = useCallback(
+    (relativeSemitone: number) => {
+      if (disabled) {
+        return;
+      }
+      noteOff(resolveMidiNote(relativeSemitone));
+    },
+    [disabled, noteOff, resolveMidiNote],
+  );
+
   const handleNoteOn = useCallback(
     (relativeSemitone: number) => {
       if (disabled) {
@@ -77,14 +105,50 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
     [disabled, noteOn, resolveMidiNote],
   );
 
-  const handleNoteOff = useCallback(
+  const setActivePointerKey = useCallback(
     (relativeSemitone: number) => {
-      if (disabled) {
+      if (activePointerKeyRef.current === relativeSemitone) {
         return;
       }
-      noteOff(resolveMidiNote(relativeSemitone));
+      if (activePointerKeyRef.current !== null) {
+        handleNoteOff(activePointerKeyRef.current);
+      }
+      activePointerKeyRef.current = relativeSemitone;
+      handleNoteOn(relativeSemitone);
     },
-    [disabled, noteOff, resolveMidiNote],
+    [handleNoteOff, handleNoteOn],
+  );
+
+  const clearPointerDrag = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      pointerDragActiveRef.current = false;
+      if (keyboardRef.current?.hasPointerCapture(event.pointerId)) {
+        keyboardRef.current.releasePointerCapture(event.pointerId);
+      }
+      if (activePointerKeyRef.current !== null) {
+        handleNoteOff(activePointerKeyRef.current);
+        activePointerKeyRef.current = null;
+      }
+    },
+    [handleNoteOff],
+  );
+
+  const updatePointerKeyFromEvent = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!pointerDragActiveRef.current) {
+        return;
+      }
+      const relativeSemitone = resolveKeyFromPoint(event.clientX, event.clientY);
+      if (relativeSemitone === null) {
+        if (activePointerKeyRef.current !== null) {
+          handleNoteOff(activePointerKeyRef.current);
+          activePointerKeyRef.current = null;
+        }
+        return;
+      }
+      setActivePointerKey(relativeSemitone);
+    },
+    [handleNoteOff, setActivePointerKey],
   );
 
   useEffect(() => {
@@ -125,6 +189,19 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
     };
   }, [disabled, handleNoteOn, handleNoteOff, pcKeyToRelative]);
 
+  const handleKeyPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>, relativeSemitone: number) => {
+      if (disabled || event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      keyboardRef.current?.setPointerCapture(event.pointerId);
+      pointerDragActiveRef.current = true;
+      setActivePointerKey(relativeSemitone);
+    },
+    [disabled, setActivePointerKey],
+  );
+
   const isActive = useCallback(
     (relativeSemitone: number) => activeNotes.includes(resolveMidiNote(relativeSemitone)),
     [activeNotes, resolveMidiNote],
@@ -158,11 +235,16 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
       </Typography>
 
       <Box
+        ref={keyboardRef}
+        onPointerMove={updatePointerKeyFromEvent}
+        onPointerUp={clearPointerDrag}
+        onPointerCancel={clearPointerDrag}
         sx={{
           position: "relative",
           height: KEY_HEIGHT,
           userSelect: "none",
           opacity: disabled ? 0.5 : 1,
+          touchAction: "none",
         }}
       >
         <Box sx={{ display: "flex", width: "100%" }}>
@@ -171,22 +253,9 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
               key={key.relativeSemitone}
               component="button"
               type="button"
+              data-relative-semitone={key.relativeSemitone}
               aria-label={`${key.label}${key.pcKey ? ` (${key.pcKey.toUpperCase()})` : ""}`}
-              onMouseDown={() => handleNoteOn(key.relativeSemitone)}
-              onMouseUp={() => handleNoteOff(key.relativeSemitone)}
-              onMouseLeave={() => {
-                if (isActive(key.relativeSemitone)) {
-                  handleNoteOff(key.relativeSemitone);
-                }
-              }}
-              onTouchStart={(event) => {
-                event.preventDefault();
-                handleNoteOn(key.relativeSemitone);
-              }}
-              onTouchEnd={(event) => {
-                event.preventDefault();
-                handleNoteOff(key.relativeSemitone);
-              }}
+              onPointerDown={(event) => handleKeyPointerDown(event, key.relativeSemitone)}
               sx={{
                 flex: 1,
                 minWidth: 0,
@@ -196,6 +265,7 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
                 bgcolor: isActive(key.relativeSemitone) ? "#f3063e" : "#f5f5f5",
                 color: isActive(key.relativeSemitone) ? "#fff" : "#000",
                 cursor: disabled ? "not-allowed" : "pointer",
+                touchAction: "none",
                 p: 0,
                 display: "flex",
                 alignItems: "flex-end",
@@ -214,27 +284,15 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
             key={key.relativeSemitone}
             component="button"
             type="button"
+            data-relative-semitone={key.relativeSemitone}
             aria-label={`${key.label}${key.pcKey ? ` (${key.pcKey.toUpperCase()})` : ""}`}
-            onMouseDown={() => handleNoteOn(key.relativeSemitone)}
-            onMouseUp={() => handleNoteOff(key.relativeSemitone)}
-            onMouseLeave={() => {
-              if (isActive(key.relativeSemitone)) {
-                handleNoteOff(key.relativeSemitone);
-              }
-            }}
-            onTouchStart={(event) => {
-              event.preventDefault();
-              handleNoteOn(key.relativeSemitone);
-            }}
-            onTouchEnd={(event) => {
-              event.preventDefault();
-              handleNoteOff(key.relativeSemitone);
-            }}
+            onPointerDown={(event) => handleKeyPointerDown(event, key.relativeSemitone)}
             sx={{
               ...blackKeySx,
               left: blackKeyLeftPercent(key.whiteOffset),
               bgcolor: isActive(key.relativeSemitone) ? "#c00430" : "#222",
               color: "#fff",
+              touchAction: "none",
             }}
           >
             {key.pcKey?.toUpperCase()}

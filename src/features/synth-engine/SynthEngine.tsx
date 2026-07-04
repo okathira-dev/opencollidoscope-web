@@ -103,12 +103,12 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
             <VariantSwitcher />
             <ToggleButtonGroup
-              value={playerLayout === "solo" ? "facing" : playerLayout}
+              value={playerLayout}
               exclusive
               size="small"
               aria-label="プレイヤー配置モード"
               onChange={(_, value: PlayerLayout | null) => {
-                if (value !== null && value !== "solo") {
+                if (value !== null) {
                   setPlayerLayout(value);
                 }
               }}
@@ -118,6 +118,9 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
               </ToggleButton>
               <ToggleButton value="stacked" aria-label="二段モード">
                 二段
+              </ToggleButton>
+              <ToggleButton value="solo" aria-label="ソロモード">
+                ソロ
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>

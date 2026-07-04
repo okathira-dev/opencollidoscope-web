@@ -133,6 +133,173 @@ function AudioTab() {
   );
 }
 
+function FilterTab() {
+  const config = useConfig();
+  const updateConfig = useUpdateConfig();
+  const { filter } = config;
+
+  const handleMinCutoffChange = useCallback(
+    (_: Event, value: number | number[]) => {
+      const minCutoff = Array.isArray(value) ? (value[0] ?? filter.minCutoff) : value;
+      updateConfig({ filter: { minCutoff: Math.round(minCutoff) } });
+    },
+    [filter.minCutoff, updateConfig],
+  );
+
+  const handleMaxCutoffChange = useCallback(
+    (_: Event, value: number | number[]) => {
+      const maxCutoff = Array.isArray(value) ? (value[0] ?? filter.maxCutoff) : value;
+      updateConfig({ filter: { maxCutoff: Math.round(maxCutoff) } });
+    },
+    [filter.maxCutoff, updateConfig],
+  );
+
+  const handleQFactorChange = useCallback(
+    (_: Event, value: number | number[]) => {
+      const qFactor = Array.isArray(value) ? (value[0] ?? filter.qFactor) : value;
+      updateConfig({ filter: { qFactor } });
+    },
+    [filter.qFactor, updateConfig],
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 2 }}>
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          最小カットオフ: {filter.minCutoff} Hz
+        </Typography>
+        <Slider
+          value={filter.minCutoff}
+          min={20}
+          max={20000}
+          step={10}
+          onChange={handleMinCutoffChange}
+          aria-label="最小カットオフ"
+        />
+      </Box>
+
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          最大カットオフ: {filter.maxCutoff} Hz
+        </Typography>
+        <Slider
+          value={filter.maxCutoff}
+          min={200}
+          max={22050}
+          step={10}
+          onChange={handleMaxCutoffChange}
+          aria-label="最大カットオフ"
+        />
+      </Box>
+
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          Q 係数: {filter.qFactor.toFixed(3)}
+        </Typography>
+        <Slider
+          value={filter.qFactor}
+          min={0.1}
+          max={30}
+          step={0.01}
+          onChange={handleQFactorChange}
+          aria-label="Q 係数"
+        />
+      </Box>
+    </Box>
+  );
+}
+
+function VisualTab() {
+  const config = useConfig();
+  const updateConfig = useUpdateConfig();
+  const { visual } = config;
+
+  const handleWave1ColorChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateConfig({ visual: { colors: { wave1: event.target.value } } });
+    },
+    [updateConfig],
+  );
+
+  const handleWave2ColorChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateConfig({ visual: { colors: { wave2: event.target.value } } });
+    },
+    [updateConfig],
+  );
+
+  const handleCursorColorChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateConfig({ visual: { colors: { cursor: event.target.value } } });
+    },
+    [updateConfig],
+  );
+
+  const handleChunkAnimationFramesChange = useCallback(
+    (_: Event, value: number | number[]) => {
+      const chunkAnimationFrames = Array.isArray(value)
+        ? (value[0] ?? visual.chunkAnimationFrames)
+        : value;
+      updateConfig({ visual: { chunkAnimationFrames: Math.round(chunkAnimationFrames) } });
+    },
+    [visual.chunkAnimationFrames, updateConfig],
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 2 }}>
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          Wave 1 色
+        </Typography>
+        <input
+          type="color"
+          value={visual.colors.wave1}
+          onChange={handleWave1ColorChange}
+          aria-label="Wave 1 色"
+        />
+      </Box>
+
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          Wave 2 色
+        </Typography>
+        <input
+          type="color"
+          value={visual.colors.wave2}
+          onChange={handleWave2ColorChange}
+          aria-label="Wave 2 色"
+        />
+      </Box>
+
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          カーソル色
+        </Typography>
+        <input
+          type="color"
+          value={visual.colors.cursor}
+          onChange={handleCursorColorChange}
+          aria-label="カーソル色"
+        />
+      </Box>
+
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          チャンクアニメーションフレーム: {visual.chunkAnimationFrames}
+        </Typography>
+        <Slider
+          value={visual.chunkAnimationFrames}
+          min={1}
+          max={10}
+          step={1}
+          onChange={handleChunkAnimationFramesChange}
+          aria-label="チャンクアニメーションフレーム"
+        />
+      </Box>
+    </Box>
+  );
+}
+
 function GranularTab() {
   const config = useConfig();
   const updateConfig = useUpdateConfig();
@@ -339,13 +506,23 @@ export function ConfigPanel() {
           </IconButton>
         </Box>
 
-        <Tabs value={tabIndex} onChange={(_, value: number) => setTabIndex(value)} sx={{ mb: 1 }}>
+        <Tabs
+          value={tabIndex}
+          onChange={(_, value: number) => setTabIndex(value)}
+          sx={{ mb: 1 }}
+          variant="scrollable"
+          scrollButtons="auto"
+        >
           <Tab label="音声" />
           <Tab label="グラニュラー" />
+          <Tab label="フィルター" />
+          <Tab label="視覚" />
         </Tabs>
 
         {tabIndex === 0 && <AudioTab />}
         {tabIndex === 1 && <GranularTab />}
+        {tabIndex === 2 && <FilterTab />}
+        {tabIndex === 3 && <VisualTab />}
       </Drawer>
     </>
   );

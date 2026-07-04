@@ -29,6 +29,9 @@ export interface PlayerModuleProps {
   onDurationChange: (value: number) => void;
   durationMin: number;
   durationMax: number;
+  filterValue: number;
+  onFilterChange: (value: number) => void;
+  filterDisabled?: boolean;
   loopEnabled: boolean;
   onLoopChange: (enabled: boolean) => void;
   isRecording: boolean;
@@ -67,6 +70,9 @@ export function PlayerModule({
   onDurationChange,
   durationMin,
   durationMax,
+  filterValue,
+  onFilterChange,
+  filterDisabled = false,
   loopEnabled,
   onLoopChange,
   isRecording,
@@ -163,8 +169,8 @@ export function PlayerModule({
         <Switch
           checked={loopEnabled}
           onChange={(_, checked) => onLoopChange(checked)}
-          disabled
-          aria-label={`ループ（Player ${zone.toUpperCase()}・M3で実装）`}
+          disabled={!interactive}
+          aria-label={`ループ（Player ${zone.toUpperCase()}）`}
           sx={{ transform: "rotate(90deg)" }}
         />
       </Box>
@@ -190,15 +196,16 @@ export function PlayerModule({
 
       <Box sx={{ ...slotSx(s("slider-moon-sun")), opacity: interactive ? 1 : 0.4 }}>
         <HorizontalSlider
-          value={50}
-          onChange={() => {}}
+          value={filterValue}
+          onChange={onFilterChange}
           min={0}
-          max={100}
-          disabled={!interactive}
+          max={127}
+          step={1}
+          disabled={!interactive || filterDisabled}
           label="Filter"
           startIcon={<DarkModeIcon sx={iconSx} />}
           endIcon={<LightModeIcon sx={iconSx} />}
-          aria-label={`フィルター Player ${zone.toUpperCase()}（M3で実装）`}
+          aria-label={`フィルター Player ${zone.toUpperCase()}`}
         />
       </Box>
 

@@ -13,34 +13,7 @@
 
 **次フェーズの優先順位**:
 
-1. **M3** — 配線・視覚フィードバック
-2. **M4** — 拡張
-
----
-
-### M2.5 バリアント切替（完了）
-
-**前提**: new 版 UI 配置は完了。
-
-- [x] `uiStore` に `hardwareVariant: "original" | "new"` を追加
-- [x] `uiStore` に `playerLayout: "facing" | "stacked" | "solo"` を追加（`solo` の UI・描画は M3 先頭タスク）
-- [x] `VariantSwitcher` UI — `SynthEngine` から `uiStore` 連携
-- [x] ドキュメント同期（web-spec / hardware-layout / web-design）
-
----
-
-### M3: ループ・フィルター・オシロスコープ（現在のフォーカス）
-
-**前提**: M2.5 でスロット位置は固定。M3 は **配線と視覚フィードバック** のみ。
-
-- [ ] **ソロモード** — `playerLayout: "solo"` の UI 選択肢追加 + Player B 非表示描画（Player A フルサイズ）
-- [ ] ループ ON/OFF — オリジナル=トグル / 新版=プッシュ
-- [ ] フィルター + Duration — 配置仕様で定義されたコントロール形状に接続
-- [ ] 選択アルファのフィルター連動（透明度 0.5〜1.0）
-- [ ] `ConfigPanel` に **フィルター・視覚タブ** 追加
-- [ ] `Oscilloscope`（`AnalyserNode` + Canvas）
-- [ ] 再生カーソル表示（Worklet トリガー → 白色チャンク）
-- [ ] 選択境界の終点バー表示（現状始点ノブのみ）
+1. **M4** — 拡張
 
 ### M4: プリセット・MIDI・パーティクル
 
@@ -53,6 +26,28 @@
 ---
 
 ## 完了済みタスク
+
+### M3: ループ・フィルター・オシロスコープ
+
+- [x] **ソロモード** — `playerLayout: "solo"` + Player B 非表示
+- [x] ループ ON/OFF — オリジナル=トグル / 新版=プッシュ（A 側）
+- [x] フィルター — `synthStore.filterCutoff` → `BiquadFilterNode`（A 側）
+- [x] 選択アルファのフィルター連動（透明度 0.5〜1.0）
+- [x] `ConfigPanel` に **フィルター・視覚タブ** 追加
+- [x] `Oscilloscope`（`AnalyserNode` + Canvas）
+- [x] 再生カーソル表示（全ボイスのグレイントリガー → 白色チャンク）
+- [x] 選択境界の終点バー表示
+- [x] `WaveDisplay` 描画をオリジナル C++ 準拠に修正（チャンク単位着色、背景矩形削除）
+- [x] フィルター処理式をオリジナル準拠 + `minCutoff` を設定パネル可変に
+- [x] `PianoKeyboard` マウス操作修正（`onMouseLeave` 廃止、ポインタキャプチャ、ドラッググライド）
+- [x] ドキュメント同期（ui-mapping / web-spec / web-design / layout-specs / hardware-layout）
+
+### M2.5 バリアント切替
+
+- [x] `uiStore` に `hardwareVariant: "original" | "new"` を追加
+- [x] `uiStore` に `playerLayout: "facing" | "stacked" | "solo"` を追加
+- [x] `VariantSwitcher` UI — `SynthEngine` から `uiStore` 連携
+- [x] ドキュメント同期（web-spec / hardware-layout / web-design）
 
 ### M2.5 new 版: UI 配置確定
 
@@ -132,7 +127,7 @@ TDD 基盤・設定ドメイン
 | **Web 配置実装** | **`PlayerModule`（6×12）×2 + `original-layout.ts` / `new-layout.ts`** |
 | **電子的つながりの正本** | **`ui-mapping.md` · `original-analysis.md`** |
 | **UI バリアント** | **`original` / `new` を `uiStore.hardwareVariant` で切替** |
-| **プレイヤー配置** | **`uiStore.playerLayout`（`facing` / `stacked` / `solo`）。`solo` の UI・描画は M3 先頭** |
+| **プレイヤー配置** | **`uiStore.playerLayout`（`facing` / `stacked` / `solo`）** |
 | **配置 vs 機能** | **M2.5=配置確定、M3=機能配線** |
 | ディレクトリ | `src/features/synth-engine/` + `src/stores/` + `src/domain/` |
 
@@ -144,4 +139,5 @@ TDD 基盤・設定ドメイン
 - M2.5 オリジナル版完了。`PlayerModule` ベースの A/B 配置、向き合い/二段モード、横スライダー、B 側プレースホルダ。
 - M2.5 new 版完了。`NewPlayerModule` + `new-layout.ts`（単一テンプレート）、`VerticalMobileKnob`、C3-C6 鍵盤、`loop-button-*`。
 - M2.5 バリアント切替完了。`uiStore.hardwareVariant` + `playerLayout`、`VariantSwitcher`。
-- 次: **M3**（ソロモード → 配線・視覚フィードバック）。
+- M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚タブ。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
+- 次: **M4**（プリセット・MIDI・パーティクル）。

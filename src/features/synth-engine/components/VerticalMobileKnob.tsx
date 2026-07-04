@@ -128,7 +128,7 @@ export function VerticalMobileKnob({
           max={filterMax}
           disabled={filterReadOnly}
           onChange={handleFilterChange}
-          aria-label={`フィルター Player ${zoneLabel}${filterDisabled ? "（M3で実装）" : ""}`}
+          aria-label={`フィルター Player ${zoneLabel}`}
           sx={{
             ...RAIL_SX,
             height: "100%",

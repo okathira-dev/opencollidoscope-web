@@ -18,12 +18,15 @@ interface WaveState {
   chunks: ChunkData[];
   chunkCount: number;
   selection: WaveSelection;
+  cursors: Record<number, number>;
   initChunks: (count: number) => void;
   setChunk: (index: number, min: number, max: number) => void;
   clearChunks: () => void;
   setSelection: (start: number, size: number) => void;
   clearSelection: () => void;
   clampSelectionToConfig: () => void;
+  setCursor: (voiceId: number, chunkIndex: number) => void;
+  removeCursor: (voiceId: number) => void;
 }
 
 function createDefaultSelection(chunkCount: number, maxSelectionSize: number): WaveSelection {
@@ -39,6 +42,7 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
   chunks: [],
   chunkCount: 0,
   selection: { start: 0, size: 1, isNull: true },
+  cursors: {},
 
   initChunks: (count) => {
     const maxSelectionSize = getConfigState().config.audio.maxSelectionSize;
@@ -97,6 +101,17 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     }
     get().setSelection(selection.start, selection.size);
   },
+
+  setCursor: (voiceId, chunkIndex) =>
+    set((state) => ({
+      cursors: { ...state.cursors, [voiceId]: chunkIndex },
+    })),
+
+  removeCursor: (voiceId) =>
+    set((state) => {
+      const { [voiceId]: _, ...rest } = state.cursors;
+      return { cursors: rest };
+    }),
 }));
 
 export function useWaveChunks(): ChunkData[] {
@@ -113,6 +128,10 @@ export function useWaveSelection(): WaveSelection {
 
 export function useSetWaveSelection() {
   return useWaveStoreInternal((state) => state.setSelection);
+}
+
+export function useWaveCursors(): Record<number, number> {
+  return useWaveStoreInternal((state) => state.cursors);
 }
 
 export function getWaveStoreState(): WaveState {

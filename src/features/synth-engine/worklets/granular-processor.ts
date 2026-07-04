@@ -32,7 +32,7 @@ interface PGrain {
   y2: number;
 }
 
-type TriggerCallback = (msgType: "t" | "e", voiceId: number) => void;
+type TriggerCallback = (msgType: "t" | "e", voiceId: number, samplePosition?: number) => void;
 
 class PGranular {
   private readonly grains: PGrain[];
@@ -234,7 +234,8 @@ class PGranular {
     this.trigger -= numSamples;
 
     if (newGrainWasTriggered) {
-      this.triggerCallback("t", this.voiceId);
+      const lastTriggeredGrain = this.grains[this.numAliveGrains - 1];
+      this.triggerCallback("t", this.voiceId, lastTriggeredGrain?.phase ?? this.grainsStart);
     }
   }
 
@@ -408,9 +409,11 @@ class GranularProcessor extends AudioWorkletProcessor {
       return;
     }
 
-    const triggerCallback = (msgType: "t" | "e", voiceId: number) => {
+    const triggerCallback = (msgType: "t" | "e", voiceId: number, samplePosition?: number) => {
       const message: GranularWorkletOutputMessage =
-        msgType === "t" ? { type: "cursorTrigger", voiceId } : { type: "cursorEnd", voiceId };
+        msgType === "t"
+          ? { type: "cursorTrigger", voiceId, samplePosition: samplePosition ?? 0 }
+          : { type: "cursorEnd", voiceId };
       this.port.postMessage(message);
     };
 

@@ -1,4 +1,4 @@
-import { midiNoteToRate } from "../../domain/audio/index.ts";
+import { midiNoteToRate, midiToFilterCutoff } from "../../domain/audio/index.ts";
 import type { CollidoscopeConfig } from "../../domain/config/index.ts";
 import type {
   GranularWorkletInputMessage,
@@ -11,9 +11,15 @@ export type GranularMessageHandler = (message: GranularWorkletOutputMessage) => 
 export class GranularSynthesizer {
   private readonly audioContext: AudioContext;
   private workletNode: AudioWorkletNode | null = null;
+  private filterNode: BiquadFilterNode | null = null;
   private gainNode: GainNode | null = null;
+  private analyserNode: AnalyserNode | null = null;
   private messageHandler: GranularMessageHandler | null = null;
   private isModuleLoaded = false;
+  private minCutoff = 200;
+  private maxCutoff = 22050;
+  private qFactor = Math.SQRT1_2;
+  private lastFilterMidi = 127;
 
   constructor(audioContext: AudioContext) {
     this.audioContext = audioContext;
@@ -33,9 +39,20 @@ export class GranularSynthesizer {
       outputChannelCount: [1],
     });
 
+    this.filterNode = this.audioContext.createBiquadFilter();
+    this.filterNode.type = "lowpass";
+    this.filterNode.Q.value = this.qFactor;
+    this.filterNode.frequency.value = this.maxCutoff;
+
     this.gainNode = this.audioContext.createGain();
-    this.workletNode.connect(this.gainNode);
+
+    this.analyserNode = this.audioContext.createAnalyser();
+    this.analyserNode.fftSize = 2048;
+
+    this.workletNode.connect(this.filterNode);
+    this.filterNode.connect(this.gainNode);
     this.gainNode.connect(this.audioContext.destination);
+    this.gainNode.connect(this.analyserNode);
 
     this.workletNode.port.onmessage = (event: MessageEvent<GranularWorkletOutputMessage>) => {
       this.messageHandler?.(event.data);
@@ -87,7 +104,34 @@ export class GranularSynthesizer {
     this.postMessage({ type: "setAttenuation", value });
   }
 
+  setFilterCutoff(midiValue: number): void {
+    this.lastFilterMidi = Math.max(0, Math.min(127, Math.round(midiValue)));
+    this.applyFilterFrequency();
+  }
+
+  private applyFilterFrequency(): void {
+    if (!this.filterNode) {
+      return;
+    }
+    this.filterNode.frequency.value = midiToFilterCutoff(
+      this.lastFilterMidi,
+      this.minCutoff,
+      this.maxCutoff,
+    );
+  }
+
+  setFilterConfig(minCutoff: number, maxCutoff: number, qFactor: number): void {
+    this.minCutoff = minCutoff;
+    this.maxCutoff = maxCutoff;
+    this.qFactor = qFactor;
+    if (this.filterNode) {
+      this.filterNode.Q.value = qFactor;
+      this.applyFilterFrequency();
+    }
+  }
+
   updateConfig(config: CollidoscopeConfig): void {
+    this.setFilterConfig(config.filter.minCutoff, config.filter.maxCutoff, config.filter.qFactor);
     this.postMessage({
       type: "updateConfig",
       maxGrains: config.granular.maxGrains,
@@ -104,11 +148,19 @@ export class GranularSynthesizer {
     return this.gainNode;
   }
 
+  getAnalyserNode(): AnalyserNode | null {
+    return this.analyserNode;
+  }
+
   dispose(): void {
     this.workletNode?.disconnect();
+    this.filterNode?.disconnect();
     this.gainNode?.disconnect();
+    this.analyserNode?.disconnect();
     this.workletNode = null;
+    this.filterNode = null;
     this.gainNode = null;
+    this.analyserNode = null;
     this.messageHandler = null;
   }
 }

@@ -143,6 +143,9 @@ export function validateConfigDependencies(config: CollidoscopeConfig): void {
   if (config.audio.maxSelectionSize > config.audio.chunkCount) {
     throw new Error("最大選択サイズはチャンク数以下で設定してください");
   }
+  if (config.filter.minCutoff >= config.filter.maxCutoff) {
+    throw new Error("最小カットオフは最大カットオフより小さく設定してください");
+  }
 }
 
 export function mergeCollidoscopeConfig(

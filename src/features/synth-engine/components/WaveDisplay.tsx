@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { selectionAlphaFromFilter } from "../../../domain/audio/index.ts";
 import { useConfig } from "../../../stores/config-store.ts";
+import { useAnalyserNode } from "../../../stores/synth-store.ts";
 import {
   type ChunkData,
   useSetWaveSelection,
   useWaveChunks,
+  useWaveCursors,
   useWaveSelection,
   type WaveSelection,
 } from "../../../stores/wave-store.ts";
 import { useSelectionWheel } from "../hooks/useSelectionWheel.ts";
+import { createOscilloscopeBuffer, drawOscilloscope } from "./Oscilloscope.tsx";
 
 const CHUNK_WIDTH = 7;
 const CHUNK_STEP = 9;
@@ -18,6 +22,7 @@ const KNOB_RADIUS = 8;
 
 interface WaveDisplayProps {
   color: string;
+  filterCutoff?: number;
   height?: string | number;
   minHeight?: number;
 }
@@ -44,10 +49,6 @@ function selectionKnobX(start: number): number {
   return start * CHUNK_STEP + CHUNK_WIDTH / 2;
 }
 
-function selectionEndX(selection: WaveSelection): number {
-  return (selection.start + selection.size) * CHUNK_STEP + CHUNK_WIDTH;
-}
-
 function isPointerOverKnob(
   x: number,
   y: number,
@@ -59,7 +60,26 @@ function isPointerOverKnob(
   return Math.hypot(x - knobX, y - centerY) <= KNOB_RADIUS + 4;
 }
 
-function drawSelection(
+function selectionEndChunkIndex(selection: WaveSelection): number {
+  return selection.start + selection.size - 1;
+}
+
+function isInSelection(index: number, selection: WaveSelection): boolean {
+  if (selection.isNull) {
+    return false;
+  }
+  return index >= selection.start && index < selection.start + selection.size;
+}
+
+function colorWithAlpha(hexColor: string, alpha: number): string {
+  const clampedAlpha = Math.max(0, Math.min(1, alpha));
+  const alphaHex = Math.round(clampedAlpha * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `${hexColor}${alphaHex}`;
+}
+
+function drawSelectionBars(
   ctx: CanvasRenderingContext2D,
   selection: WaveSelection,
   color: string,
@@ -69,12 +89,13 @@ function drawSelection(
     return;
   }
 
-  const startX = selection.start * CHUNK_STEP;
-  const endX = selectionEndX(selection);
-  const width = endX - startX;
+  const startBarX = selection.start * CHUNK_STEP;
+  ctx.fillStyle = colorWithAlpha(color, 0.5);
+  ctx.fillRect(startBarX, 0, CHUNK_WIDTH, height);
 
-  ctx.fillStyle = `${color}33`;
-  ctx.fillRect(startX, 0, width, height);
+  const endBarX = selectionEndChunkIndex(selection) * CHUNK_STEP;
+  ctx.fillStyle = colorWithAlpha(color, 0.5);
+  ctx.fillRect(endBarX, 0, CHUNK_WIDTH, height);
 
   const knobX = selectionKnobX(selection.start);
   const centerY = height / 2;
@@ -99,9 +120,16 @@ function drawChunks(
   width: number,
   height: number,
   now: number,
+  filterCutoff: number,
+  cursors: Record<number, number>,
+  cursorColor: string,
+  analyser: AnalyserNode | null,
+  oscilloscopeBuffer: Uint8Array<ArrayBuffer> | null,
 ): void {
   const centerY = height / 2;
   const maxBarHeight = (height * 3) / 5 / 2;
+  const cursorIndices = new Set(Object.values(cursors));
+  const selectionAlpha = selectionAlphaFromFilter(filterCutoff);
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#000000";
@@ -113,7 +141,11 @@ function drawChunks(
   ctx.lineTo(width, centerY);
   ctx.stroke();
 
-  drawSelection(ctx, selection, color, height);
+  if (analyser && oscilloscopeBuffer) {
+    drawOscilloscope(ctx, analyser, width, height, oscilloscopeBuffer);
+  }
+
+  drawSelectionBars(ctx, selection, color, height);
 
   for (let index = 0; index < chunks.length; index++) {
     const chunk = chunks[index];
@@ -131,23 +163,46 @@ function drawChunks(
     const bottomY = centerY - chunk.min * maxBarHeight * scale;
     const barHeight = Math.max(bottomY - topY, 1);
 
-    ctx.fillStyle = color;
+    if (cursorIndices.has(index)) {
+      ctx.fillStyle = cursorColor;
+    } else if (isInSelection(index, selection)) {
+      ctx.fillStyle = colorWithAlpha(color, selectionAlpha);
+    } else {
+      ctx.fillStyle = color;
+    }
+
     ctx.fillRect(x, topY, CHUNK_WIDTH, barHeight);
   }
 }
 
-export function WaveDisplay({ color, height = "40vh", minHeight = 200 }: WaveDisplayProps) {
+export function WaveDisplay({
+  color,
+  filterCutoff = 127,
+  height = "40vh",
+  minHeight = 200,
+}: WaveDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const oscilloscopeBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const chunks = useWaveChunks();
   const selection = useWaveSelection();
+  const cursors = useWaveCursors();
   const setSelection = useSetWaveSelection();
   const config = useConfig();
+  const analyserNode = useAnalyserNode();
   const animationFrameRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
   const dragOffsetChunksRef = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
 
   useSelectionWheel(canvasRef, selection, setSelection, !selection.isNull);
+
+  useEffect(() => {
+    if (analyserNode) {
+      oscilloscopeBufferRef.current = createOscilloscopeBuffer(analyserNode);
+    } else {
+      oscilloscopeBufferRef.current = null;
+    }
+  }, [analyserNode]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -161,16 +216,38 @@ export function WaveDisplay({ color, height = "40vh", minHeight = 200 }: WaveDis
     }
 
     const width = config.audio.chunkCount * CHUNK_STEP + CHUNK_WIDTH;
-    const height = canvas.clientHeight;
+    const canvasHeight = canvas.clientHeight;
 
-    if (canvas.width !== width || canvas.height !== height) {
+    if (canvas.width !== width || canvas.height !== canvasHeight) {
       canvas.width = width;
-      canvas.height = height;
+      canvas.height = canvasHeight;
     }
 
-    drawChunks(ctx, chunks, selection, color, width, height, performance.now());
+    drawChunks(
+      ctx,
+      chunks,
+      selection,
+      color,
+      width,
+      canvasHeight,
+      performance.now(),
+      filterCutoff,
+      cursors,
+      config.visual.colors.cursor,
+      analyserNode,
+      oscilloscopeBufferRef.current,
+    );
     animationFrameRef.current = requestAnimationFrame(render);
-  }, [chunks, selection, color, config.audio.chunkCount]);
+  }, [
+    chunks,
+    selection,
+    color,
+    config.audio.chunkCount,
+    config.visual.colors.cursor,
+    filterCutoff,
+    cursors,
+    analyserNode,
+  ]);
 
   useEffect(() => {
     animationFrameRef.current = requestAnimationFrame(render);

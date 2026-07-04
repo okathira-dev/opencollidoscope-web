@@ -167,7 +167,7 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 M2.5 は `layout.css` の `grid-template-areas` とブロック名を**参照して**、上記対応表経由で `SLOT_*` / React コンポーネントにマッピングする。`layout-specs` を実行時入力として直接読み込む必要はない（`original-layout.ts` / `new-layout.ts` で 180 度投影後のグリッドを定義）。
 
 - 配置ブロック → `SLOT_*`: 本 README の「Web 移植対応」+ [ui-mapping.md](../ui-mapping.md)
-- 形状・向き・MIDI 配線: 同書および [original-analysis.md](../original-analysis.md)（M3 で配線）
-- Filter / Loop はブロックが HTML 上に存在すればよい（機能配線は M3）
-- プレイヤー B 側は M2.5 で**配置のみ**（disable / placeholder）。機能配線は M3 以降
+- 形状・向き・MIDI 配線: [ui-mapping.md](../ui-mapping.md) および [original-analysis.md](../original-analysis.md)
+- Filter / Loop: A 側は M3 で配線済み。B 側は Phase 2 以降
+- プレイヤー B 側は M2.5 で**配置のみ**（disable / placeholder）。機能配線は Phase 2
 - Wavejet のサイズ変更スライダーは Web UI に置かない（実機にない。ホイール操作は `WaveDisplay` 側で継続）

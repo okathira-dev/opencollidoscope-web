@@ -26,6 +26,9 @@ export interface NewPlayerModuleProps {
   onDurationChange: (value: number) => void;
   durationMin: number;
   durationMax: number;
+  filterValue: number;
+  onFilterChange: (value: number) => void;
+  filterDisabled?: boolean;
   loopEnabled: boolean;
   onLoopChange: (enabled: boolean) => void;
   isRecording: boolean;
@@ -62,6 +65,9 @@ export function NewPlayerModule({
   onDurationChange,
   durationMin,
   durationMax,
+  filterValue,
+  onFilterChange,
+  filterDisabled = false,
   loopEnabled,
   onLoopChange,
   isRecording,
@@ -130,7 +136,7 @@ export function NewPlayerModule({
       </Box>
 
       <Box sx={{ ...slotSx(s("loop-button")), opacity: interactive ? 1 : 0.4 }}>
-        <LoopPushButton enabled={loopEnabled} onToggle={onLoopChange} disabled />
+        <LoopPushButton enabled={loopEnabled} onToggle={onLoopChange} disabled={!interactive} />
       </Box>
 
       <Box
@@ -153,16 +159,16 @@ export function NewPlayerModule({
         }}
       >
         <VerticalMobileKnob
-          filterValue={50}
-          onFilterChange={() => {}}
+          filterValue={filterValue}
+          onFilterChange={onFilterChange}
           filterMin={0}
-          filterMax={100}
+          filterMax={127}
           durationValue={grainDurationCoeff}
           onDurationChange={onDurationChange}
           durationMin={durationMin}
           durationMax={durationMax}
           disabled={!interactive}
-          filterDisabled
+          filterDisabled={filterDisabled}
           durationDisabled={!interactive}
           color={color}
           zoneLabel={zone.toUpperCase()}
