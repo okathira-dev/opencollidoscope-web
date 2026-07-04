@@ -1,4 +1,4 @@
-export { CONFIG_STORAGE_KEY, ConfigManager } from "./config-manager.ts";
+export { CONFIG_STORAGE_KEY, ConfigManager, PRESETS_STORAGE_KEY } from "./config-manager.ts";
 export {
   type CollidoscopeConfig,
   collidoscopeConfigSchema,

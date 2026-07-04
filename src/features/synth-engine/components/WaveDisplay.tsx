@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { selectionAlphaFromFilter } from "../../../domain/audio/index.ts";
 import { useConfig } from "../../../stores/config-store.ts";
-import { useAnalyserNode } from "../../../stores/synth-store.ts";
+import { useAnalyserNode, useGrainDurationCoeff } from "../../../stores/synth-store.ts";
 import {
   type ChunkData,
+  useParticleTriggerTick,
   useSetWaveSelection,
   useWaveChunks,
   useWaveCursors,
@@ -12,6 +13,7 @@ import {
   type WaveSelection,
 } from "../../../stores/wave-store.ts";
 import { useSelectionWheel } from "../hooks/useSelectionWheel.ts";
+import { ParticleSystem } from "../particle-system.ts";
 import { createOscilloscopeBuffer, drawOscilloscope } from "./Oscilloscope.tsx";
 
 const CHUNK_WIDTH = 7;
@@ -125,6 +127,7 @@ function drawChunks(
   cursorColor: string,
   analyser: AnalyserNode | null,
   oscilloscopeBuffer: Uint8Array<ArrayBuffer> | null,
+  particleSystem: ParticleSystem,
 ): void {
   const centerY = height / 2;
   const maxBarHeight = (height * 3) / 5 / 2;
@@ -144,6 +147,8 @@ function drawChunks(
   if (analyser && oscilloscopeBuffer) {
     drawOscilloscope(ctx, analyser, width, height, oscilloscopeBuffer);
   }
+
+  particleSystem.draw(ctx, cursorColor);
 
   drawSelectionBars(ctx, selection, color, height);
 
@@ -183,9 +188,12 @@ export function WaveDisplay({
 }: WaveDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const oscilloscopeBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const particleSystemRef = useRef<ParticleSystem>(new ParticleSystem());
   const chunks = useWaveChunks();
   const selection = useWaveSelection();
   const cursors = useWaveCursors();
+  const particleTriggerTick = useParticleTriggerTick();
+  const grainDurationCoeff = useGrainDurationCoeff();
   const setSelection = useSetWaveSelection();
   const config = useConfig();
   const analyserNode = useAnalyserNode();
@@ -195,6 +203,31 @@ export function WaveDisplay({
   const [isDragging, setIsDragging] = useState(false);
 
   useSelectionWheel(canvasRef, selection, setSelection, !selection.isNull);
+
+  useEffect(() => {
+    if (particleTriggerTick === 0) {
+      return;
+    }
+    if (selection.isNull || grainDurationCoeff <= 1) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const canvasHeight = canvas?.clientHeight ?? minHeight;
+    const selectionEnd = selection.start + selection.size - 1;
+
+    particleSystemRef.current.addParticles(
+      {
+        particleSpread: grainDurationCoeff,
+        filterCoeff: filterCutoff / 127,
+        selectionStart: selection.start,
+        selectionEnd,
+        canvasHeight,
+      },
+      CHUNK_STEP,
+      CHUNK_WIDTH,
+    );
+  }, [particleTriggerTick, grainDurationCoeff, selection, filterCutoff, minHeight]);
 
   useEffect(() => {
     if (analyserNode) {
@@ -223,6 +256,8 @@ export function WaveDisplay({
       canvas.height = canvasHeight;
     }
 
+    particleSystemRef.current.update();
+
     drawChunks(
       ctx,
       chunks,
@@ -236,6 +271,7 @@ export function WaveDisplay({
       config.visual.colors.cursor,
       analyserNode,
       oscilloscopeBufferRef.current,
+      particleSystemRef.current,
     );
     animationFrameRef.current = requestAnimationFrame(render);
   }, [

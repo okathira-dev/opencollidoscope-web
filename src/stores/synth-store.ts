@@ -79,6 +79,7 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
         );
         const chunkIndex = computeChunkIndex(message.samplePosition, samplesPerChunk);
         waveStore.setCursor(message.voiceId, chunkIndex);
+        waveStore.triggerParticleSpawn();
       } else if (message.type === "cursorEnd") {
         waveStore.removeCursor(message.voiceId);
       }

@@ -7,22 +7,44 @@ interface UIState {
   isConfigPanelOpen: boolean;
   hardwareVariant: HardwareVariant;
   playerLayout: PlayerLayout;
+  isFullscreen: boolean;
   openConfigPanel: () => void;
   closeConfigPanel: () => void;
   toggleConfigPanel: () => void;
   setHardwareVariant: (variant: HardwareVariant) => void;
   setPlayerLayout: (layout: PlayerLayout) => void;
+  setIsFullscreen: (value: boolean) => void;
+  toggleFullscreen: () => Promise<void>;
+}
+
+async function requestAppFullscreen(): Promise<void> {
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+    return;
+  }
+
+  await document.documentElement.requestFullscreen();
 }
 
 const useUIStoreInternal = create<UIState>((set) => ({
   isConfigPanelOpen: false,
   hardwareVariant: "original",
   playerLayout: "facing",
+  isFullscreen: document.fullscreenElement !== null,
   openConfigPanel: () => set({ isConfigPanelOpen: true }),
   closeConfigPanel: () => set({ isConfigPanelOpen: false }),
   toggleConfigPanel: () => set((state) => ({ isConfigPanelOpen: !state.isConfigPanelOpen })),
   setHardwareVariant: (variant) => set({ hardwareVariant: variant }),
   setPlayerLayout: (layout) => set({ playerLayout: layout }),
+  setIsFullscreen: (value) => set({ isFullscreen: value }),
+  toggleFullscreen: async () => {
+    try {
+      await requestAppFullscreen();
+      set({ isFullscreen: document.fullscreenElement !== null });
+    } catch {
+      // ユーザーキャンセルや非対応環境は無視
+    }
+  },
 }));
 
 export function useIsConfigPanelOpen(): boolean {
@@ -55,4 +77,24 @@ export function usePlayerLayout(): PlayerLayout {
 
 export function useSetPlayerLayout() {
   return useUIStoreInternal((state) => state.setPlayerLayout);
+}
+
+export function useIsFullscreen(): boolean {
+  return useUIStoreInternal((state) => state.isFullscreen);
+}
+
+export function useToggleFullscreen() {
+  return useUIStoreInternal((state) => state.toggleFullscreen);
+}
+
+export function useSetIsFullscreen() {
+  return useUIStoreInternal((state) => state.setIsFullscreen);
+}
+
+export function subscribeFullscreenChange(): () => void {
+  const handler = () => {
+    useUIStoreInternal.getState().setIsFullscreen(document.fullscreenElement !== null);
+  };
+  document.addEventListener("fullscreenchange", handler);
+  return () => document.removeEventListener("fullscreenchange", handler);
 }

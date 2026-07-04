@@ -19,6 +19,7 @@ interface WaveState {
   chunkCount: number;
   selection: WaveSelection;
   cursors: Record<number, number>;
+  particleTriggerTick: number;
   initChunks: (count: number) => void;
   setChunk: (index: number, min: number, max: number) => void;
   clearChunks: () => void;
@@ -27,6 +28,7 @@ interface WaveState {
   clampSelectionToConfig: () => void;
   setCursor: (voiceId: number, chunkIndex: number) => void;
   removeCursor: (voiceId: number) => void;
+  triggerParticleSpawn: () => void;
 }
 
 function createDefaultSelection(chunkCount: number, maxSelectionSize: number): WaveSelection {
@@ -43,6 +45,7 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
   chunkCount: 0,
   selection: { start: 0, size: 1, isNull: true },
   cursors: {},
+  particleTriggerTick: 0,
 
   initChunks: (count) => {
     const maxSelectionSize = getConfigState().config.audio.maxSelectionSize;
@@ -112,6 +115,9 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
       const { [voiceId]: _, ...rest } = state.cursors;
       return { cursors: rest };
     }),
+
+  triggerParticleSpawn: () =>
+    set((state) => ({ particleTriggerTick: state.particleTriggerTick + 1 })),
 }));
 
 export function useWaveChunks(): ChunkData[] {
@@ -132,6 +138,10 @@ export function useSetWaveSelection() {
 
 export function useWaveCursors(): Record<number, number> {
   return useWaveStoreInternal((state) => state.cursors);
+}
+
+export function useParticleTriggerTick(): number {
+  return useWaveStoreInternal((state) => state.particleTriggerTick);
 }
 
 export function getWaveStoreState(): WaveState {

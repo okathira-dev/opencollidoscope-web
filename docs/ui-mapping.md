@@ -30,6 +30,8 @@
 
 詳細（Teensy ピン配線・処理式・ノイズ除去）: [original-analysis.md — MIDI 制御](original-analysis.md#midi-制御)
 
+Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Store にルーティングする。Phase 1 は MIDI チャンネル 1（ch 0）のみ。
+
 ---
 
 ## 物理コントロール形状（資料ベース）
@@ -67,11 +69,16 @@
 | 選択位置 | `SelectionRail` + ドラッグ | 済（A 側） | 済（A/B 配置） | M2.5 |
 | ループ | `Switch`（各端）/ `LoopPushButton`（new） | 済（A 側） | 済（A/B 配置） | M3 |
 | 録音 | `RecordButton` | 済（A 側） | 済（A/B 配置） | M2.5 |
-| 演奏 | `PianoKeyboard`（25 鍵 / new は 37 鍵） | 済（A 側） | 済（A/B 配置） | M2.5 |
+| 演奏 | `PianoKeyboard`（25 鍵 / new は 37 鍵）+ PC 鍵盤（Z-/ 行） | 済（A 側） | 済（A/B 配置） | M2.5 / M4 |
 | オクターブ +/- | `OctaveButton` ×2 | 済（A 側） | 済（A/B 配置） | M2.5 |
-| Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 / M3 |
+| Web MIDI 入力 | `src/domain/midi/` + `midiStore` | 済（ch 0） | — | M4 |
+| プリセット / JSON | `ConfigPanel`「プリセット」タブ | 済 | — | M4 |
+| フルスクリーン | `SynthEngine` トグルボタン | 済 | — | M4 |
+| Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 |
 
-デバッグ用 PC キーボード: `r`=録音、`a`/`d`=選択位置、`w`/`s`=選択サイズ、`9`/`0`=Duration、`Space`=ループ、`f`=フルスクリーン（M4 予定）。
+**PC 鍵盤（ピアノ演奏）**: Z 行=白鍵、A 行=黒鍵。**C キー=C4**、**A キー=G#3**。正本: `keyboard-layout.ts`。詳細は [web-spec.md — PC 鍵盤](web-spec.md#pc-鍵盤ピアノ演奏)。
+
+オリジナル C++ デバッグショートカット（`r`/`a`/`d`/`w`/`s`/`9`/`0`/Space/`f`）は Web 版 Phase 1 では**未移植**。
 
 ---
 
@@ -88,7 +95,7 @@
 | 選択アルファ（フィルター連動） | フィルター CC7 で透明度 0.5〜1.0 | `selectionAlphaFromFilter` + チャンク着色 | 済 | M3 |
 | 再生カーソル | 白色、アクティブチャンクを白描画 | 全ボイスのグレイントリガーで白チャンク | 済 | M3 |
 | オシロスコープ | 白 PolyLine、波形背後に描画 | `AnalyserNode` + Canvas（`WaveDisplay` 背面） | 済 | M3 |
-| パーティクル | 白点、`durationCoeff > 1` で発生 | なし | **未実装** | M4 |
+| パーティクル | 白点、`durationCoeff > 1` で発生 | `ParticleSystem` + `WaveDisplay` | 済 | M4 |
 | Wave 1（黄 / 上半分 / 反転） | 水平ミラー表示 | なし（Phase 1 では 1 波形のみ） | Phase 2 | Phase 2 |
 | 中心線 | 水平軸線 | Canvas `centerLine` | 済 | M1 |
 
@@ -110,6 +117,9 @@
 | グラニュラータブ | グレイン数、ボイス数、エンベロープ等 | M2 |
 | 筐体バリアント切替 | `VariantSwitcher`（`uiStore.hardwareVariant`） | M2.5 |
 | プレイヤー配置モード | 向き合い / 二段 / ソロ（`uiStore.playerLayout`） | M2.5 / M3 |
+| フルスクリーントグル | Fullscreen API（`uiStore.isFullscreen`） | M4 |
+| プリセットタブ | 名前付き保存・JSON 入出力 | M4 |
+| MIDI タブ | 入力デバイス一覧・CC マッピング表示 | M4 |
 
 ## M2.5 UI 配置（オリジナル版・実装済み）
 
@@ -146,6 +156,14 @@
 6. **再生カーソル** — Worklet `cursorTrigger` / `cursorEnd` → `waveStore.cursors`
 7. **ConfigPanel フィルター・視覚タブ**
 8. **選択境界の終点バー**
+
+## M4 UI 要素（完了）
+
+1. **PC 鍵盤レイアウト** — Z-/ 行=白鍵、A-L 行=黒鍵、C キー=C4（`keyboard-layout.ts`）
+2. **プリセット・JSON** — `ConfigPanel`「プリセット」タブ、`ConfigManager` + `configStore`
+3. **フルスクリーン** — `uiStore.toggleFullscreen` + `SynthEngine` トグルボタン
+4. **パーティクル** — `particle-system.ts` + `WaveDisplay`（`cursorTrigger` 連動）
+5. **Web MIDI** — `src/domain/midi/` + `midiStore` + `ConfigPanel`「MIDI」タブ（Phase 1: ch 0）
 
 ## 追加で検討すべき項目
 

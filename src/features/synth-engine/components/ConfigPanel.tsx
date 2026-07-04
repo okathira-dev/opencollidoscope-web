@@ -1,13 +1,40 @@
 import SettingsIcon from "@mui/icons-material/Settings";
-import { Box, Drawer, Fab, IconButton, Slider, Tab, Tabs, Typography } from "@mui/material";
-import { useCallback, useState } from "react";
+import {
+  Box,
+  Button,
+  Drawer,
+  Fab,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Slider,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useCallback, useRef, useState } from "react";
 
 import {
   useConfig,
   useConfigAudio,
+  useDeletePreset,
+  useExportConfig,
+  useImportConfig,
+  useLoadPreset,
+  usePresets,
   useResetConfig,
+  useSavePreset,
   useUpdateConfig,
 } from "../../../stores/config-store.ts";
+import {
+  useInitializeMidi,
+  useMidiError,
+  useMidiInitialized,
+  useMidiInputDevices,
+  useMidiSupported,
+} from "../../../stores/midi-store.ts";
 import {
   useCloseConfigPanel,
   useIsConfigPanelOpen,
@@ -466,6 +493,225 @@ function GranularTab() {
   );
 }
 
+function PresetTab() {
+  const presets = usePresets();
+  const savePreset = useSavePreset();
+  const loadPreset = useLoadPreset();
+  const deletePreset = useDeletePreset();
+  const exportConfig = useExportConfig();
+  const importConfig = useImportConfig();
+  const [presetName, setPresetName] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showMessage = useCallback((text: string) => {
+    setMessage(text);
+  }, []);
+
+  const handleSavePreset = useCallback(() => {
+    const trimmed = presetName.trim();
+    try {
+      savePreset(trimmed);
+      setPresetName("");
+      showMessage(`プリセット "${trimmed}" を保存しました`);
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "保存に失敗しました");
+    }
+  }, [presetName, savePreset, showMessage]);
+
+  const handleLoadPreset = useCallback(
+    (name: string) => {
+      try {
+        loadPreset(name);
+        showMessage(`プリセット "${name}" を読み込みました`);
+      } catch (error) {
+        showMessage(error instanceof Error ? error.message : "読み込みに失敗しました");
+      }
+    },
+    [loadPreset, showMessage],
+  );
+
+  const handleDeletePreset = useCallback(
+    (name: string) => {
+      try {
+        deletePreset(name);
+        showMessage(`プリセット "${name}" を削除しました`);
+      } catch (error) {
+        showMessage(error instanceof Error ? error.message : "削除に失敗しました");
+      }
+    },
+    [deletePreset, showMessage],
+  );
+
+  const handleExportJson = useCallback(() => {
+    const json = exportConfig();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "collidoscope-config.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    showMessage("設定を JSON としてエクスポートしました");
+  }, [exportConfig, showMessage]);
+
+  const handleImportJson = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          importConfig(String(reader.result ?? ""));
+          showMessage(`"${file.name}" をインポートしました`);
+        } catch (error) {
+          showMessage(error instanceof Error ? error.message : "インポートに失敗しました");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    },
+    [importConfig, showMessage],
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+      <Typography variant="body2" color="text.secondary">
+        現在の設定を名前付きプリセットとして保存・呼び出しできます。
+      </Typography>
+
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <TextField
+          size="small"
+          label="プリセット名"
+          value={presetName}
+          onChange={(event) => setPresetName(event.target.value)}
+          fullWidth
+        />
+        <Button variant="contained" onClick={handleSavePreset} disabled={!presetName.trim()}>
+          保存
+        </Button>
+      </Box>
+
+      {presets.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          保存済みプリセットはありません
+        </Typography>
+      ) : (
+        <List dense disablePadding>
+          {presets.map((name) => (
+            <ListItem
+              key={name}
+              secondaryAction={
+                <Box sx={{ display: "flex", gap: 0.5 }}>
+                  <Button size="small" onClick={() => handleLoadPreset(name)}>
+                    読込
+                  </Button>
+                  <Button size="small" color="error" onClick={() => handleDeletePreset(name)}>
+                    削除
+                  </Button>
+                </Box>
+              }
+            >
+              <ListItemText primary={name} />
+            </ListItem>
+          ))}
+        </List>
+      )}
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <Button variant="outlined" onClick={handleExportJson}>
+          JSON エクスポート
+        </Button>
+        <Button variant="outlined" onClick={() => fileInputRef.current?.click()}>
+          JSON インポート
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={handleImportJson}
+        />
+      </Box>
+
+      {message && (
+        <Typography variant="body2" color="text.secondary">
+          {message}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function MidiTab() {
+  const config = useConfig();
+  const isSupported = useMidiSupported();
+  const isInitialized = useMidiInitialized();
+  const error = useMidiError();
+  const inputDevices = useMidiInputDevices();
+  const initializeMidi = useInitializeMidi();
+  const { ccMappings } = config.midi;
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+      {!isSupported ? (
+        <Typography variant="body2" color="error">
+          このブラウザは Web MIDI API に対応していません
+        </Typography>
+      ) : (
+        <>
+          <Button
+            variant="contained"
+            onClick={() => {
+              void initializeMidi();
+            }}
+            disabled={isInitialized}
+          >
+            {isInitialized ? "MIDI 接続済み" : "MIDI を有効化"}
+          </Button>
+          {error && (
+            <Typography variant="body2" color="error">
+              {error}
+            </Typography>
+          )}
+          <Typography variant="subtitle2">入力デバイス</Typography>
+          {inputDevices.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              接続された MIDI 入力デバイスはありません
+            </Typography>
+          ) : (
+            <List dense disablePadding>
+              {inputDevices.map((device) => (
+                <ListItem key={device.id} disablePadding>
+                  <ListItemText
+                    primary={device.name}
+                    secondary={device.manufacturer || device.id}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </>
+      )}
+
+      <Typography variant="subtitle2">CC マッピング（Phase 1: チャンネル 1）</Typography>
+      <Typography variant="body2">CC{ccMappings.selectionSize}: 選択サイズ</Typography>
+      <Typography variant="body2">CC{ccMappings.grainDuration}: グレイン持続係数</Typography>
+      <Typography variant="body2">CC{ccMappings.loopToggle}: ループ ON/OFF</Typography>
+      <Typography variant="body2">CC{ccMappings.recordTrigger}: 録音トリガー</Typography>
+      <Typography variant="body2">CC{ccMappings.filterCutoff}: フィルター</Typography>
+      <Typography variant="body2">
+        Pitch Bend: 選択開始位置（{config.midi.pitchBendRange.min}–{config.midi.pitchBendRange.max}
+        ）
+      </Typography>
+    </Box>
+  );
+}
+
 export function ConfigPanel() {
   const isOpen = useIsConfigPanelOpen();
   const toggleConfigPanel = useToggleConfigPanel();
@@ -517,12 +763,16 @@ export function ConfigPanel() {
           <Tab label="グラニュラー" />
           <Tab label="フィルター" />
           <Tab label="視覚" />
+          <Tab label="プリセット" />
+          <Tab label="MIDI" />
         </Tabs>
 
         {tabIndex === 0 && <AudioTab />}
         {tabIndex === 1 && <GranularTab />}
         {tabIndex === 2 && <FilterTab />}
         {tabIndex === 3 && <VisualTab />}
+        {tabIndex === 4 && <PresetTab />}
+        {tabIndex === 5 && <MidiTab />}
       </Drawer>
     </>
   );

@@ -9,15 +9,27 @@ import {
 interface ConfigState {
   config: CollidoscopeConfig;
   configManager: ConfigManager;
+  presets: string[];
   updateConfig: (updates: PartialCollidoscopeConfig) => void;
   resetConfig: () => void;
+  exportConfig: () => string;
+  importConfig: (json: string) => void;
+  savePreset: (name: string) => void;
+  loadPreset: (name: string) => void;
+  deletePreset: (name: string) => void;
+  refreshPresets: () => void;
 }
 
 const configManager = new ConfigManager();
 
+function syncPresetsFromManager(): string[] {
+  return configManager.listPresets();
+}
+
 const useConfigStoreInternal = create<ConfigState>((set) => ({
   config: configManager.getConfig(),
   configManager,
+  presets: syncPresetsFromManager(),
   updateConfig: (updates) => {
     configManager.updateConfig(updates);
     set({ config: configManager.getConfig() });
@@ -25,6 +37,26 @@ const useConfigStoreInternal = create<ConfigState>((set) => ({
   resetConfig: () => {
     configManager.resetConfig();
     set({ config: configManager.getConfig() });
+  },
+  exportConfig: () => configManager.exportConfig(),
+  importConfig: (json) => {
+    configManager.importConfig(json);
+    set({ config: configManager.getConfig() });
+  },
+  savePreset: (name) => {
+    configManager.savePreset(name);
+    set({ presets: syncPresetsFromManager() });
+  },
+  loadPreset: (name) => {
+    configManager.loadPreset(name);
+    set({ config: configManager.getConfig() });
+  },
+  deletePreset: (name) => {
+    configManager.deletePreset(name);
+    set({ presets: syncPresetsFromManager() });
+  },
+  refreshPresets: () => {
+    set({ presets: syncPresetsFromManager() });
   },
 }));
 
@@ -42,6 +74,30 @@ export function useUpdateConfig() {
 
 export function useResetConfig() {
   return useConfigStoreInternal((state) => state.resetConfig);
+}
+
+export function useExportConfig() {
+  return useConfigStoreInternal((state) => state.exportConfig);
+}
+
+export function useImportConfig() {
+  return useConfigStoreInternal((state) => state.importConfig);
+}
+
+export function usePresets(): string[] {
+  return useConfigStoreInternal((state) => state.presets);
+}
+
+export function useSavePreset() {
+  return useConfigStoreInternal((state) => state.savePreset);
+}
+
+export function useLoadPreset() {
+  return useConfigStoreInternal((state) => state.loadPreset);
+}
+
+export function useDeletePreset() {
+  return useConfigStoreInternal((state) => state.deletePreset);
 }
 
 export function getConfigState(): ConfigState {

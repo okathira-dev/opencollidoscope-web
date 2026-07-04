@@ -118,7 +118,7 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 | `plus-button-*` | MIDI 鍵盤のオクターブ + | 鍵盤横の配置。USB MIDI 鍵盤本体の機能（Teensy ピンなし） |
 | `minus-button-*` | MIDI 鍵盤のオクターブ - | 同上 |
 
-`keyboards-*` は USB MIDI 鍵盤本体（C 起点 2 オクターブ + 次の C、計 25 鍵。Web デフォルトは C3-C5 で中央が C4 = 原音）。`mic-*` は XLR マイク入力（Teensy 非経由、アナログ入力）。
+`keyboards-*` は USB MIDI 鍵盤本体（C 起点 2 オクターブ + 次の C、計 25 鍵。Web デフォルトは C3-C5 で中央が C4 = 原音）。Web 版では画面上 `PianoKeyboard` に加え、PC キーボード（Z-/ 行=白鍵、A-L 行=黒鍵、**C キー=C4**）でも演奏可能（[web-spec.md — PC 鍵盤](../web-spec.md#pc-鍵盤ピアノ演奏)）。`mic-*` は XLR マイク入力（Teensy 非経由、アナログ入力）。
 
 ## Web 移植対応（M2.5 参考）
 
@@ -126,7 +126,7 @@ Teensy ファームウェア（`CollidoscopeTeensy_original.ino`）のピンは 
 
 | 配置ブロック（例） | ゾーン | `SLOT_*`（Web） | コンポーネント | 備考 |
 | --- | --- | --- | --- | --- |
-| `keyboards-a` / `keyboards-b` | 各端 | `SLOT_KEYBOARD` | `PianoKeyboard` | C3-C5（25 鍵・中央 C4） |
+| `keyboards-a` / `keyboards-b` | 各端 | `SLOT_KEYBOARD` | `PianoKeyboard` | C3-C5（25 鍵・中央 C4）+ PC 鍵盤 Z-/ 行 |
 | `plus-button-*` | 各端 | `SLOT_KEYBOARD_OCTAVE_UP` | `OctaveButton` | オクターブ + |
 | `minus-button-*` | 各端 | `SLOT_KEYBOARD_OCTAVE_DOWN` | `OctaveButton` | オクターブ - |
 | `slider-moon-sun-a` / `slider-moon-sun-b` | 各端 | `SLOT_FADER_FILTER` | `HorizontalSlider` | original・横スライダー |

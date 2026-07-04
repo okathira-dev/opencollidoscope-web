@@ -77,9 +77,9 @@ graph TB
 | `AudioEngine` | `AudioEngineManager` | グラフ構築、パラメータ橋渡し |
 | `Wave` / `Chunk` | `features/synth-engine/components/WaveDisplay.tsx` | Canvas 描画 |
 | `Oscilloscope` | `Oscilloscope` コンポーネント | `AnalyserNode` + Canvas |
-| `ParticleController` | `ParticleSystem`（Canvas） | WaveDisplay 内または独立 |
+| `ParticleController` | `ParticleSystem`（`particle-system.ts`） | `WaveDisplay` 内 Canvas 描画 |
 | `Config` | `src/domain/config/` | Zod スキーマ + `ConfigManager` |
-| `MIDI` | Web MIDI API ラッパー | `src/domain/midi/` |
+| `MIDI` | Web MIDI API ラッパー | `src/domain/midi/` + `midiStore` |
 | `CollidoscopeApp` | `MainApp` + Zustand stores | フレームループ → React ライフサイクル |
 | `Messages` / `RingBufferPack` | `AudioWorkletNode.port` | MessagePort による双方向通信 |
 | Cinder OpenGL 描画 | HTML5 Canvas | `requestAnimationFrame` |
@@ -214,17 +214,33 @@ interface ConfigState {
 
   updateConfig: (updates: PartialCollidoscopeConfig) => void;
   resetConfig: () => void;
-  exportConfig: () => string;   // M4
-  importConfig: (json: string) => void;  // M4
+  exportConfig: () => string;
+  importConfig: (json: string) => void;
 
-  presets: Record<string, CollidoscopeConfig>;  // M4
-  savePreset: (name: string) => void;  // M4
-  loadPreset: (name: string) => void;  // M4
-  deletePreset: (name: string) => void;  // M4
+  presets: string[];
+  savePreset: (name: string) => void;
+  loadPreset: (name: string) => void;
+  deletePreset: (name: string) => void;
 }
 ```
 
-実装済みドメイン: `src/domain/config/`（Zod スキーマ、`ConfigManager`、localStorage 永続化）
+実装済みドメイン: `src/domain/config/`（Zod スキーマ、`ConfigManager`、localStorage 永続化）。プリセットは `PRESETS_STORAGE_KEY`（`collidoscope-presets`）。
+
+### MidiStore
+
+```typescript
+interface MidiState {
+  isSupported: boolean;
+  isInitialized: boolean;
+  error: string | null;
+  inputDevices: MidiDeviceInfo[];
+
+  initializeMidi: () => Promise<void>;
+  disposeMidi: () => void;
+}
+```
+
+ドメイン: `src/domain/midi/`（`MidiManager`, `midi-parser`, `midi-router`）。Phase 1 は ch 0 のみ。
 
 ### UIStore
 
@@ -233,8 +249,6 @@ interface UIState {
   isConfigPanelOpen: boolean;  // false = 最小化（デフォルト）
   hardwareVariant: "original" | "new";  // デフォルト "original"
   playerLayout: "facing" | "stacked" | "solo";  // デフォルト "facing"
-  keyboardLayout: KeyMap;
-  selectedEngine: number;
   isFullscreen: boolean;
 
   openConfigPanel: () => void;
@@ -242,10 +256,11 @@ interface UIState {
   toggleConfigPanel: () => void;
   setHardwareVariant: (variant: "original" | "new") => void;
   setPlayerLayout: (layout: "facing" | "stacked" | "solo") => void;
+  toggleFullscreen: () => Promise<void>;
 }
 ```
 
-パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1（`isConfigPanelOpen`）、M2.5（`hardwareVariant`, `playerLayout`）。
+パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1（`isConfigPanelOpen`）、M2.5（`hardwareVariant`, `playerLayout`）、M4（`isFullscreen`）。
 
 ### WaveStore
 
@@ -253,15 +268,17 @@ interface UIState {
 interface WaveState {
   chunks: ChunkData[];
   selection: { start: number; size: number; isNull: boolean };
-  cursors: Map<number, CursorData>;
+  cursors: Record<number, number>;
+  particleTriggerTick: number;
 
   setChunk: (index: number, min: number, max: number) => void;
   setSelection: (start: number, size: number) => void;
   setCursor: (id: number, position: number) => void;
+  triggerParticleSpawn: () => void;
 }
 ```
 
-**導入タイミング**: M1（チャンク表示）。選択・カーソルは M2〜M3 で活用。
+**導入タイミング**: M1（チャンク表示）。選択・カーソルは M2〜M3、パーティクルトリガーは M4。
 
 ### SynthStore
 
@@ -286,7 +303,6 @@ interface SynthState {
 ### MainApp
 
 - 音声コンテキスト初期化（ユーザージェスチャー後）
-- キーボードショートカット
 - レイアウト管理、エラーハンドリング
 
 ### SynthEngine
@@ -301,7 +317,7 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
-**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み（M3 までにループ・フィルター・視覚 FB 完了）、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段/ソロ）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。
+**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み（M3 までにループ・フィルター・視覚 FB 完了）、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段/ソロ）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。**M4**: フルスクリーントグルボタンを同エリアに追加。
 
 ### VariantSwitcher
 
@@ -313,7 +329,11 @@ Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, Con
 
 ### WaveDisplay
 
-Canvas ベース。Props で `chunks`, `selection`, `cursors`, `color` を受け取り、`requestAnimationFrame` で描画。
+Canvas ベース。Props で `chunks`, `selection`, `cursors`, `color`, `filterCutoff` を受け取り、`requestAnimationFrame` で描画。M4 で `ParticleSystem` を統合（グレイントリガー時にパーティクル放出、波形背面に白点描画）。
+
+### ParticleSystem
+
+純粋 TS クラス（`src/features/synth-engine/particle-system.ts`）。オリジナル `ParticleController` 準拠。React/DOM 非依存で `WaveDisplay` から利用。
 
 ### GranularSynthesizer
 
@@ -340,7 +360,7 @@ class GranularSynthesizer {
 - **展開時**: MUI `Tabs` でセクション分割
 - **M1**: `ConfigStore` 接続 + 「音声」タブ（`waveLength`, `chunkCount` 等）
 - **M2 以降**: 実装した機能に合わせてタブを追加（グラニュラー、フィルター、視覚）
-- **M4**: 「プリセット」タブ（保存・読み込み・JSON 入出力）
+- **M4**: 「プリセット」タブ（保存・読み込み・JSON 入出力）、「MIDI」タブ（デバイス一覧・CC マッピング表示）
 
 ```typescript
 // 最小化状態は UIStore で管理（ConfigStore ではない）
@@ -516,8 +536,8 @@ src/
 ├── domain/
 │   ├── config/                 # 実装済み
 │   ├── audio/                  # 純粋関数（Worklet とテストで共有）
-│   └── midi/                   # Web MIDI ラッパー（M4）
-├── stores/                     # グローバル Zustand（Audio, Wave, Synth, Config, UI）
+│   └── midi/                   # Web MIDI ラッパー（M4 実装済み）
+├── stores/                     # グローバル Zustand（Audio, Wave, Synth, Config, UI, Midi）
 ├── hooks/                      # アプリ全体のフック
 ├── test/                       # setup, test-utils
 ├── App.tsx
@@ -526,7 +546,7 @@ src/
 
 **Store の配置**: Phase 1 は単一エンジンのため `src/stores/` に集約。Phase 2 で `engineId` キーを増やすか、エンジンごとにインスタンス化する。
 
-**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（折りたたみ式）。`ConfigStore` と同時に導入し、マイルストーンごとにタブを増やす。プリセット・JSON は M4。
+**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（折りたたみ式）。`ConfigStore` と同時に導入し、マイルストーンごとにタブを増やす。プリセット・JSON・MIDI タブは M4 で追加済み。
 
 ## 今後の拡張
 

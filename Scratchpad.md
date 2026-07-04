@@ -13,19 +13,19 @@
 
 **次フェーズの優先順位**:
 
-1. **M4** — 拡張
-
-### M4: プリセット・MIDI・パーティクル
-
-- [ ] `ConfigPanel` に **プリセット・JSON 入出力**（`savePreset` 等）
-- [ ] Web MIDI API（`src/domain/midi/`）
-- [ ] パーティクル演出
-- [ ] キーボードショートカット一式（`R` `A`/`D` `W`/`S` `Space` `9`/`0` `F`）
-- [ ] フルスクリーン切替（オリジナル `f` キー相当）
+1. **Phase 2** — 第 2 音声処理システム（Wave 1 / 黄色波形）
 
 ---
 
 ## 完了済みタスク
+
+### M4: プリセット・MIDI・パーティクル
+
+- [x] PC キーボードレイアウト変更（C キー = C4、A キー = G#3）
+- [x] `ConfigPanel` に **プリセット・JSON 入出力**（`savePreset` 等）
+- [x] Web MIDI API（`src/domain/midi/`）
+- [x] パーティクル演出（元実装準拠）
+- [x] フルスクリーン切替ボタン
 
 ### M3: ループ・フィルター・オシロスコープ
 
@@ -140,4 +140,4 @@ TDD 基盤・設定ドメイン
 - M2.5 new 版完了。`NewPlayerModule` + `new-layout.ts`（単一テンプレート）、`VerticalMobileKnob`、C3-C6 鍵盤、`loop-button-*`。
 - M2.5 バリアント切替完了。`uiStore.hardwareVariant` + `playerLayout`、`VariantSwitcher`。
 - M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚タブ。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
-- 次: **M4**（プリセット・MIDI・パーティクル）。
+- M4 完了。PC キーボードレイアウト（Z-/ + A-L 行）、プリセット/JSON I/O、フルスクリーンボタン、パーティクル演出、Web MIDI（`src/domain/midi/`）。

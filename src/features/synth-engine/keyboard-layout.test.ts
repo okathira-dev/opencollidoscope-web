@@ -8,6 +8,7 @@ import {
   KEYBOARD_CENTER_RELATIVE_SEMITONE,
   KEYBOARD_TOP_MIDI,
   keyboardTopMidi,
+  pcKeyToRelativeSemitone,
   relativeToMidiNote,
 } from "./keyboard-layout.ts";
 
@@ -38,6 +39,40 @@ describe("buildKeyboardLayout", () => {
     expect(offsets).not.toContain(10);
     expect(offsets).not.toContain(14);
     expect(offsets).toEqual([1, 2, 4, 5, 6, 8, 9, 11, 12, 13]);
+  });
+
+  it("PC キーボード: Z 行=白鍵、A 行=黒鍵、C キー=C4", () => {
+    const { whiteKeys, blackKeys } = buildKeyboardLayout();
+    const whiteByPc = Object.fromEntries(
+      whiteKeys.filter((key) => key.pcKey).map((key) => [key.pcKey, key.relativeSemitone]),
+    );
+    const blackByPc = Object.fromEntries(
+      blackKeys.filter((key) => key.pcKey).map((key) => [key.pcKey, key.relativeSemitone]),
+    );
+
+    expect(whiteByPc).toEqual({
+      z: 9,
+      x: 11,
+      c: 12,
+      v: 14,
+      b: 16,
+      n: 17,
+      m: 19,
+      ",": 21,
+      ".": 23,
+      "/": 24,
+    });
+    expect(blackByPc).toEqual({
+      a: 8,
+      s: 10,
+      f: 13,
+      g: 15,
+      j: 18,
+      k: 20,
+      l: 22,
+    });
+    expect(relativeToMidiNote(pcKeyToRelativeSemitone("c") ?? 0, 0)).toBe(KEYBOARD_CENTER_MIDI);
+    expect(relativeToMidiNote(pcKeyToRelativeSemitone("a") ?? 0, 0)).toBe(56);
   });
 });
 

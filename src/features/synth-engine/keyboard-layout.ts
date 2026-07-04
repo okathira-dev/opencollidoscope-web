@@ -73,23 +73,58 @@ export function buildKeyboardLayout(octaveCount = 2): {
     label: "C",
   });
 
-  const pcWhiteKeys = ["a", "s", "d", "f", "g", "h", "j", "k"] as const;
-  for (let i = 0; i < pcWhiteKeys.length && i < whiteKeys.length; i++) {
-    const key = whiteKeys[i];
-    if (key) {
-      key.pcKey = pcWhiteKeys[i];
-    }
-  }
-
-  const pcBlackKeys = ["w", "e", "t", "y", "u"] as const;
-  for (let i = 0; i < pcBlackKeys.length && i < blackKeys.length; i++) {
-    const key = blackKeys[i];
-    if (key) {
-      key.pcKey = pcBlackKeys[i];
-    }
-  }
+  assignPcKeys(whiteKeys, blackKeys);
 
   return { whiteKeys, blackKeys };
+}
+
+/**
+ * Z 行 = 白鍵、A 行 = 黒鍵。C キー = C4（relativeSemitone 12）。
+ * A キー = G#3（Z=A3 の左隣の黒鍵）。
+ */
+const PC_KEY_TO_RELATIVE_SEMITONE: Readonly<Record<string, number>> = {
+  z: 9, // A3
+  x: 11, // B3
+  c: 12, // C4
+  v: 14, // D4
+  b: 16, // E4
+  n: 17, // F4
+  m: 19, // G4
+  ",": 21, // A4
+  ".": 23, // B4
+  "/": 24, // C5
+  a: 8, // G#3
+  s: 10, // A#3
+  f: 13, // C#4
+  g: 15, // D#4
+  j: 18, // F#4
+  k: 20, // G#4
+  l: 22, // A#4
+};
+
+function assignPcKeys(whiteKeys: WhiteKeyDef[], blackKeys: BlackKeyDef[]): void {
+  const relativeToPcKey = new Map<number, string>();
+  for (const [pcKey, relativeSemitone] of Object.entries(PC_KEY_TO_RELATIVE_SEMITONE)) {
+    relativeToPcKey.set(relativeSemitone, pcKey);
+  }
+
+  for (const key of whiteKeys) {
+    const pcKey = relativeToPcKey.get(key.relativeSemitone);
+    if (pcKey) {
+      key.pcKey = pcKey;
+    }
+  }
+
+  for (const key of blackKeys) {
+    const pcKey = relativeToPcKey.get(key.relativeSemitone);
+    if (pcKey) {
+      key.pcKey = pcKey;
+    }
+  }
+}
+
+export function pcKeyToRelativeSemitone(pcKey: string): number | undefined {
+  return PC_KEY_TO_RELATIVE_SEMITONE[pcKey.toLowerCase()];
 }
 
 export function relativeToMidiNote(relativeSemitone: number, octaveOffset: number): number {

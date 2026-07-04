@@ -1,10 +1,14 @@
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import {
   Alert,
   Box,
   Button,
+  IconButton,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from "@mui/material";
 
@@ -16,6 +20,7 @@ import {
   useIsAudioInitialized,
   useRecordedBuffer,
 } from "../../stores/audio-store.ts";
+import { useDisposeMidi, useInitializeMidi } from "../../stores/midi-store.ts";
 import {
   useInitializeSynth,
   useIsSynthInitialized,
@@ -23,7 +28,14 @@ import {
   useSyncSynthSelection,
 } from "../../stores/synth-store.ts";
 import type { PlayerLayout } from "../../stores/ui-store.ts";
-import { useHardwareVariant, usePlayerLayout, useSetPlayerLayout } from "../../stores/ui-store.ts";
+import {
+  subscribeFullscreenChange,
+  useHardwareVariant,
+  useIsFullscreen,
+  usePlayerLayout,
+  useSetPlayerLayout,
+  useToggleFullscreen,
+} from "../../stores/ui-store.ts";
 import { useWaveSelection } from "../../stores/wave-store.ts";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
 import { PlayerControlSurface } from "./components/PlayerControlSurface.tsx";
@@ -47,6 +59,10 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
   const hardwareVariant = useHardwareVariant();
   const playerLayout = usePlayerLayout();
   const setPlayerLayout = useSetPlayerLayout();
+  const isFullscreen = useIsFullscreen();
+  const toggleFullscreen = useToggleFullscreen();
+  const initializeMidi = useInitializeMidi();
+  const disposeMidi = useDisposeMidi();
 
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -67,6 +83,18 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
     syncSynthBuffer(recordedBuffer);
     syncSynthSelection();
   }, [isSynthInitialized, recordedBuffer, syncSynthBuffer, syncSynthSelection]);
+
+  useEffect(() => subscribeFullscreenChange(), []);
+
+  useEffect(() => {
+    if (!isSynthInitialized) {
+      return;
+    }
+    void initializeMidi();
+    return () => {
+      disposeMidi();
+    };
+  }, [isSynthInitialized, initializeMidi, disposeMidi]);
 
   const hasRecordedBuffer = recordedBuffer !== null && !selection.isNull;
 
@@ -123,6 +151,18 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
                 ソロ
               </ToggleButton>
             </ToggleButtonGroup>
+            <Tooltip title={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}>
+              <IconButton
+                aria-label={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}
+                onClick={() => {
+                  void toggleFullscreen();
+                }}
+                size="small"
+                sx={{ color: "inherit" }}
+              >
+                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+              </IconButton>
+            </Tooltip>
           </Box>
           <PlayerControlSurface
             disabled={!isInitialized}
