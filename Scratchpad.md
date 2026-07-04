@@ -19,6 +19,13 @@
 
 ## 完了済みタスク
 
+### WaveDisplay 描画修正（オリジナル準拠）
+
+- [x] 選択範囲外チャンクを `#808080`（グレー）に着色
+- [x] `CursorState`（`startChunk` + `startTime`）導入、`wave-store` / `synth-store` 更新
+- [x] 再生カーソルを `secondsPerChunk` ベースの時間アニメーションに修正
+- [x] ドキュメント同期（ui-mapping / web-spec / web-design / original-analysis）
+
 ### マイク入力調整（Web 独自拡張）
 
 - [x] `config.micInput` スキーマ（入力ゲイン、ブラウザ処理、コンプレッサー、録音後正規化）
@@ -149,3 +156,4 @@ TDD 基盤・設定ドメイン
 - M2.5 バリアント切替完了。`uiStore.hardwareVariant` + `playerLayout`、`VariantSwitcher`。
 - M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚セクション。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
 - M4 完了。PC キーボードレイアウト（Z-/ + A-L 行）、プリセット/JSON I/O、フルスクリーンボタン、パーティクル演出、Web MIDI（`src/domain/midi/`）。
+- WaveDisplay 描画修正。範囲外グレー着色、カーソル時間アニメーション（`CursorState` + RAF）、ドキュメント同期。

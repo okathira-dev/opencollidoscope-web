@@ -290,11 +290,12 @@ struct PGrain {
 | --- | --- |
 | 選択開始 | チャンクインデックス（0〜149） |
 | 選択サイズ | チャンク数（1〜37、inclusive） |
+| 範囲外色 | グレー `Color(0.5, 0.5, 0.5)`（Web: `#808080`） |
 | 選択色 | Wave 0: 赤 `#F3063E`、Wave 1: 黄 `#FFCC00` |
 | カーソル色 | 白 |
 | `mParticleSpread` | グレイン duration coeff と連動（1〜8） |
 
-カーソルは `elapsed / secondsPerChunk` で選択範囲内を移動。`PGranular` のトリガーコールバック `'t'` で生成、`'e'` で削除。
+カーソルはトリガー時に `selection.start` へ配置し、`elapsed / secondsPerChunk` で選択範囲内を移動（`secondsPerChunk = waveLength / numChunks`）。`PGranular` のトリガーコールバック `'t'` で生成、`'e'` で削除。Web 版は `cursorTrigger` / `cursorEnd` → `waveStore.cursors`（`CursorState`）→ `WaveDisplay` の RAF ループで位置を再計算。
 
 ### DrawInfo
 

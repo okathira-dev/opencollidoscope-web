@@ -87,13 +87,14 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 | パーツ | オリジナル | Web版 | 状態 | 対応マイルストーン |
 | --- | --- | --- | --- | --- |
 | 黒背景 | 全画面黒 | `Box`（黒 bg） | 済 | M1 |
-| チャンクバー | 7px 幅 × 150 本、min/max バー | Canvas 描画、`accentColor` | 済 | M1 |
+| チャンクバー | 7px 幅 × 150 本、min/max バー | Canvas 描画 | 済 | M1 |
+| 範囲外チャンク色 | グレー `Color(0.5, 0.5, 0.5)` | `#808080`（選択範囲外のみ） | 済 | M3 |
 | チャンク出現アニメーション | 3 フレームポップアップ | `updatedAt` ベースのパルス | 済 | M1 |
 | チャンクリセットアニメーション | 10 フレーム縮小 | なし | **未実装** | — |
 | 選択ハイライト | 半透明カラー塗り | Canvas 半透明 fill | 済 | M2 |
 | 選択境界バー | 始点・終点に全高バー（50% alpha） | 始点・終点バー + 始点ノブ（ドラッグ用） | **差異あり**（始点ノブは Web 独自） | M3 |
 | 選択アルファ（フィルター連動） | フィルター CC7 で透明度 0.5〜1.0 | `selectionAlphaFromFilter` + チャンク着色 | 済 | M3 |
-| 再生カーソル | 白色、アクティブチャンクを白描画 | 全ボイスのグレイントリガーで白チャンク | 済 | M3 |
+| 再生カーソル | 白色、アクティブチャンクを白描画。`elapsed / secondsPerChunk` で選択範囲内を移動 | `cursorTrigger` で `selection.start` + `startTime` を記録し、RAF ループで位置計算 | 済 | M3 |
 | オシロスコープ | 白 PolyLine、波形背後に描画 | `AnalyserNode` + Canvas（`WaveDisplay` 背面） | 済 | M3 |
 | パーティクル | 白点、`durationCoeff > 1` で発生 | `ParticleSystem` + `WaveDisplay` | 済 | M4 |
 | Wave 1（黄 / 上半分 / 反転） | 水平ミラー表示 | なし（Phase 1 では 1 波形のみ） | Phase 2 | Phase 2 |
@@ -154,7 +155,7 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 3. **フィルターカットオフ** — `synthStore.filterCutoff` → `BiquadFilterNode`
 4. **選択アルファのフィルター連動** — `selectionAlphaFromFilter`
 5. **オシロスコープ** — `AnalyserNode` + Canvas
-6. **再生カーソル** — Worklet `cursorTrigger` / `cursorEnd` → `waveStore.cursors`
+6. **再生カーソル** — Worklet `cursorTrigger` / `cursorEnd` → `waveStore.cursors`（`CursorState`: `startChunk` + `startTime`）。描画は `WaveDisplay` の RAF ループで `secondsPerChunk = waveLength / chunkCount` に基づき進行
 7. **ConfigPanel フィルター・視覚セクション**
 8. **選択境界の終点バー**
 

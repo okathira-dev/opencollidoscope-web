@@ -14,11 +14,21 @@ export interface WaveSelection {
   isNull: boolean;
 }
 
+/**
+ * 再生カーソル（白バー）の演出状態。
+ * オリジナル Collidoscope の Cursor と同様、グレインの実際の読み取り位相ではなく
+ * 選択開始位置から壁時計でスイープする視覚フィードバック用。
+ */
+export interface CursorState {
+  startChunk: number;
+  startTime: number;
+}
+
 interface WaveState {
   chunks: ChunkData[];
   chunkCount: number;
   selection: WaveSelection;
-  cursors: Record<number, number>;
+  cursors: Record<number, CursorState>;
   particleTriggerTick: number;
   initChunks: (count: number) => void;
   setChunk: (index: number, min: number, max: number) => void;
@@ -26,7 +36,7 @@ interface WaveState {
   setSelection: (start: number, size: number) => void;
   clearSelection: () => void;
   clampSelectionToConfig: () => void;
-  setCursor: (voiceId: number, chunkIndex: number) => void;
+  setCursor: (voiceId: number, startChunk: number, startTime: number) => void;
   removeCursor: (voiceId: number) => void;
   triggerParticleSpawn: () => void;
 }
@@ -105,9 +115,9 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     get().setSelection(selection.start, selection.size);
   },
 
-  setCursor: (voiceId, chunkIndex) =>
+  setCursor: (voiceId, startChunk, startTime) =>
     set((state) => ({
-      cursors: { ...state.cursors, [voiceId]: chunkIndex },
+      cursors: { ...state.cursors, [voiceId]: { startChunk, startTime } },
     })),
 
   removeCursor: (voiceId) =>
@@ -136,7 +146,7 @@ export function useSetWaveSelection() {
   return useWaveStoreInternal((state) => state.setSelection);
 }
 
-export function useWaveCursors(): Record<number, number> {
+export function useWaveCursors(): Record<number, CursorState> {
   return useWaveStoreInternal((state) => state.cursors);
 }
 

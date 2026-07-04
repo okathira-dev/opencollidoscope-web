@@ -316,15 +316,20 @@ interface UIState {
 ### WaveStore
 
 ```typescript
+interface CursorState {
+  startChunk: number;
+  startTime: number;
+}
+
 interface WaveState {
   chunks: ChunkData[];
   selection: { start: number; size: number; isNull: boolean };
-  cursors: Record<number, number>;
+  cursors: Record<number, CursorState>;
   particleTriggerTick: number;
 
   setChunk: (index: number, min: number, max: number) => void;
   setSelection: (start: number, size: number) => void;
-  setCursor: (id: number, position: number) => void;
+  setCursor: (voiceId: number, startChunk: number, startTime: number) => void;
   triggerParticleSpawn: () => void;
 }
 ```
@@ -380,7 +385,19 @@ Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, Con
 
 ### WaveDisplay
 
-Canvas ベース。Props で `chunks`, `selection`, `cursors`, `color`, `filterCutoff` を受け取り、`requestAnimationFrame` で描画。M4 で `ParticleSystem` を統合（グレイントリガー時にパーティクル放出、波形背面に白点描画）。
+Canvas ベース。`WaveStore` から `chunks` / `selection` / `cursors` を購読し、`requestAnimationFrame` で描画。
+
+**チャンク着色**（オリジナル `Wave::draw` 準拠）:
+
+| 状態 | 色 |
+| --- | --- |
+| 選択範囲外 | `#808080`（グレー） |
+| 選択範囲内 | アクセント色 + `selectionAlphaFromFilter`（0.5〜1.0） |
+| 再生カーソル位置 | `config.visual.colors.cursor`（白） |
+
+**再生カーソル**: グレイントリガー時に `synthStore` が `selection.start` と `performance.now()` を `waveStore.setCursor` へ渡す。`drawChunks` 内の `computeCursorIndices` が毎フレーム `startChunk + floor(elapsed / msPerChunk)` で位置を算出し、選択終端を超えたカーソルは非表示。
+
+M4 で `ParticleSystem` を統合（グレイントリガー時にパーティクル放出、波形背面に白点描画）。
 
 ### ParticleSystem
 

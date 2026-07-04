@@ -5,6 +5,7 @@ import { useConfig } from "../../../stores/config-store.ts";
 import { useAnalyserNode, useGrainDurationCoeff } from "../../../stores/synth-store.ts";
 import {
   type ChunkData,
+  type CursorState,
   useParticleTriggerTick,
   useSetWaveSelection,
   useWaveChunks,
@@ -21,6 +22,7 @@ const CHUNK_STEP = 9;
 const ANIMATION_FRAMES = 3;
 const ANIMATION_FRAME_MS = 16;
 const KNOB_RADIUS = 8;
+const OUT_OF_SELECTION_COLOR = "#808080";
 
 interface WaveDisplayProps {
   color: string;
@@ -81,6 +83,36 @@ function colorWithAlpha(hexColor: string, alpha: number): string {
   return `${hexColor}${alphaHex}`;
 }
 
+/**
+ * 各ボイスのカーソルを現在のチャンクインデックスに変換する。
+ * 壁時計と secondsPerChunk (= waveLength / chunkCount) で進行し、
+ * MIDI ノートの再生レート (ピッチ) には連動しない演出用の位置。
+ */
+function computeCursorIndices(
+  cursors: Record<number, CursorState>,
+  selection: WaveSelection,
+  now: number,
+  secondsPerChunk: number,
+): Set<number> {
+  const indices = new Set<number>();
+  if (selection.isNull) {
+    return indices;
+  }
+
+  const selectionEnd = selection.start + selection.size - 1;
+  const msPerChunk = secondsPerChunk * 1000;
+
+  for (const cursor of Object.values(cursors)) {
+    const elapsed = now - cursor.startTime;
+    const pos = cursor.startChunk + Math.floor(elapsed / msPerChunk);
+    if (pos <= selectionEnd) {
+      indices.add(pos);
+    }
+  }
+
+  return indices;
+}
+
 function drawSelectionBars(
   ctx: CanvasRenderingContext2D,
   selection: WaveSelection,
@@ -123,15 +155,16 @@ function drawChunks(
   height: number,
   now: number,
   filterCutoff: number,
-  cursors: Record<number, number>,
+  cursors: Record<number, CursorState>,
   cursorColor: string,
+  secondsPerChunk: number,
   analyser: AnalyserNode | null,
   oscilloscopeBuffer: Uint8Array<ArrayBuffer> | null,
   particleSystem: ParticleSystem,
 ): void {
   const centerY = height / 2;
   const maxBarHeight = (height * 3) / 5 / 2;
-  const cursorIndices = new Set(Object.values(cursors));
+  const cursorIndices = computeCursorIndices(cursors, selection, now, secondsPerChunk);
   const selectionAlpha = selectionAlphaFromFilter(filterCutoff);
 
   ctx.clearRect(0, 0, width, height);
@@ -173,7 +206,7 @@ function drawChunks(
     } else if (isInSelection(index, selection)) {
       ctx.fillStyle = colorWithAlpha(color, selectionAlpha);
     } else {
-      ctx.fillStyle = color;
+      ctx.fillStyle = OUT_OF_SELECTION_COLOR;
     }
 
     ctx.fillRect(x, topY, CHUNK_WIDTH, barHeight);
@@ -197,6 +230,7 @@ export function WaveDisplay({
   const setSelection = useSetWaveSelection();
   const config = useConfig();
   const analyserNode = useAnalyserNode();
+  const secondsPerChunk = config.audio.waveLength / config.audio.chunkCount;
   const animationFrameRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
   const dragOffsetChunksRef = useRef(0);
@@ -269,6 +303,7 @@ export function WaveDisplay({
       filterCutoff,
       cursors,
       config.visual.colors.cursor,
+      secondsPerChunk,
       analyserNode,
       oscilloscopeBufferRef.current,
       particleSystemRef.current,
@@ -283,6 +318,7 @@ export function WaveDisplay({
     filterCutoff,
     cursors,
     analyserNode,
+    secondsPerChunk,
   ]);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { computeChunkIndex, midiNoteToRate } from "../domain/audio/index.ts";
+import { midiNoteToRate } from "../domain/audio/index.ts";
 import { GranularSynthesizer } from "../features/synth-engine/granular-synthesizer.ts";
 import {
   clampKeyboardOctaveOffset,
@@ -66,7 +66,6 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
 
     synthesizer.setMessageHandler((message) => {
       const audioState = getAudioStoreState();
-      const config = getConfigState().config;
       const waveStore = getWaveStoreState();
 
       if (!audioState.recordedBuffer) {
@@ -74,11 +73,13 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
       }
 
       if (message.type === "cursorTrigger") {
-        const samplesPerChunk = Math.round(
-          audioState.recordedBuffer.length / config.audio.chunkCount,
-        );
-        const chunkIndex = computeChunkIndex(message.samplePosition, samplesPerChunk);
-        waveStore.setCursor(message.voiceId, chunkIndex);
+        if (waveStore.selection.isNull) {
+          return;
+        }
+        // オリジナル準拠: グレイン開始サンプルではなく常に selection.start からスイープ。
+        // 進行速度は waveLength/chunkCount 固定のため、再生レート 1.0 (C4) のときのみ
+        // バッファ上の読み取り速度と視覚が一致する。
+        waveStore.setCursor(message.voiceId, waveStore.selection.start, performance.now());
         waveStore.triggerParticleSpawn();
       } else if (message.type === "cursorEnd") {
         waveStore.removeCursor(message.voiceId);
