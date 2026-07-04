@@ -29,7 +29,7 @@ async function requestAppFullscreen(): Promise<void> {
 const useUIStoreInternal = create<UIState>((set) => ({
   isConfigPanelOpen: false,
   hardwareVariant: "original",
-  playerLayout: "facing",
+  playerLayout: "solo",
   isFullscreen: document.fullscreenElement !== null,
   openConfigPanel: () => set({ isConfigPanelOpen: true }),
   closeConfigPanel: () => set({ isConfigPanelOpen: false }),

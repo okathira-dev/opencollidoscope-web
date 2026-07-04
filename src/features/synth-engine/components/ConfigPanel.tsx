@@ -1,5 +1,9 @@
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   Drawer,
@@ -9,12 +13,10 @@ import {
   ListItem,
   ListItemText,
   Slider,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 
 import {
   useConfig,
@@ -42,6 +44,48 @@ import {
 } from "../../../stores/ui-store.ts";
 
 const DRAWER_WIDTH = 320;
+
+interface ConfigAccordionSectionProps {
+  id: string;
+  title: string;
+  children: ReactNode;
+}
+
+function ConfigAccordionSection({ id, title, children }: ConfigAccordionSectionProps) {
+  return (
+    <Accordion
+      disableGutters
+      elevation={0}
+      sx={{
+        border: 1,
+        borderColor: "divider",
+        borderRadius: 1,
+        mb: 1,
+        bgcolor: "background.paper",
+        "&:before": { display: "none" },
+        "&.Mui-expanded": { mb: 1 },
+      }}
+    >
+      <AccordionSummary
+        expandIcon={<ExpandMoreIcon />}
+        aria-controls={`${id}-content`}
+        id={`${id}-header`}
+        sx={{
+          minHeight: 48,
+          cursor: "pointer",
+          "&:hover": { bgcolor: "action.hover" },
+          "& .MuiAccordionSummary-content": { my: 1 },
+          "& .MuiAccordionSummary-expandIconWrapper": { color: "text.secondary" },
+        }}
+      >
+        <Typography variant="subtitle2">{title}</Typography>
+      </AccordionSummary>
+      <AccordionDetails sx={{ pt: 0, borderTop: 1, borderColor: "divider" }}>
+        {children}
+      </AccordionDetails>
+    </Accordion>
+  );
+}
 
 function AudioTab() {
   const audio = useConfigAudio();
@@ -716,7 +760,6 @@ export function ConfigPanel() {
   const isOpen = useIsConfigPanelOpen();
   const toggleConfigPanel = useToggleConfigPanel();
   const closeConfigPanel = useCloseConfigPanel();
-  const [tabIndex, setTabIndex] = useState(0);
 
   return (
     <>
@@ -742,37 +785,55 @@ export function ConfigPanel() {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
             p: 2,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
           <Typography variant="h6">設定</Typography>
           <IconButton aria-label="設定パネルを閉じる" onClick={closeConfigPanel} size="small">
             <SettingsIcon />
           </IconButton>
         </Box>
 
-        <Tabs
-          value={tabIndex}
-          onChange={(_, value: number) => setTabIndex(value)}
-          sx={{ mb: 1 }}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="音声" />
-          <Tab label="グラニュラー" />
-          <Tab label="フィルター" />
-          <Tab label="視覚" />
-          <Tab label="プリセット" />
-          <Tab label="MIDI" />
-        </Tabs>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+          項目をクリックして開閉できます
+        </Typography>
 
-        {tabIndex === 0 && <AudioTab />}
-        {tabIndex === 1 && <GranularTab />}
-        {tabIndex === 2 && <FilterTab />}
-        {tabIndex === 3 && <VisualTab />}
-        {tabIndex === 4 && <PresetTab />}
-        {tabIndex === 5 && <MidiTab />}
+        <Box sx={{ flex: 1, overflow: "auto", mt: 1.5 }}>
+          <ConfigAccordionSection id="audio" title="音声">
+            <AudioTab />
+          </ConfigAccordionSection>
+
+          <ConfigAccordionSection id="granular" title="グラニュラー">
+            <GranularTab />
+          </ConfigAccordionSection>
+
+          <ConfigAccordionSection id="filter" title="フィルター">
+            <FilterTab />
+          </ConfigAccordionSection>
+
+          <ConfigAccordionSection id="visual" title="視覚">
+            <VisualTab />
+          </ConfigAccordionSection>
+
+          <ConfigAccordionSection id="preset" title="プリセット">
+            <PresetTab />
+          </ConfigAccordionSection>
+
+          <ConfigAccordionSection id="midi" title="MIDI">
+            <MidiTab />
+          </ConfigAccordionSection>
+        </Box>
       </Drawer>
     </>
   );

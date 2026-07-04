@@ -230,7 +230,7 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
   return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        鍵盤: {keyboardRangeLabel(octaveCount)} / PC: A S D F G H J K（白）W E T Y U（黒）/
+        鍵盤: {keyboardRangeLabel(octaveCount)} / PC: Z X C V B N M , . /（白）A S F G J K L（黒）/
         オクターブ ±{octaveOffset}
       </Typography>
 
