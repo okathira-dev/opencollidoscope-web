@@ -92,18 +92,63 @@ graph TB
 flowchart LR
     Mic[Microphone] --> Stream[MediaStream]
     Stream --> Source[MediaStreamAudioSourceNode]
-    Source --> RecWorklet[RecordingWorklet]
-    RecWorklet --> Buffer[AudioBuffer]
-    RecWorklet -->|WAVE_CHUNK| WaveStore
+    Source --> InputGain[GainNode]
+    InputGain --> Compressor[DynamicsCompressorNode optional]
+    Compressor --> InputAnalyser[AnalyserNode]
+    InputAnalyser --> RecWorklet[RecordingWorklet]
+    InputAnalyser --> SilentGain[GainNode gain 0]
+    SilentGain --> Dest[AudioDestination]
+    RecWorklet --> Buffer[Float32Array]
+    RecWorklet -->|chunk| WaveStore
+    Buffer -->|normalize optional| Finalize[finalizeRecordedBuffer]
+    Finalize --> AudioStore
 ```
 
 ```text
-Microphone → MediaStreamAudioSourceNode → AudioWorkletNode(recording)
-                                              ↓
-                                       ChunkProcessor → WaveStore
+Microphone
+  → MediaStreamAudioSourceNode
+  → GainNode（入力ゲイン）
+  → DynamicsCompressorNode?（ON 時のみ）
+  → AnalyserNode
+      ├─（監視時）GainNode(0) → destination（レベルメーター用にグラフを駆動）
+      └─（録音時）AudioWorkletNode(recording)
 ```
 
-録音 Worklet はオーディオスレッドでサンプルを蓄積し、チャンク境界ごとに min/max をメインスレッドへ `postMessage` します。
+図中の `DynamicsCompressorNode optional` は、`compressorEnabled` が ON のときだけ `GainNode` と `AnalyserNode` の間に挿入される経路を表す。OFF 時は `wireInputChain(false)` により **Gain → Analyser 直結**で、Compressor ノードはグラフから切り離される（図では省略表現のためノード自体は残って見える）。
+
+録音 Worklet はオーディオスレッドでサンプルを蓄積し、チャンク境界ごとに min/max をメインスレッドへ `postMessage` します。録音完了時、設定で有効ならピーク正規化を適用し、チャンク min/max を再計算します。
+
+実装の正本:
+
+| 領域 | パス |
+| --- | --- |
+| 入力グラフ・制約適用 | `src/stores/audio-store.ts` |
+| ブラウザ制約・コンプレッサー設定 | `src/domain/audio/mic-input.ts` |
+| 録音後ピーク正規化 | `src/domain/audio/recording-normalize.ts` |
+| 設定 UI | `src/features/synth-engine/components/MicInputSettings.tsx` |
+| 設定スキーマ | `config.micInput`（`src/domain/config/config-schema.ts`） |
+
+### マイク入力前処理（Web 独自拡張）
+
+オリジナルは Scarlett 2i2 のハードゲインと生の JACK 入力のみ。Web 版はブラウザマイク向けに次を追加する。
+
+| 機能 | 実装 | 備考 |
+| --- | --- | --- |
+| 入力ゲイン | `GainNode` + `setTargetAtTime` | オリジナルの IF ゲインノブ相当 |
+| 入力レベルメーター | `AnalyserNode` + MUI `LinearProgress` | マイク許可後、録音前から監視 |
+| ブラウザ音声処理 | `getUserMedia` / `applyConstraints` | `autoGainControl`, `noiseSuppression`, `echoCancellation`。デフォルト OFF（楽器向け） |
+| 入力コンプレッサー | `DynamicsCompressorNode` | ブラウザ組み込み。パラメータのみアプリが設定 |
+| 録音後ピーク正規化 | `normalizePeakBuffer`（自作） | 録音完了時のみ。再生音量は `config.audio.attenuation` で調整 |
+
+**反映タイミング**:
+
+| 設定 | タイミング |
+| --- | --- |
+| 入力ゲイン・コンプレッサー | 変更直後（録音中でも可） |
+| ブラウザ処理トグル | マイク許可後は `applyConstraints` で即時。許可前は次回 `getUserMedia` |
+| ピーク正規化 | 録音完了時のみ（既存バッファには遡及しない） |
+
+**意図的に採用していないもの**: `ConvolverNode.normalize`（リバーブ用 IR の等パワー正規化でありマイク入力とは無関係）。
 
 ### 再生パイプライン
 
@@ -193,17 +238,23 @@ interface AudioState {
   audioContext: AudioContext | null;
   sampleRate: number;
   isRecording: boolean;
-  recordedBuffer: AudioBuffer | null;
+  recordedBuffer: Float32Array | null;
   micStream: MediaStream | null;
-  analyserNode: AnalyserNode | null;
+  micConstraintSupport: MicConstraintSupport;
+  micConstraintError: string | null;
 
   initializeAudio: () => Promise<void>;
-  startRecording: () => void;
+  startRecording: () => Promise<void>;
   stopRecording: () => void;
+  applyMicInputConfig: (config: MicInputConfig) => Promise<void>;
+  setInputGain: (gain: number) => void;
+  updateMicConstraints: (constraints: MediaTrackAudioConstraints) => Promise<void>;
 }
 ```
 
-**導入タイミング**: M1。
+モジュールスコープで `inputGainNode` / `compressorNode` / `inputAnalyserNode` / `silentOutputNode` を保持。`getInputAnalyserNode()` はレベルメーター用に export。
+
+**導入タイミング**: M1（基本録音）。マイク入力前処理は Web 独自拡張として後続追加。
 
 ### ConfigStore
 
@@ -355,12 +406,15 @@ class GranularSynthesizer {
 
 **折りたたみ式の常設パネル。** デフォルト最小化、展開時に全設定を GUI 編集できる。移植・デバッグ時にオリジナル定数をいじりながら挙動を確認する用途を兼ねる。
 
-- **配置**: 画面右端の `Drawer`（`persistent`）または FAB + 展開パネル
-- **最小化時**: 歯車アイコンのみ、または細いラベルバー
-- **展開時**: MUI `Tabs` でセクション分割
-- **M1**: `ConfigStore` 接続 + 「音声」タブ（`waveLength`, `chunkCount` 等）
-- **M2 以降**: 実装した機能に合わせてタブを追加（グラニュラー、フィルター、視覚）
-- **M4**: 「プリセット」タブ（保存・読み込み・JSON 入出力）、「MIDI」タブ（デバイス一覧・CC マッピング表示）
+- **配置**: 画面右端の MUI `Drawer`（`persistent`）
+- **最小化時**: 歯車 FAB。`uiStore.isConfigPanelOpen === false` がデフォルト
+- **展開時**: MUI `Accordion` の縦積み（`ConfigAccordionSection`）。**`Tabs` は使わない** — 複数セクションを同時に開ける
+- **セクション一覧**（`ConfigPanel.tsx` の `title`）: 音声 / マイク入力 / グラニュラー / フィルター / 視覚 / プリセット / MIDI
+- **実装メモ**: 子コンポーネント名は `AudioTab` 等の歴史的命名だが、UI 上はアコーディオンセクション
+- **M1**: `ConfigStore` 接続 + 「音声」セクション（`waveLength`, `chunkCount` 等）
+- **M1 拡張**: 「マイク入力」セクション（`MicInputSettings`）
+- **M2 以降**: グラニュラー、フィルター、視覚セクションを追加
+- **M4**: 「プリセット」セクション（保存・読み込み・JSON 入出力）、「MIDI」セクション（デバイス一覧・CC マッピング表示）
 
 ```typescript
 // 最小化状態は UIStore で管理（ConfigStore ではない）
@@ -546,7 +600,7 @@ src/
 
 **Store の配置**: Phase 1 は単一エンジンのため `src/stores/` に集約。Phase 2 で `engineId` キーを増やすか、エンジンごとにインスタンス化する。
 
-**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（折りたたみ式）。`ConfigStore` と同時に導入し、マイルストーンごとにタブを増やす。プリセット・JSON・MIDI タブは M4 で追加済み。
+**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（`Drawer` + `Accordion`）。`ConfigStore` と同時に導入し、マイルストーンごとにアコーディオンセクションを増やす。プリセット・JSON・MIDI セクションは M4 で追加済み。
 
 ## 今後の拡張
 

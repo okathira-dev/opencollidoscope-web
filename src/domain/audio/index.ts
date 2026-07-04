@@ -19,3 +19,13 @@ export {
   midiNoteToRate,
   tickHann,
 } from "./grain.ts";
+export {
+  applyCompressorSettings,
+  buildMicMediaConstraints,
+  computeInputPeakLevel,
+  detectMicConstraintSupport,
+  type MediaTrackAudioConstraints,
+  type MicConstraintSupport,
+  type MicInputConfig,
+} from "./mic-input.ts";
+export { computeBufferPeak, normalizePeakBuffer } from "./recording-normalize.ts";

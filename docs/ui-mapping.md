@@ -72,7 +72,7 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 | 演奏 | `PianoKeyboard`（25 鍵 / new は 37 鍵）+ PC 鍵盤（Z-/ 行） | 済（A 側） | 済（A/B 配置） | M2.5 / M4 |
 | オクターブ +/- | `OctaveButton` ×2 | 済（A 側） | 済（A/B 配置） | M2.5 |
 | Web MIDI 入力 | `src/domain/midi/` + `midiStore` | 済（ch 0） | — | M4 |
-| プリセット / JSON | `ConfigPanel`「プリセット」タブ | 済 | — | M4 |
+| プリセット / JSON | `ConfigPanel`「プリセット」セクション | 済 | — | M4 |
 | フルスクリーン | `SynthEngine` トグルボタン | 済 | — | M4 |
 | Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 |
 
@@ -111,15 +111,16 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 | Duration 係数ラベル | 現在値の数値表示 | M2 |
 | PianoKeyboard（画面上鍵盤） | 視覚的ピアノ鍵盤 | M2 |
 | 鍵盤ヘルプテキスト | キーマッピング説明 | M2 |
-| ConfigPanel（設定ドロワー） | 折りたたみ式、全パラメータ調整 | M1〜 |
+| ConfigPanel（設定ドロワー） | 折りたたみ式 `Drawer` + `Accordion`、全パラメータ調整 | M1〜 |
 | 設定 FAB（歯車アイコン） | パネル開閉 | M1 |
-| 音声タブ | 録音時間、チャンク数等 | M1 |
-| グラニュラータブ | グレイン数、ボイス数、エンベロープ等 | M2 |
+| 音声セクション | 録音時間、チャンク数、アテニュエーション等 | M1 |
+| マイク入力セクション | 入力ゲイン、レベルメーター、ブラウザ処理、コンプレッサー、録音後正規化 | M1 拡張 |
+| グラニュラーセクション | グレイン数、ボイス数、エンベロープ等 | M2 |
 | 筐体バリアント切替 | `VariantSwitcher`（`uiStore.hardwareVariant`） | M2.5 |
 | プレイヤー配置モード | 向き合い / 二段 / ソロ（`uiStore.playerLayout`） | M2.5 / M3 |
 | フルスクリーントグル | Fullscreen API（`uiStore.isFullscreen`） | M4 |
-| プリセットタブ | 名前付き保存・JSON 入出力 | M4 |
-| MIDI タブ | 入力デバイス一覧・CC マッピング表示 | M4 |
+| プリセットセクション | 名前付き保存・JSON 入出力 | M4 |
+| MIDI セクション | 入力デバイス一覧・CC マッピング表示 | M4 |
 
 ## M2.5 UI 配置（オリジナル版・実装済み）
 
@@ -154,16 +155,16 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 4. **選択アルファのフィルター連動** — `selectionAlphaFromFilter`
 5. **オシロスコープ** — `AnalyserNode` + Canvas
 6. **再生カーソル** — Worklet `cursorTrigger` / `cursorEnd` → `waveStore.cursors`
-7. **ConfigPanel フィルター・視覚タブ**
+7. **ConfigPanel フィルター・視覚セクション**
 8. **選択境界の終点バー**
 
 ## M4 UI 要素（完了）
 
 1. **PC 鍵盤レイアウト** — Z-/ 行=白鍵、A-L 行=黒鍵、C キー=C4（`keyboard-layout.ts`）
-2. **プリセット・JSON** — `ConfigPanel`「プリセット」タブ、`ConfigManager` + `configStore`
+2. **プリセット・JSON** — `ConfigPanel`「プリセット」セクション、`ConfigManager` + `configStore`
 3. **フルスクリーン** — `uiStore.toggleFullscreen` + `SynthEngine` トグルボタン
 4. **パーティクル** — `particle-system.ts` + `WaveDisplay`（`cursorTrigger` 連動）
-5. **Web MIDI** — `src/domain/midi/` + `midiStore` + `ConfigPanel`「MIDI」タブ（Phase 1: ch 0）
+5. **Web MIDI** — `src/domain/midi/` + `midiStore` + `ConfigPanel`「MIDI」セクション（Phase 1: ch 0）
 
 ## 追加で検討すべき項目
 

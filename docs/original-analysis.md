@@ -181,6 +181,8 @@ flowchart LR
 
 録音バッファは **再生用にも共有** されます。`PGranular` は同じバッファを読み取ります。
 
+入力ゲイン・ノーマライズ・ブラウザマイク処理はオリジナルにない。Web 版の仕様は [web-spec.md — マイク入力設定](web-spec.md#マイク入力設定configmicinputweb-独自) を参照。
+
 ### グラニュラーシンセシス（`PGranular`）
 
 SuperCollider の TGrains と Ross Bencina の "Implementing Real-Time Granular Synthesis" に基づく実装です。

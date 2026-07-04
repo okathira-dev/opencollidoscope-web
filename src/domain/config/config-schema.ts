@@ -64,8 +64,24 @@ const midiConfigSchema = z.object({
   ccMappings: ccMappingsSchema,
 });
 
+const micInputConfigSchema = z.object({
+  inputGain: z.number().min(0).max(5).default(1.0),
+  autoGainControl: z.boolean().default(false),
+  noiseSuppression: z.boolean().default(false),
+  echoCancellation: z.boolean().default(false),
+  compressorEnabled: z.boolean().default(false),
+  compressorThreshold: z.number().min(-100).max(0).default(-24),
+  compressorKnee: z.number().min(0).max(40).default(30),
+  compressorRatio: z.number().min(1).max(20).default(12),
+  compressorAttack: z.number().min(0).max(1).default(0.003),
+  compressorRelease: z.number().min(0).max(1).default(0.25),
+  normalizeRecording: z.boolean().default(false),
+  normalizeTargetPeak: z.number().min(0.01).max(1).default(1),
+});
+
 export const collidoscopeConfigSchema = z.object({
   audio: audioConfigSchema,
+  micInput: micInputConfigSchema,
   granular: granularConfigSchema,
   envelope: envelopeConfigSchema,
   filter: filterConfigSchema,
@@ -76,6 +92,7 @@ export const collidoscopeConfigSchema = z.object({
 export type CollidoscopeConfig = z.infer<typeof collidoscopeConfigSchema>;
 export type PartialCollidoscopeConfig = {
   audio?: Partial<CollidoscopeConfig["audio"]>;
+  micInput?: Partial<CollidoscopeConfig["micInput"]>;
   granular?: Omit<Partial<CollidoscopeConfig["granular"]>, "grainDurationRange"> & {
     grainDurationRange?: Partial<CollidoscopeConfig["granular"]["grainDurationRange"]>;
   };
@@ -93,6 +110,7 @@ export type PartialCollidoscopeConfig = {
 function createEmptyConfigInput(): Record<string, unknown> {
   return {
     audio: {},
+    micInput: {},
     granular: { grainDurationRange: {} },
     envelope: {},
     filter: {},
@@ -154,6 +172,7 @@ export function mergeCollidoscopeConfig(
 ): CollidoscopeConfig {
   return {
     audio: { ...base.audio, ...updates.audio },
+    micInput: { ...base.micInput, ...updates.micInput },
     granular: {
       ...base.granular,
       ...updates.granular,

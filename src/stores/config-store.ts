@@ -68,6 +68,10 @@ export function useConfigAudio() {
   return useConfigStoreInternal((state) => state.config.audio);
 }
 
+export function useConfigMicInput() {
+  return useConfigStoreInternal((state) => state.config.micInput);
+}
+
 export function useUpdateConfig() {
   return useConfigStoreInternal((state) => state.updateConfig);
 }

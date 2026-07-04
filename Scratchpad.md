@@ -19,6 +19,14 @@
 
 ## 完了済みタスク
 
+### マイク入力調整（Web 独自拡張）
+
+- [x] `config.micInput` スキーマ（入力ゲイン、ブラウザ処理、コンプレッサー、録音後正規化）
+- [x] `audio-store` 入力グラフ（Gain → Compressor? → Analyser → Worklet）
+- [x] `MicInputSettings` — 設定パネル「マイク入力」セクション（各項目に説明文）
+- [x] `recording-normalize.ts` — 録音完了時のピーク正規化
+- [x] ドキュメント同期（web-spec / web-design / ui-mapping）
+
 ### M4: プリセット・MIDI・パーティクル
 
 - [x] PC キーボードレイアウト変更（C キー = C4、A キー = G#3）
@@ -33,7 +41,7 @@
 - [x] ループ ON/OFF — オリジナル=トグル / 新版=プッシュ（A 側）
 - [x] フィルター — `synthStore.filterCutoff` → `BiquadFilterNode`（A 側）
 - [x] 選択アルファのフィルター連動（透明度 0.5〜1.0）
-- [x] `ConfigPanel` に **フィルター・視覚タブ** 追加
+- [x] `ConfigPanel` に **フィルター・視覚セクション** 追加
 - [x] `Oscilloscope`（`AnalyserNode` + Canvas）
 - [x] 再生カーソル表示（全ボイスのグレイントリガー → 白色チャンク）
 - [x] 選択境界の終点バー表示
@@ -92,12 +100,12 @@
 - [x] `waveStore` 選択状態 + Worklet 同期
 - [x] `WaveDisplay` 選択 UI
 - [x] `PianoKeyboard` + PC キーボード
-- [x] `ConfigPanel` グラニュラータブ
+- [x] `ConfigPanel` グラニュラーセクション
 - [x] `SynthEngine` 統合
 
 ### M1: 録音 → 波形表示
 
-- [x] スパイク・Worklet・ストア・`WaveDisplay`・`ConfigPanel` 音声タブ
+- [x] スパイク・Worklet・ストア・`WaveDisplay`・`ConfigPanel` 音声セクション
 
 技術判断・ドキュメント
 
@@ -134,10 +142,10 @@ TDD 基盤・設定ドメイン
 ## 振り返り
 
 - M1 スパイク完了。`?worker&url` + coi-serviceworker で SharedArrayBuffer / AudioWorklet を確認。
-- M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声タブ）、Zustand ストア4つ。
+- M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声セクション）、Zustand ストア4つ。
 - M2 コア完了。PGranular 移植、選択 UI、PianoKeyboard、synthStore。
 - M2.5 オリジナル版完了。`PlayerModule` ベースの A/B 配置、向き合い/二段モード、横スライダー、B 側プレースホルダ。
 - M2.5 new 版完了。`NewPlayerModule` + `new-layout.ts`（単一テンプレート）、`VerticalMobileKnob`、C3-C6 鍵盤、`loop-button-*`。
 - M2.5 バリアント切替完了。`uiStore.hardwareVariant` + `playerLayout`、`VariantSwitcher`。
-- M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚タブ。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
+- M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚セクション。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
 - M4 完了。PC キーボードレイアウト（Z-/ + A-L 行）、プリセット/JSON I/O、フルスクリーンボタン、パーティクル演出、Web MIDI（`src/domain/midi/`）。

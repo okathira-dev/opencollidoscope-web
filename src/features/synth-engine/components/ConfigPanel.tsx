@@ -42,6 +42,7 @@ import {
   useIsConfigPanelOpen,
   useToggleConfigPanel,
 } from "../../../stores/ui-store.ts";
+import { MicInputSettings } from "./MicInputSettings.tsx";
 
 const DRAWER_WIDTH = 320;
 
@@ -812,6 +813,10 @@ export function ConfigPanel() {
         <Box sx={{ flex: 1, overflow: "auto", mt: 1.5 }}>
           <ConfigAccordionSection id="audio" title="音声">
             <AudioTab />
+          </ConfigAccordionSection>
+
+          <ConfigAccordionSection id="mic-input" title="マイク入力">
+            <MicInputSettings />
           </ConfigAccordionSection>
 
           <ConfigAccordionSection id="granular" title="グラニュラー">

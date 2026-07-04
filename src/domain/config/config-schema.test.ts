@@ -13,6 +13,9 @@ describe("collidoscopeConfigSchema", () => {
     expect(result.audio.chunkCount).toBe(150);
     expect(result.audio.waveLength).toBe(2.0);
     expect(result.audio.sampleRate).toBe(44100);
+    expect(result.micInput.inputGain).toBe(1.0);
+    expect(result.micInput.autoGainControl).toBe(false);
+    expect(result.micInput.compressorEnabled).toBe(false);
     expect(result.granular.maxGrains).toBe(32);
     expect(result.visual.colors.wave1).toBe("#F3063E");
     expect(result.midi.ccMappings.selectionSize).toBe(1);
