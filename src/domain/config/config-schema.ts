@@ -75,7 +75,7 @@ const micInputConfigSchema = z.object({
   compressorRatio: z.number().min(1).max(20).default(12),
   compressorAttack: z.number().min(0).max(1).default(0.003),
   compressorRelease: z.number().min(0).max(1).default(0.25),
-  normalizeRecording: z.boolean().default(false),
+  normalizeRecording: z.boolean().default(true),
   normalizeTargetPeak: z.number().min(0.01).max(1).default(1),
 });
 

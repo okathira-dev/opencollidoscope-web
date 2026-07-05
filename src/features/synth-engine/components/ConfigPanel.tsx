@@ -131,7 +131,6 @@ function ConfigAccordionSection({
 function AudioTab() {
   const audio = useConfigAudio();
   const { applyConfig, commitConfig } = useDeferredConfigSlider();
-  const resetConfig = useResetConfig();
 
   const handleWaveLengthChange = useCallback(
     (_: Event, value: number | number[]) => {
@@ -231,23 +230,6 @@ function AudioTab() {
           再生出力のリニア音量です（0-1）。値を下げると音が小さくなります。
         </SettingDescription>
       </Box>
-
-      <Typography
-        component="button"
-        type="button"
-        onClick={resetConfig}
-        sx={{
-          alignSelf: "flex-start",
-          background: "none",
-          border: "none",
-          color: "primary.main",
-          cursor: "pointer",
-          p: 0,
-          textDecoration: "underline",
-        }}
-      >
-        設定をリセット
-      </Typography>
     </Box>
   );
 }
@@ -822,6 +804,7 @@ export function ConfigPanel() {
   const closeConfigPanel = useCloseConfigPanel();
   const targetSection = useConfigPanelTargetSection();
   const clearTargetSection = useClearConfigPanelTargetSection();
+  const resetConfig = useResetConfig();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [expandedSections, setExpandedSections] = useState<Set<ConfigPanelSectionId>>(
     () => new Set(),
@@ -935,7 +918,25 @@ export function ConfigPanel() {
           項目をクリックして開閉できます
         </Typography>
 
-        <Box ref={scrollContainerRef} sx={{ flex: 1, overflow: "auto", mt: 1.5 }}>
+        <Typography
+          component="button"
+          type="button"
+          onClick={resetConfig}
+          sx={{
+            alignSelf: "flex-start",
+            background: "none",
+            border: "none",
+            color: "primary.main",
+            cursor: "pointer",
+            mt: 1.5,
+            p: 0,
+            textDecoration: "underline",
+          }}
+        >
+          設定をリセット
+        </Typography>
+
+        <Box ref={scrollContainerRef} sx={{ flex: 1, overflow: "auto", mt: 1 }}>
           {CONFIG_SECTIONS.map((section) => (
             <ConfigAccordionSection
               key={section.id}

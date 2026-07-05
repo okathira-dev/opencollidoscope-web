@@ -126,7 +126,7 @@
 | コンプレッサーレシオ（`compressorRatio`） | 12 : 1 | 1〜20 | 即時 |
 | コンプレッサーアタック（`compressorAttack`） | 0.003 秒 | 0〜1 | 即時 |
 | コンプレッサーリリース（`compressorRelease`） | 0.25 秒 | 0〜1 | 即時 |
-| 録音後ピーク正規化（`normalizeRecording`） | OFF | boolean | 録音完了時 |
+| 録音後ピーク正規化（`normalizeRecording`） | ON | boolean | 録音完了時 |
 | 正規化目標ピーク（`normalizeTargetPeak`） | 100%（1.0） | 10〜100%（UI スライダー。スキーマは 1〜100%） | 次回録音完了時 |
 
 録音後の音量バランス・割れの調整は **再生側** の `config.audio.attenuation` で行う。ピーク正規化は録音バッファをフルレンジに揃えるためのもの。
