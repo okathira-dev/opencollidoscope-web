@@ -32,6 +32,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
     this.totalSamples = message.totalSamples;
     this.chunkCount = message.chunkCount;
     this.fadeSamples = message.fadeSamples;
+    // オリジナル std::lround(getNumFrames() / mNumChunks) と同じ（BufferToWaveRecorderNode.cpp）
     this.samplesPerChunk = Math.round(this.totalSamples / this.chunkCount);
     this.writeIndex = 0;
     this.lastReportedChunk = -1;
@@ -75,6 +76,8 @@ class RecordingProcessor extends AudioWorkletProcessor {
       return;
     }
 
+    // 録音中は「完了したチャンク」のみ逐次報告。停止時の端数は
+    // finalizeRecordedBuffer → refreshChunksFromBuffer で全チャンク再計算する。
     const completedUpTo = Math.floor(this.writeIndex / this.samplesPerChunk) - 1;
     if (completedUpTo <= this.lastReportedChunk) {
       return;

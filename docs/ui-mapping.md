@@ -76,7 +76,7 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 | フルスクリーン | `SynthEngine` トグルボタン | 済 | — | M4 |
 | Wave 1 表示 | 配置枠（黄） | 未実装 | 済（placeholder） | Phase 2 |
 
-**PC 鍵盤（ピアノ演奏）**: Z 行=白鍵、A 行=黒鍵。**C キー=C4**、**A キー=G#3**。正本: `keyboard-layout.ts`。詳細は [web-spec.md — PC 鍵盤](web-spec.md#pc-鍵盤ピアノ演奏)。
+**PC 鍵盤（ピアノ演奏）**: Z 行=白鍵、A 行=黒鍵。**C キー=C4**、**A キー=G#3**。正本: `keyboard-layout.ts`。詳細は [web-spec.md — PC 鍵盤](web-spec.md#pc-鍵盤ピアノ演奏)。画面上鍵盤はポインタキャプチャ + ドラッググライド。
 
 オリジナル C++ デバッグショートカット（`r`/`a`/`d`/`w`/`s`/`9`/`0`/Space/`f`）は Web 版 Phase 1 では**未移植**。
 

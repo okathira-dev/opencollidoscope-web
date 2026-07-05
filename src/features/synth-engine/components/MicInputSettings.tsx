@@ -21,6 +21,7 @@ import {
   useUpdateMicConstraints,
 } from "../../../stores/audio-store.ts";
 import { useConfigMicInput, useUpdateConfig } from "../../../stores/config-store.ts";
+import { useDeferredConfigSlider } from "../hooks/useDeferredConfigSlider.ts";
 
 function SettingDescription({ children }: { children: string }) {
   return (
@@ -91,6 +92,7 @@ function InputLevelMeter() {
 export function MicInputSettings() {
   const micInput = useConfigMicInput();
   const updateConfig = useUpdateConfig();
+  const { applyConfig, commitConfig } = useDeferredConfigSlider();
   const applyMicInputConfig = useApplyMicInputConfig();
   const setInputGain = useSetInputGain();
   const updateMicConstraints = useUpdateMicConstraints();
@@ -109,11 +111,11 @@ export function MicInputSettings() {
     (_: Event, value: number | number[]) => {
       const inputGain = Array.isArray(value) ? (value[0] ?? micInput.inputGain) : value;
       const nextConfig = { ...micInput, inputGain };
-      updateConfig({ micInput: { inputGain } });
+      applyConfig({ micInput: { inputGain } });
       setInputGain(inputGain);
       void syncMicInput(nextConfig);
     },
-    [micInput, setInputGain, syncMicInput, updateConfig],
+    [micInput, setInputGain, syncMicInput, applyConfig],
   );
 
   const handleConstraintToggle = useCallback(
@@ -157,10 +159,10 @@ export function MicInputSettings() {
       value: number,
     ) => {
       const nextConfig = { ...micInput, [key]: value };
-      updateConfig({ micInput: { [key]: value } });
+      applyConfig({ micInput: { [key]: value } });
       void syncMicInput(nextConfig);
     },
-    [micInput, syncMicInput, updateConfig],
+    [micInput, syncMicInput, applyConfig],
   );
 
   return (
@@ -177,6 +179,7 @@ export function MicInputSettings() {
           max={5}
           step={0.1}
           onChange={handleInputGainChange}
+          onChangeCommitted={commitConfig}
           aria-label="入力ゲイン"
         />
         <SettingDescription>
@@ -214,8 +217,9 @@ export function MicInputSettings() {
                 const normalizeTargetPeak = Array.isArray(value)
                   ? (value[0] ?? micInput.normalizeTargetPeak)
                   : value;
-                updateConfig({ micInput: { normalizeTargetPeak } });
+                applyConfig({ micInput: { normalizeTargetPeak } });
               }}
+              onChangeCommitted={commitConfig}
               aria-label="正規化目標ピーク"
             />
             <SettingDescription>
@@ -317,6 +321,7 @@ export function MicInputSettings() {
                     Array.isArray(value) ? (value[0] ?? micInput.compressorThreshold) : value,
                   )
                 }
+                onChangeCommitted={commitConfig}
                 aria-label="コンプレッサーしきい値"
               />
               <SettingDescription>
@@ -340,6 +345,7 @@ export function MicInputSettings() {
                     Array.isArray(value) ? (value[0] ?? micInput.compressorKnee) : value,
                   )
                 }
+                onChangeCommitted={commitConfig}
                 aria-label="コンプレッサーニー"
               />
               <SettingDescription>
@@ -362,6 +368,7 @@ export function MicInputSettings() {
                     Array.isArray(value) ? (value[0] ?? micInput.compressorRatio) : value,
                   )
                 }
+                onChangeCommitted={commitConfig}
                 aria-label="コンプレッサーレシオ"
               />
               <SettingDescription>
@@ -384,6 +391,7 @@ export function MicInputSettings() {
                     Array.isArray(value) ? (value[0] ?? micInput.compressorAttack) : value,
                   )
                 }
+                onChangeCommitted={commitConfig}
                 aria-label="コンプレッサーアタック"
               />
               <SettingDescription>
@@ -406,6 +414,7 @@ export function MicInputSettings() {
                     Array.isArray(value) ? (value[0] ?? micInput.compressorRelease) : value,
                   )
                 }
+                onChangeCommitted={commitConfig}
                 aria-label="コンプレッサーリリース"
               />
               <SettingDescription>

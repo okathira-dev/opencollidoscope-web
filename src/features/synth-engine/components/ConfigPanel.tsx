@@ -42,9 +42,12 @@ import {
   useIsConfigPanelOpen,
   useToggleConfigPanel,
 } from "../../../stores/ui-store.ts";
+import { useDeferredConfigSlider } from "../hooks/useDeferredConfigSlider.ts";
 import { MicInputSettings } from "./MicInputSettings.tsx";
 
 const DRAWER_WIDTH = 320;
+
+// Slider は onChange でメモリのみ更新、onChangeCommitted で localStorage 永続化（useDeferredConfigSlider）。
 
 interface ConfigAccordionSectionProps {
   id: string;
@@ -90,39 +93,39 @@ function ConfigAccordionSection({ id, title, children }: ConfigAccordionSectionP
 
 function AudioTab() {
   const audio = useConfigAudio();
-  const updateConfig = useUpdateConfig();
+  const { applyConfig, commitConfig } = useDeferredConfigSlider();
   const resetConfig = useResetConfig();
 
   const handleWaveLengthChange = useCallback(
     (_: Event, value: number | number[]) => {
       const waveLength = Array.isArray(value) ? (value[0] ?? audio.waveLength) : value;
-      updateConfig({ audio: { waveLength } });
+      applyConfig({ audio: { waveLength } });
     },
-    [audio.waveLength, updateConfig],
+    [audio.waveLength, applyConfig],
   );
 
   const handleChunkCountChange = useCallback(
     (_: Event, value: number | number[]) => {
       const chunkCount = Array.isArray(value) ? (value[0] ?? audio.chunkCount) : value;
-      updateConfig({ audio: { chunkCount: Math.round(chunkCount) } });
+      applyConfig({ audio: { chunkCount: Math.round(chunkCount) } });
     },
-    [audio.chunkCount, updateConfig],
+    [audio.chunkCount, applyConfig],
   );
 
   const handleAttenuationChange = useCallback(
     (_: Event, value: number | number[]) => {
       const attenuation = Array.isArray(value) ? (value[0] ?? audio.attenuation) : value;
-      updateConfig({ audio: { attenuation } });
+      applyConfig({ audio: { attenuation } });
     },
-    [audio.attenuation, updateConfig],
+    [audio.attenuation, applyConfig],
   );
 
   const handleMaxSelectionSizeChange = useCallback(
     (_: Event, value: number | number[]) => {
       const maxSelectionSize = Array.isArray(value) ? (value[0] ?? audio.maxSelectionSize) : value;
-      updateConfig({ audio: { maxSelectionSize: Math.round(maxSelectionSize) } });
+      applyConfig({ audio: { maxSelectionSize: Math.round(maxSelectionSize) } });
     },
-    [audio.maxSelectionSize, updateConfig],
+    [audio.maxSelectionSize, applyConfig],
   );
 
   const maxSelectionUpperBound = Math.min(audio.chunkCount, 1000);
@@ -139,6 +142,7 @@ function AudioTab() {
           max={10}
           step={0.1}
           onChange={handleWaveLengthChange}
+          onChangeCommitted={commitConfig}
           aria-label="録音時間"
         />
       </Box>
@@ -153,6 +157,7 @@ function AudioTab() {
           max={1000}
           step={1}
           onChange={handleChunkCountChange}
+          onChangeCommitted={commitConfig}
           aria-label="チャンク数"
         />
       </Box>
@@ -167,6 +172,7 @@ function AudioTab() {
           max={maxSelectionUpperBound}
           step={1}
           onChange={handleMaxSelectionSizeChange}
+          onChangeCommitted={commitConfig}
           aria-label="最大選択サイズ"
         />
       </Box>
@@ -181,6 +187,7 @@ function AudioTab() {
           max={1}
           step={0.001}
           onChange={handleAttenuationChange}
+          onChangeCommitted={commitConfig}
           aria-label="アテニュエーション"
         />
       </Box>
@@ -207,31 +214,31 @@ function AudioTab() {
 
 function FilterTab() {
   const config = useConfig();
-  const updateConfig = useUpdateConfig();
+  const { applyConfig, commitConfig } = useDeferredConfigSlider();
   const { filter } = config;
 
   const handleMinCutoffChange = useCallback(
     (_: Event, value: number | number[]) => {
       const minCutoff = Array.isArray(value) ? (value[0] ?? filter.minCutoff) : value;
-      updateConfig({ filter: { minCutoff: Math.round(minCutoff) } });
+      applyConfig({ filter: { minCutoff: Math.round(minCutoff) } });
     },
-    [filter.minCutoff, updateConfig],
+    [filter.minCutoff, applyConfig],
   );
 
   const handleMaxCutoffChange = useCallback(
     (_: Event, value: number | number[]) => {
       const maxCutoff = Array.isArray(value) ? (value[0] ?? filter.maxCutoff) : value;
-      updateConfig({ filter: { maxCutoff: Math.round(maxCutoff) } });
+      applyConfig({ filter: { maxCutoff: Math.round(maxCutoff) } });
     },
-    [filter.maxCutoff, updateConfig],
+    [filter.maxCutoff, applyConfig],
   );
 
   const handleQFactorChange = useCallback(
     (_: Event, value: number | number[]) => {
       const qFactor = Array.isArray(value) ? (value[0] ?? filter.qFactor) : value;
-      updateConfig({ filter: { qFactor } });
+      applyConfig({ filter: { qFactor } });
     },
-    [filter.qFactor, updateConfig],
+    [filter.qFactor, applyConfig],
   );
 
   return (
@@ -246,6 +253,7 @@ function FilterTab() {
           max={20000}
           step={10}
           onChange={handleMinCutoffChange}
+          onChangeCommitted={commitConfig}
           aria-label="最小カットオフ"
         />
       </Box>
@@ -260,6 +268,7 @@ function FilterTab() {
           max={22050}
           step={10}
           onChange={handleMaxCutoffChange}
+          onChangeCommitted={commitConfig}
           aria-label="最大カットオフ"
         />
       </Box>
@@ -274,6 +283,7 @@ function FilterTab() {
           max={30}
           step={0.01}
           onChange={handleQFactorChange}
+          onChangeCommitted={commitConfig}
           aria-label="Q 係数"
         />
       </Box>
@@ -284,6 +294,7 @@ function FilterTab() {
 function VisualTab() {
   const config = useConfig();
   const updateConfig = useUpdateConfig();
+  const { applyConfig, commitConfig } = useDeferredConfigSlider();
   const { visual } = config;
 
   const handleWave1ColorChange = useCallback(
@@ -312,9 +323,9 @@ function VisualTab() {
       const chunkAnimationFrames = Array.isArray(value)
         ? (value[0] ?? visual.chunkAnimationFrames)
         : value;
-      updateConfig({ visual: { chunkAnimationFrames: Math.round(chunkAnimationFrames) } });
+      applyConfig({ visual: { chunkAnimationFrames: Math.round(chunkAnimationFrames) } });
     },
-    [visual.chunkAnimationFrames, updateConfig],
+    [visual.chunkAnimationFrames, applyConfig],
   );
 
   return (
@@ -365,6 +376,7 @@ function VisualTab() {
           max={10}
           step={1}
           onChange={handleChunkAnimationFramesChange}
+          onChangeCommitted={commitConfig}
           aria-label="チャンクアニメーションフレーム"
         />
       </Box>
@@ -374,23 +386,23 @@ function VisualTab() {
 
 function GranularTab() {
   const config = useConfig();
-  const updateConfig = useUpdateConfig();
+  const { applyConfig, commitConfig } = useDeferredConfigSlider();
   const { granular, envelope } = config;
 
   const handleMaxGrainsChange = useCallback(
     (_: Event, value: number | number[]) => {
       const maxGrains = Array.isArray(value) ? (value[0] ?? granular.maxGrains) : value;
-      updateConfig({ granular: { maxGrains: Math.round(maxGrains) } });
+      applyConfig({ granular: { maxGrains: Math.round(maxGrains) } });
     },
-    [granular.maxGrains, updateConfig],
+    [granular.maxGrains, applyConfig],
   );
 
   const handleMaxVoicesChange = useCallback(
     (_: Event, value: number | number[]) => {
       const maxVoices = Array.isArray(value) ? (value[0] ?? granular.maxVoices) : value;
-      updateConfig({ granular: { maxVoices: Math.round(maxVoices) } });
+      applyConfig({ granular: { maxVoices: Math.round(maxVoices) } });
     },
-    [granular.maxVoices, updateConfig],
+    [granular.maxVoices, applyConfig],
   );
 
   const handleMinGrainDurationChange = useCallback(
@@ -398,41 +410,41 @@ function GranularTab() {
       const minGrainDuration = Array.isArray(value)
         ? (value[0] ?? granular.minGrainDuration)
         : value;
-      updateConfig({ granular: { minGrainDuration: Math.round(minGrainDuration) } });
+      applyConfig({ granular: { minGrainDuration: Math.round(minGrainDuration) } });
     },
-    [granular.minGrainDuration, updateConfig],
+    [granular.minGrainDuration, applyConfig],
   );
 
   const handleDurationRangeMinChange = useCallback(
     (_: Event, value: number | number[]) => {
       const min = Array.isArray(value) ? (value[0] ?? granular.grainDurationRange.min) : value;
-      updateConfig({ granular: { grainDurationRange: { min } } });
+      applyConfig({ granular: { grainDurationRange: { min } } });
     },
-    [granular.grainDurationRange.min, updateConfig],
+    [granular.grainDurationRange.min, applyConfig],
   );
 
   const handleDurationRangeMaxChange = useCallback(
     (_: Event, value: number | number[]) => {
       const max = Array.isArray(value) ? (value[0] ?? granular.grainDurationRange.max) : value;
-      updateConfig({ granular: { grainDurationRange: { max } } });
+      applyConfig({ granular: { grainDurationRange: { max } } });
     },
-    [granular.grainDurationRange.max, updateConfig],
+    [granular.grainDurationRange.max, applyConfig],
   );
 
   const handleAttackTimeChange = useCallback(
     (_: Event, value: number | number[]) => {
       const attackTime = Array.isArray(value) ? (value[0] ?? envelope.attackTime) : value;
-      updateConfig({ envelope: { attackTime } });
+      applyConfig({ envelope: { attackTime } });
     },
-    [envelope.attackTime, updateConfig],
+    [envelope.attackTime, applyConfig],
   );
 
   const handleReleaseTimeChange = useCallback(
     (_: Event, value: number | number[]) => {
       const releaseTime = Array.isArray(value) ? (value[0] ?? envelope.releaseTime) : value;
-      updateConfig({ envelope: { releaseTime } });
+      applyConfig({ envelope: { releaseTime } });
     },
-    [envelope.releaseTime, updateConfig],
+    [envelope.releaseTime, applyConfig],
   );
 
   return (
@@ -447,6 +459,7 @@ function GranularTab() {
           max={128}
           step={1}
           onChange={handleMaxGrainsChange}
+          onChangeCommitted={commitConfig}
           aria-label="最大グレイン数"
         />
       </Box>
@@ -461,6 +474,7 @@ function GranularTab() {
           max={16}
           step={1}
           onChange={handleMaxVoicesChange}
+          onChangeCommitted={commitConfig}
           aria-label="最大ボイス数"
         />
       </Box>
@@ -475,6 +489,7 @@ function GranularTab() {
           max={4096}
           step={64}
           onChange={handleMinGrainDurationChange}
+          onChangeCommitted={commitConfig}
           aria-label="最小グレイン持続時間"
         />
       </Box>
@@ -489,6 +504,7 @@ function GranularTab() {
           max={8}
           step={0.1}
           onChange={handleDurationRangeMinChange}
+          onChangeCommitted={commitConfig}
           aria-label="Duration 係数最小"
         />
       </Box>
@@ -503,6 +519,7 @@ function GranularTab() {
           max={8}
           step={0.1}
           onChange={handleDurationRangeMaxChange}
+          onChangeCommitted={commitConfig}
           aria-label="Duration 係数最大"
         />
       </Box>
@@ -517,6 +534,7 @@ function GranularTab() {
           max={0.5}
           step={0.001}
           onChange={handleAttackTimeChange}
+          onChangeCommitted={commitConfig}
           aria-label="アタック時間"
         />
       </Box>
@@ -531,6 +549,7 @@ function GranularTab() {
           max={1}
           step={0.001}
           onChange={handleReleaseTimeChange}
+          onChangeCommitted={commitConfig}
           aria-label="リリース時間"
         />
       </Box>

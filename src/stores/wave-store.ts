@@ -70,15 +70,16 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     });
   },
 
-  setChunk: (index, min, max) =>
+  setChunk: (index, min, max) => {
+    if (index < 0 || index >= get().chunks.length) {
+      return;
+    }
     set((state) => {
       const chunks = [...state.chunks];
-      if (index < 0 || index >= chunks.length) {
-        return state;
-      }
       chunks[index] = { min, max, updatedAt: performance.now() };
       return { chunks };
-    }),
+    });
+  },
 
   clearChunks: () =>
     set((state) => ({
@@ -90,8 +91,9 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     const config = getConfigState().config;
     const chunkCount = get().chunkCount;
     const maxSize = Math.min(config.audio.maxSelectionSize, chunkCount);
-    const clampedStart = Math.max(0, Math.min(start, Math.max(0, chunkCount - 1)));
     const clampedSize = Math.max(1, Math.min(size, maxSize));
+    const maxStart = Math.max(0, chunkCount - clampedSize);
+    const clampedStart = Math.max(0, Math.min(start, maxStart));
 
     set({
       selection: {

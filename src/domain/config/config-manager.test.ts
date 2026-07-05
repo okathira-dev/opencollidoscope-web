@@ -126,6 +126,30 @@ describe("ConfigManager", () => {
     expect(parsed.audio.chunkCount).toBe(175);
   });
 
+  it("applyConfig はメモリのみ更新し localStorage には書かない", () => {
+    const manager = new ConfigManager();
+    manager.updateConfig({ audio: { chunkCount: 150 } });
+
+    manager.applyConfig({ audio: { chunkCount: 175 } });
+    expect(manager.getConfig().audio.chunkCount).toBe(175);
+
+    const stored = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) ?? "{}") as {
+      audio: { chunkCount: number };
+    };
+    expect(stored.audio.chunkCount).toBe(150);
+  });
+
+  it("persistConfig で applyConfig 後の状態を localStorage に保存する", () => {
+    const manager = new ConfigManager();
+    manager.applyConfig({ audio: { chunkCount: 175 } });
+    manager.persistConfig();
+
+    const stored = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) ?? "{}") as {
+      audio: { chunkCount: number };
+    };
+    expect(stored.audio.chunkCount).toBe(175);
+  });
+
   it("savePreset / loadPreset / deletePreset が動作する", () => {
     const manager = new ConfigManager();
     manager.updateConfig({ audio: { chunkCount: 200 } });

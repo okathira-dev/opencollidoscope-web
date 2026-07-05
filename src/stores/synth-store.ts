@@ -154,14 +154,13 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
   syncSelection: () => {
     const waveState = getWaveStoreState();
     const audioState = getAudioStoreState();
-    const config = getConfigState().config;
 
     if (waveState.selection.isNull || !audioState.recordedBuffer) {
       return;
     }
 
     const totalSamples = audioState.recordedBuffer.length;
-    const samplesPerChunk = Math.round(totalSamples / config.audio.chunkCount);
+    const samplesPerChunk = Math.round(totalSamples / waveState.chunkCount);
     const startSample = waveState.selection.start * samplesPerChunk;
     const sizeSamples = waveState.selection.size * samplesPerChunk;
 
@@ -175,6 +174,7 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
     if (get().loop.enabled) {
       synthesizer?.setLooping(true);
     }
+    get().syncSelection();
   },
 }));
 

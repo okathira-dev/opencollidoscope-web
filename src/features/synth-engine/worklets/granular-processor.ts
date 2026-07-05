@@ -318,6 +318,7 @@ class PGranular {
 class LazyParam<T> {
   private value: T;
   private previousValue: T;
+  private dirty = false;
 
   constructor(initial: T) {
     this.value = initial;
@@ -329,11 +330,16 @@ class LazyParam<T> {
   }
 
   get(): T | null {
-    if (this.value !== this.previousValue) {
+    if (this.dirty || this.value !== this.previousValue) {
       this.previousValue = this.value;
+      this.dirty = false;
       return this.value;
     }
     return null;
+  }
+
+  invalidate(): void {
+    this.dirty = true;
   }
 }
 
@@ -481,6 +487,9 @@ class GranularProcessor extends AudioWorkletProcessor {
     this.loopVoice = null;
     this.noteVoices = [];
     this.midiNotes = [];
+    this.selectionStart.invalidate();
+    this.selectionSize.invalidate();
+    this.grainDurationCoeff.invalidate();
     this.ensureVoices();
     this.applyBufferToVoices();
     this.applyAttenuation();

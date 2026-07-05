@@ -25,10 +25,19 @@ export class ConfigManager {
     return structuredClone(this.config);
   }
 
+  applyConfig(updates: PartialCollidoscopeConfig): void {
+    const merged = mergeCollidoscopeConfig(this.config, updates);
+    validateConfigDependencies(merged);
+    collidoscopeConfigSchema.parse(merged);
+    this.config = merged;
+  }
+
+  persistConfig(): void {
+    this.saveToStorage();
+  }
+
   updateConfig(updates: PartialCollidoscopeConfig): void {
-    this.config = mergeCollidoscopeConfig(this.config, updates);
-    validateConfigDependencies(this.config);
-    collidoscopeConfigSchema.parse(this.config);
+    this.applyConfig(updates);
     this.saveToStorage();
   }
 
@@ -113,9 +122,9 @@ export class ConfigManager {
       const result = collidoscopeConfigSchema.partial().safeParse(parsed);
 
       if (result.success) {
-        this.config = mergeCollidoscopeConfig(this.config, result.data);
-        validateConfigDependencies(this.config);
-        this.config = collidoscopeConfigSchema.parse(this.config);
+        const merged = mergeCollidoscopeConfig(this.config, result.data);
+        validateConfigDependencies(merged);
+        this.config = collidoscopeConfigSchema.parse(merged);
       }
     } catch {
       // 破損データは無視してデフォルト設定を維持する

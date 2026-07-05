@@ -174,6 +174,9 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
       if (relativeSemitone === undefined) {
         return;
       }
+      if (!pressedPcKeysRef.current.has(key)) {
+        return;
+      }
 
       event.preventDefault();
       pressedPcKeysRef.current.delete(key);

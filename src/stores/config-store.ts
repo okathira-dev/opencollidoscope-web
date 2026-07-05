@@ -10,6 +10,8 @@ interface ConfigState {
   config: CollidoscopeConfig;
   configManager: ConfigManager;
   presets: string[];
+  applyConfig: (updates: PartialCollidoscopeConfig) => void;
+  persistConfig: () => void;
   updateConfig: (updates: PartialCollidoscopeConfig) => void;
   resetConfig: () => void;
   exportConfig: () => string;
@@ -30,6 +32,13 @@ const useConfigStoreInternal = create<ConfigState>((set) => ({
   config: configManager.getConfig(),
   configManager,
   presets: syncPresetsFromManager(),
+  applyConfig: (updates) => {
+    configManager.applyConfig(updates);
+    set({ config: configManager.getConfig() });
+  },
+  persistConfig: () => {
+    configManager.persistConfig();
+  },
   updateConfig: (updates) => {
     configManager.updateConfig(updates);
     set({ config: configManager.getConfig() });
@@ -70,6 +79,14 @@ export function useConfigAudio() {
 
 export function useConfigMicInput() {
   return useConfigStoreInternal((state) => state.config.micInput);
+}
+
+export function useApplyConfig() {
+  return useConfigStoreInternal((state) => state.applyConfig);
+}
+
+export function usePersistConfig() {
+  return useConfigStoreInternal((state) => state.persistConfig);
 }
 
 export function useUpdateConfig() {

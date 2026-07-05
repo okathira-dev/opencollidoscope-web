@@ -120,6 +120,7 @@ function disconnectRecordingChain(): void {
   inputAnalyserNode.connect(silentOutputNode);
 }
 
+// 録音完了・正規化後に全チャンクを再計算。worklet 逐次報告で漏れた端数もここで補完する。
 function refreshChunksFromBuffer(buffer: Float32Array, chunkCount: number): void {
   const samplesPerChunk = Math.round(buffer.length / chunkCount);
   const waveStore = getWaveStoreState();
@@ -221,6 +222,8 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
       return;
     }
 
+    let audioContext: AudioContext | null = null;
+
     try {
       if (!window.isSecureContext) {
         throw new Error("音声機能には HTTPS または localhost が必要です");
@@ -231,7 +234,7 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
       }
 
       const micConfig = getConfigState().config.micInput;
-      const audioContext = new AudioContext();
+      audioContext = new AudioContext();
       await audioContext.resume();
       await audioContext.audioWorklet.addModule(recordingProcessorUrl);
 
@@ -262,6 +265,7 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
         error: null,
       });
     } catch (error) {
+      await audioContext?.close();
       set({
         error: error instanceof Error ? error.message : String(error),
         isInitialized: false,

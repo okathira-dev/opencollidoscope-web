@@ -19,6 +19,20 @@
 
 ## 完了済みタスク
 
+### 設定変更時の状態喪失バグ修正
+
+- [x] `LazyParam.invalidate()` 追加、`updateConfig` 後に全 LazyParam を invalidate
+- [x] `synth-store.syncConfig` で `syncSelection` も呼ぶ
+- [x] `ConfigManager.applyConfig` / `loadFromStorage` をアトミック化
+- [x] `pnpm check` / `pnpm test` 通過
+- [x] ドキュメント同期（web-spec / web-design）
+
+### PR #31 Copilot レビュー対応
+
+- [x] 修正 5件（wave-store setChunk/setSelection、synth-store syncSelection、audio-store initializeAudio、PianoKeyboard keyup）
+- [x] `pnpm check` / `pnpm test` 通過
+- [x] ドキュメント同期（web-spec / web-design / ui-mapping）
+
 ### WaveDisplay 描画修正（オリジナル準拠）
 
 - [x] 選択範囲外チャンクを `#808080`（グレー）に着色
@@ -157,3 +171,5 @@ TDD 基盤・設定ドメイン
 - M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚セクション。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
 - M4 完了。PC キーボードレイアウト（Z-/ + A-L 行）、プリセット/JSON I/O、フルスクリーンボタン、パーティクル演出、Web MIDI（`src/domain/midi/`）。
 - WaveDisplay 描画修正。範囲外グレー着色、カーソル時間アニメーション（`CursorState` + RAF）、ドキュメント同期。
+- PR #31 Copilot レビュー対応。wave-store / synth-store / audio-store / PianoKeyboard の 5 件修正、ドキュメント同期。
+- 設定変更時の状態喪失バグ修正。`LazyParam.invalidate()`、`syncConfig` + `syncSelection`、`ConfigManager` アトミック化、ドキュメント同期。

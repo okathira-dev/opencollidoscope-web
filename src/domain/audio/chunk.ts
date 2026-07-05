@@ -7,6 +7,12 @@ export function computeBufferLength(sampleRate: number, waveLength: number): num
   return Math.round(sampleRate * waveLength);
 }
 
+/**
+ * チャンクあたりのサンプル数。
+ * オリジナル BufferToWaveRecorderNode::initialize の std::lround(getNumFrames() / mNumChunks) に相当。
+ * Math.ceil にすると末尾チャンクが空になる場合があるため round を使う。
+ * 割り切れない端数は computeChunkRange の totalSamples クランプで各チャンクに配分される。
+ */
 export function computeSamplesPerChunk(totalSamples: number, chunkCount: number): number {
   return Math.round(totalSamples / chunkCount);
 }

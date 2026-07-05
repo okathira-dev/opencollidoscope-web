@@ -308,6 +308,7 @@ export function WaveDisplay({
       oscilloscopeBufferRef.current,
       particleSystemRef.current,
     );
+    // オシロスコープ・カーソルスイープ・パーティクルのため常時 rAF。静止時のみ停止する最適化は将来検討。
     animationFrameRef.current = requestAnimationFrame(render);
   }, [
     chunks,
