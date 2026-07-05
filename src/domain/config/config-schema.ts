@@ -6,7 +6,7 @@ const audioConfigSchema = z.object({
   sampleRate: z.number().positive().default(44100),
   chunkCount: z.number().int().min(1).max(1000).default(150),
   waveLength: z.number().positive().min(0.1).max(10).default(2.0),
-  maxSelectionSize: z.number().int().min(1).max(37).default(37),
+  maxSelectionSize: z.number().int().min(1).max(1000).default(37),
   attenuation: z.number().min(0).max(1).default(0.25118864315096),
 });
 
@@ -64,8 +64,24 @@ const midiConfigSchema = z.object({
   ccMappings: ccMappingsSchema,
 });
 
+const micInputConfigSchema = z.object({
+  inputGain: z.number().min(0).max(5).default(1.0),
+  autoGainControl: z.boolean().default(false),
+  noiseSuppression: z.boolean().default(false),
+  echoCancellation: z.boolean().default(false),
+  compressorEnabled: z.boolean().default(false),
+  compressorThreshold: z.number().min(-100).max(0).default(-24),
+  compressorKnee: z.number().min(0).max(40).default(30),
+  compressorRatio: z.number().min(1).max(20).default(12),
+  compressorAttack: z.number().min(0).max(1).default(0.003),
+  compressorRelease: z.number().min(0).max(1).default(0.25),
+  normalizeRecording: z.boolean().default(true),
+  normalizeTargetPeak: z.number().min(0.01).max(1).default(1),
+});
+
 export const collidoscopeConfigSchema = z.object({
   audio: audioConfigSchema,
+  micInput: micInputConfigSchema,
   granular: granularConfigSchema,
   envelope: envelopeConfigSchema,
   filter: filterConfigSchema,
@@ -76,6 +92,7 @@ export const collidoscopeConfigSchema = z.object({
 export type CollidoscopeConfig = z.infer<typeof collidoscopeConfigSchema>;
 export type PartialCollidoscopeConfig = {
   audio?: Partial<CollidoscopeConfig["audio"]>;
+  micInput?: Partial<CollidoscopeConfig["micInput"]>;
   granular?: Omit<Partial<CollidoscopeConfig["granular"]>, "grainDurationRange"> & {
     grainDurationRange?: Partial<CollidoscopeConfig["granular"]["grainDurationRange"]>;
   };
@@ -93,6 +110,7 @@ export type PartialCollidoscopeConfig = {
 function createEmptyConfigInput(): Record<string, unknown> {
   return {
     audio: {},
+    micInput: {},
     granular: { grainDurationRange: {} },
     envelope: {},
     filter: {},
@@ -143,43 +161,76 @@ export function validateConfigDependencies(config: CollidoscopeConfig): void {
   if (config.audio.maxSelectionSize > config.audio.chunkCount) {
     throw new Error("最大選択サイズはチャンク数以下で設定してください");
   }
+  if (config.filter.minCutoff >= config.filter.maxCutoff) {
+    throw new Error("最小カットオフは最大カットオフより小さく設定してください");
+  }
 }
 
 export function mergeCollidoscopeConfig(
   base: CollidoscopeConfig,
   updates: PartialCollidoscopeConfig,
 ): CollidoscopeConfig {
-  return {
-    audio: { ...base.audio, ...updates.audio },
-    granular: {
+  const audio = updates.audio !== undefined ? { ...base.audio, ...updates.audio } : base.audio;
+
+  const micInput =
+    updates.micInput !== undefined ? { ...base.micInput, ...updates.micInput } : base.micInput;
+
+  let granular = base.granular;
+  if (updates.granular !== undefined) {
+    granular = {
       ...base.granular,
       ...updates.granular,
-      grainDurationRange: {
-        ...base.granular.grainDurationRange,
-        ...updates.granular?.grainDurationRange,
-      },
-    },
-    envelope: { ...base.envelope, ...updates.envelope },
-    filter: { ...base.filter, ...updates.filter },
-    visual: {
+      grainDurationRange:
+        updates.granular.grainDurationRange !== undefined
+          ? { ...base.granular.grainDurationRange, ...updates.granular.grainDurationRange }
+          : base.granular.grainDurationRange,
+    };
+  }
+
+  const envelope =
+    updates.envelope !== undefined ? { ...base.envelope, ...updates.envelope } : base.envelope;
+
+  const filter = updates.filter !== undefined ? { ...base.filter, ...updates.filter } : base.filter;
+
+  let visual = base.visual;
+  if (updates.visual !== undefined) {
+    visual = {
       ...base.visual,
       ...updates.visual,
-      colors: {
-        ...base.visual.colors,
-        ...updates.visual?.colors,
-      },
-    },
-    midi: {
+      colors:
+        updates.visual.colors !== undefined
+          ? { ...base.visual.colors, ...updates.visual.colors }
+          : base.visual.colors,
+    };
+  }
+
+  let midi = base.midi;
+  if (updates.midi !== undefined) {
+    midi = {
       ...base.midi,
       ...updates.midi,
-      pitchBendRange: {
-        ...base.midi.pitchBendRange,
-        ...updates.midi?.pitchBendRange,
-      },
-      ccMappings: {
-        ...base.midi.ccMappings,
-        ...updates.midi?.ccMappings,
-      },
-    },
-  };
+      pitchBendRange:
+        updates.midi.pitchBendRange !== undefined
+          ? { ...base.midi.pitchBendRange, ...updates.midi.pitchBendRange }
+          : base.midi.pitchBendRange,
+      ccMappings:
+        updates.midi.ccMappings !== undefined
+          ? { ...base.midi.ccMappings, ...updates.midi.ccMappings }
+          : base.midi.ccMappings,
+    };
+  }
+
+  if (
+    audio === base.audio &&
+    micInput === base.micInput &&
+    granular === base.granular &&
+    envelope === base.envelope &&
+    filter === base.filter &&
+    visual === base.visual &&
+    midi === base.midi
+  ) {
+    return base;
+  }
+
+  return { audio, micInput, granular, envelope, filter, visual, midi };
 }

@@ -3,6 +3,7 @@
     "target": "ES2024",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "strict": true,
     "noImplicitAny": true,
     "noUncheckedIndexedAccess": true,
@@ -11,6 +12,6 @@
     "skipLibCheck": true,
     "types": ["audioworklet"]
   },
-  "include": ["src/features/synth-engine/worklets/**/*.ts"],
+  "include": ["src/features/synth-engine/worklets/**/*.ts", "src/domain/audio/**/*.ts"],
   "exclude": ["**/*.d.ts"]
 }

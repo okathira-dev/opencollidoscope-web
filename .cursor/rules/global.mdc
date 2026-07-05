@@ -25,13 +25,23 @@ alwaysApply: true
 
 - **日付ベースのメモは残さない**。前後関係は手順順序・因果関係で表現する。
 - 対象: `Scratchpad.md`、`.serena/memories/*.md`、`README.md`、`.cursor` 配下の説明文。
-- 主要ドキュメント: [docs/original-analysis.md](mdc:docs/original-analysis.md)、[docs/web-spec.md](mdc:docs/web-spec.md)、[docs/web-design.md](mdc:docs/web-design.md)。
+- 主要ドキュメント: [docs/README.md](mdc:docs/README.md)（索引）、[docs/ui-mapping.md](mdc:docs/ui-mapping.md)、[docs/original-analysis.md](mdc:docs/original-analysis.md)、[docs/web-spec.md](mdc:docs/web-spec.md)、[docs/web-design.md](mdc:docs/web-design.md)。
 
 ## 他のルールファイルとの連携
 
 - [coding-rules.mdc](mdc:.cursor/rules/coding-rules.mdc): コード構造、コンポーネント設計、状態管理などの基本的なコーディングルール。
 - [biome.mdc](mdc:.cursor/rules/biome.mdc): Biome 設定に関するルール。
+- [code-edit-verification.mdc](mdc:.cursor/rules/code-edit-verification.mdc): コード編集後の検証手順（パースエラー防止）。
 - [github.mdc](mdc:.cursor/rules/github.mdc): GitHub 操作の制限（読み取りは可、書き込みは明示依頼時のみ）。
+
+## コード編集後の検証（必須）
+
+コードを変更したターンでは、**ユーザーへの返答前に必ず `pnpm check` を実行**する（Biome + `tsc` + markdownlint）。
+
+- `pnpm check:fix` だけでは型チェックが走らない。最終確認は常に `pnpm check`。
+- `pnpm biome check --write` 後も同様。**parse エラー（`PARSE_ERROR`）が出たまま返答しない。**
+- ロジック変更時は `pnpm test` も実行する。
+- 詳細手順（シグネチャ重複・Read-back チェックリスト）は [code-edit-verification.mdc](mdc:.cursor/rules/code-edit-verification.mdc) を参照。
 
 ## コミット・PR
 

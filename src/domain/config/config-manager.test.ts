@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { CONFIG_STORAGE_KEY, ConfigManager } from "./config-manager.ts";
+import { CONFIG_STORAGE_KEY, ConfigManager, PRESETS_STORAGE_KEY } from "./config-manager.ts";
 import type { PartialCollidoscopeConfig } from "./config-schema.ts";
 import { DEFAULT_CONFIG } from "./default-config.ts";
 
@@ -124,5 +124,59 @@ describe("ConfigManager", () => {
 
     const parsed = JSON.parse(stored ?? "{}") as { audio: { chunkCount: number } };
     expect(parsed.audio.chunkCount).toBe(175);
+  });
+
+  it("applyConfig はメモリのみ更新し localStorage には書かない", () => {
+    const manager = new ConfigManager();
+    manager.updateConfig({ audio: { chunkCount: 150 } });
+
+    manager.applyConfig({ audio: { chunkCount: 175 } });
+    expect(manager.getConfig().audio.chunkCount).toBe(175);
+
+    const stored = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) ?? "{}") as {
+      audio: { chunkCount: number };
+    };
+    expect(stored.audio.chunkCount).toBe(150);
+  });
+
+  it("persistConfig で applyConfig 後の状態を localStorage に保存する", () => {
+    const manager = new ConfigManager();
+    manager.applyConfig({ audio: { chunkCount: 175 } });
+    manager.persistConfig();
+
+    const stored = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) ?? "{}") as {
+      audio: { chunkCount: number };
+    };
+    expect(stored.audio.chunkCount).toBe(175);
+  });
+
+  it("savePreset / loadPreset / deletePreset が動作する", () => {
+    const manager = new ConfigManager();
+    manager.updateConfig({ audio: { chunkCount: 200 } });
+
+    manager.savePreset("test-preset");
+    expect(manager.listPresets()).toEqual(["test-preset"]);
+
+    manager.updateConfig({ audio: { chunkCount: 100 } });
+    manager.loadPreset("test-preset");
+    expect(manager.getConfig().audio.chunkCount).toBe(200);
+
+    manager.deletePreset("test-preset");
+    expect(manager.listPresets()).toEqual([]);
+  });
+
+  it("空のプリセット名で savePreset がエラーになる", () => {
+    const manager = new ConfigManager();
+    expect(() => manager.savePreset("  ")).toThrow("プリセット名を入力してください");
+  });
+
+  it("savePreset 後に localStorage に保存される", () => {
+    const manager = new ConfigManager({ audio: { chunkCount: 190 } });
+    manager.savePreset("stored");
+
+    const stored = localStorage.getItem(PRESETS_STORAGE_KEY);
+    expect(stored).not.toBeNull();
+    const parsed = JSON.parse(stored ?? "{}") as { stored: { audio: { chunkCount: number } } };
+    expect(parsed.stored.audio.chunkCount).toBe(190);
   });
 });

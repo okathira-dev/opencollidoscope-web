@@ -1,8 +1,9 @@
 # Collidoscope Web版 設計書
 
+ドキュメント索引: [README.md](README.md)
+
 本ドキュメントは、Open Collidoscope の Web 再実装における**アーキテクチャと設計方針**を定義します。
 
-- オリジナル実装の分析: [original-analysis.md](original-analysis.md)
 - 機能要件・設定値: [web-spec.md](web-spec.md)
 
 **注意**: 本書の TypeScript コード例は設計思想の伝達用です。実装時はライブラリ API・型・エラーハンドリングを実態に合わせて再設計してください。
@@ -76,9 +77,9 @@ graph TB
 | `AudioEngine` | `AudioEngineManager` | グラフ構築、パラメータ橋渡し |
 | `Wave` / `Chunk` | `features/synth-engine/components/WaveDisplay.tsx` | Canvas 描画 |
 | `Oscilloscope` | `Oscilloscope` コンポーネント | `AnalyserNode` + Canvas |
-| `ParticleController` | `ParticleSystem`（Canvas） | WaveDisplay 内または独立 |
+| `ParticleController` | `ParticleSystem`（`particle-system.ts`） | `WaveDisplay` 内 Canvas 描画 |
 | `Config` | `src/domain/config/` | Zod スキーマ + `ConfigManager` |
-| `MIDI` | Web MIDI API ラッパー | `src/domain/midi/` |
+| `MIDI` | Web MIDI API ラッパー | `src/domain/midi/` + `midiStore` |
 | `CollidoscopeApp` | `MainApp` + Zustand stores | フレームループ → React ライフサイクル |
 | `Messages` / `RingBufferPack` | `AudioWorkletNode.port` | MessagePort による双方向通信 |
 | Cinder OpenGL 描画 | HTML5 Canvas | `requestAnimationFrame` |
@@ -91,18 +92,63 @@ graph TB
 flowchart LR
     Mic[Microphone] --> Stream[MediaStream]
     Stream --> Source[MediaStreamAudioSourceNode]
-    Source --> RecWorklet[RecordingWorklet]
-    RecWorklet --> Buffer[AudioBuffer]
-    RecWorklet -->|WAVE_CHUNK| WaveStore
+    Source --> InputGain[GainNode]
+    InputGain --> Compressor[DynamicsCompressorNode optional]
+    Compressor --> InputAnalyser[AnalyserNode]
+    InputAnalyser --> RecWorklet[RecordingWorklet]
+    InputAnalyser --> SilentGain[GainNode gain 0]
+    SilentGain --> Dest[AudioDestination]
+    RecWorklet --> Buffer[Float32Array]
+    RecWorklet -->|chunk| WaveStore
+    Buffer -->|normalize optional| Finalize[finalizeRecordedBuffer]
+    Finalize --> AudioStore
 ```
 
 ```text
-Microphone → MediaStreamAudioSourceNode → AudioWorkletNode(recording)
-                                              ↓
-                                       ChunkProcessor → WaveStore
+Microphone
+  → MediaStreamAudioSourceNode
+  → GainNode（入力ゲイン）
+  → DynamicsCompressorNode?（ON 時のみ）
+  → AnalyserNode
+      ├─（監視時）GainNode(0) → destination（レベルメーター用にグラフを駆動）
+      └─（録音時）AudioWorkletNode(recording)
 ```
 
-録音 Worklet はオーディオスレッドでサンプルを蓄積し、チャンク境界ごとに min/max をメインスレッドへ `postMessage` します。
+図中の `DynamicsCompressorNode optional` は、`compressorEnabled` が ON のときだけ `GainNode` と `AnalyserNode` の間に挿入される経路を表す。OFF 時は `wireInputChain(false)` により **Gain → Analyser 直結**で、Compressor ノードはグラフから切り離される（図では省略表現のためノード自体は残って見える）。
+
+録音 Worklet はオーディオスレッドでサンプルを蓄積し、チャンク境界ごとに min/max をメインスレッドへ `postMessage` します。録音完了時、設定で有効ならピーク正規化を適用し、`refreshChunksFromBuffer` で全チャンク min/max を再計算します（Worklet 逐次報告の端数漏れ補完を含む）。
+
+実装の正本:
+
+| 領域 | パス |
+| --- | --- |
+| 入力グラフ・制約適用 | `src/stores/audio-store.ts` |
+| ブラウザ制約・コンプレッサー設定 | `src/domain/audio/mic-input.ts` |
+| 録音後ピーク正規化 | `src/domain/audio/recording-normalize.ts` |
+| 設定 UI | `src/features/synth-engine/components/MicInputSettings.tsx` |
+| 設定スキーマ | `config.micInput`（`src/domain/config/config-schema.ts`） |
+
+### マイク入力前処理（Web 独自拡張）
+
+オリジナルは Scarlett 2i2 のハードゲインと生の JACK 入力のみ。Web 版はブラウザマイク向けに次を追加する。
+
+| 機能 | 実装 | 備考 |
+| --- | --- | --- |
+| 入力ゲイン | `GainNode` + `setTargetAtTime` | オリジナルの IF ゲインノブ相当 |
+| 入力レベルメーター | `AnalyserNode` + MUI `LinearProgress` | マイク許可後、録音前から監視 |
+| ブラウザ音声処理 | `getUserMedia` / `applyConstraints` | `autoGainControl`, `noiseSuppression`, `echoCancellation`。デフォルト OFF（楽器向け） |
+| 入力コンプレッサー | `DynamicsCompressorNode` | ブラウザ組み込み。パラメータのみアプリが設定 |
+| 録音後ピーク正規化 | `normalizePeakBuffer`（自作） | 録音完了時のみ。再生音量は `config.audio.attenuation` で調整 |
+
+**反映タイミング**:
+
+| 設定 | タイミング |
+| --- | --- |
+| 入力ゲイン・コンプレッサー | 変更直後（録音中でも可） |
+| ブラウザ処理トグル | マイク許可後は `applyConstraints` で即時。許可前は次回 `getUserMedia` |
+| ピーク正規化 | 録音完了時のみ（既存バッファには遡及しない） |
+
+**意図的に採用していないもの**: `ConvolverNode.normalize`（リバーブ用 IR の等パワー正規化でありマイク入力とは無関係）。
 
 ### 再生パイプライン
 
@@ -172,14 +218,17 @@ graph LR
         WaveDisplay
         PianoKeyboard
         ControlPanel
+        ConfigPanel
     end
 
     AudioStore --> MainApp
     WaveStore --> WaveDisplay
     SynthStore --> SynthEngine
-    ConfigStore --> ControlPanel
+    ConfigStore --> ConfigPanel
     UIStore --> MainApp
     SynthStore --> PianoKeyboard
+    SynthStore --> ControlPanel
+    WaveStore --> ControlPanel
 ```
 
 ### AudioStore
@@ -189,17 +238,28 @@ interface AudioState {
   audioContext: AudioContext | null;
   sampleRate: number;
   isRecording: boolean;
-  recordedBuffer: AudioBuffer | null;
+  recordedBuffer: Float32Array | null;
   micStream: MediaStream | null;
-  analyserNode: AnalyserNode | null;
+  micConstraintSupport: MicConstraintSupport;
+  micConstraintError: string | null;
 
   initializeAudio: () => Promise<void>;
-  startRecording: () => void;
+  startRecording: () => Promise<void>;
   stopRecording: () => void;
+  applyMicInputConfig: (config: MicInputConfig) => Promise<void>;
+  setInputGain: (gain: number) => void;
+  updateMicConstraints: (constraints: MediaTrackAudioConstraints) => Promise<void>;
 }
 ```
 
-**導入タイミング**: M1。
+モジュールスコープで `inputGainNode` / `compressorNode` / `inputAnalyserNode` / `silentOutputNode` を保持。`getInputAnalyserNode()` はレベルメーター用に export。
+
+**実装メモ**:
+
+- `initializeAudio` 失敗時は作成済み `AudioContext` を `close()` してリークを防ぐ
+- 録音完了後のピーク正規化時は `refreshChunksFromBuffer` で全チャンク min/max を再計算（Worklet の逐次報告で端数チャンクが漏れる場合の補完）
+
+**導入タイミング**: M1（基本録音）。マイク入力前処理は Web 独自拡張として後続追加。
 
 ### ConfigStore
 
@@ -208,59 +268,104 @@ interface ConfigState {
   config: CollidoscopeConfig;
   configManager: ConfigManager;
 
-  updateConfig: (updates: PartialCollidoscopeConfig) => void;
+  applyConfig: (updates: PartialCollidoscopeConfig) => void;   // メモリのみ（スライダー onChange）
+  persistConfig: () => void;                                   // localStorage 永続化（onChangeCommitted）
+  updateConfig: (updates: PartialCollidoscopeConfig) => void;  // apply + persist（即時反映 UI）
   resetConfig: () => void;
-  exportConfig: () => string;   // M4
-  importConfig: (json: string) => void;  // M4
+  exportConfig: () => string;
+  importConfig: (json: string) => void;
 
-  presets: Record<string, CollidoscopeConfig>;  // M4
-  savePreset: (name: string) => void;  // M4
-  loadPreset: (name: string) => void;  // M4
-  deletePreset: (name: string) => void;  // M4
+  presets: string[];
+  savePreset: (name: string) => void;
+  loadPreset: (name: string) => void;
+  deletePreset: (name: string) => void;
 }
 ```
 
-実装済みドメイン: `src/domain/config/`（Zod スキーマ、`ConfigManager`、localStorage 永続化）
+実装済みドメイン: `src/domain/config/`（Zod スキーマ、`ConfigManager`、localStorage 永続化）。プリセットは `PRESETS_STORAGE_KEY`（`collidoscope-presets`）。
+
+**`ConfigManager.applyConfig`**: マージ結果をバリデーション通過後にのみ `this.config` へ反映（アトミック）。失敗時は既存 config を維持する。`loadFromStorage` も同様。
+
+### MidiStore
+
+```typescript
+interface MidiState {
+  isSupported: boolean;
+  isInitialized: boolean;
+  error: string | null;
+  inputDevices: MidiDeviceInfo[];
+
+  initializeMidi: () => Promise<void>;
+  disposeMidi: () => void;
+}
+```
+
+ドメイン: `src/domain/midi/`（`MidiManager`, `midi-parser`, `midi-router`）。Phase 1 は ch 0 のみ。
 
 ### UIStore
 
 ```typescript
 interface UIState {
   isConfigPanelOpen: boolean;  // false = 最小化（デフォルト）
-  keyboardLayout: KeyMap;
-  selectedEngine: number;
+  configPanelTargetSection: ConfigPanelSectionId | null;  // ジャンプ先アコーディオン ID
+  hardwareVariant: "original" | "new";  // デフォルト "original"
+  playerLayout: "facing" | "stacked" | "solo";  // デフォルト "facing"
   isFullscreen: boolean;
 
   openConfigPanel: () => void;
+  openConfigPanelSection: (sectionId: ConfigPanelSectionId) => void;
+  clearConfigPanelTargetSection: () => void;
   closeConfigPanel: () => void;
   toggleConfigPanel: () => void;
+  setHardwareVariant: (variant: "original" | "new") => void;
+  setPlayerLayout: (layout: "facing" | "stacked" | "solo") => void;
+  toggleFullscreen: () => Promise<void>;
 }
 ```
 
-パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1。
+`ConfigPanelSectionId`: `"audio"` | `"mic-input"` | `"granular"` | `"filter"` | `"visual"` | `"preset"` | `"midi"`
+
+パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1（`isConfigPanelOpen`）、M2.5（`hardwareVariant`, `playerLayout`）、M4（`isFullscreen`）。`openConfigPanelSection` は `VolumeStatusBar` などから特定アコーディオンへジャンプする際に使う。
 
 ### WaveStore
 
 ```typescript
+interface CursorState {
+  startChunk: number;
+  startTime: number;
+}
+
 interface WaveState {
   chunks: ChunkData[];
+  chunkCount: number;
   selection: { start: number; size: number; isNull: boolean };
-  cursors: Map<number, CursorData>;
+  cursors: Record<number, CursorState>;
+  particleTriggerTick: number;
 
+  initChunks: (count: number) => void;
   setChunk: (index: number, min: number, max: number) => void;
   setSelection: (start: number, size: number) => void;
-  setCursor: (id: number, position: number) => void;
+  clampSelectionToConfig: () => void;
+  setCursor: (voiceId: number, startChunk: number, startTime: number) => void;
+  triggerParticleSpawn: () => void;
 }
 ```
 
-**導入タイミング**: M1（チャンク表示）。選択・カーソルは M2〜M3 で活用。
+**実装メモ**:
+
+- `setChunk`: 範囲外 index は `set()` 前に return（不要な再レンダー回避）
+- `setSelection`: `size` を `maxSelectionSize` と `chunkCount` でクランプ後、`start` を `chunkCount - clampedSize` 以下に制限（選択がバッファ外にはみ出さない）
+- `chunkCount` は録音開始時の `initChunks` で確定。`syncSelection` は config ではなくこの値でサンプル/チャンクを算出する
+- `subscribeWaveSelection`: 選択変更時に `synthStore.syncSelection` へ伝播
+
+**導入タイミング**: M1（チャンク表示）。選択・カーソルは M2〜M3、パーティクルトリガーは M4。
 
 ### SynthStore
 
 ```typescript
 interface SynthState {
   grainDurationCoeff: number;
-  filter: { cutoff: number };
+  filterCutoff: number;  // MIDI 0–127。演奏 UI と `BiquadFilterNode` に反映
   loop: { enabled: boolean };
 
   noteOn: (midiNote: number) => void;
@@ -268,17 +373,22 @@ interface SynthState {
   setLoopEnabled: (enabled: boolean) => void;
   setGrainDurationCoeff: (coeff: number) => void;
   setFilterCutoff: (cutoff: number) => void;
+  syncSelection: () => void;
+  syncConfig: () => void;
 }
 ```
 
-**導入タイミング**: M2（M1 では未使用）。
+**導入タイミング**: M2（M1 では未使用）。`filterCutoff` は M3 で追加。
+
+**選択同期**（`syncSelection`）: `waveStore.chunkCount` と `recordedBuffer.length` から `samplesPerChunk` を算出し、Worklet へサンプル単位で送信。config の `chunkCount` は次回録音まで変わらないため、録音済みバッファの実チャンク数を正とする。
+
+**config 購読**（`initializeSynth` 内）: `subscribeConfig` → `waveStore.clampSelectionToConfig()` + `syncConfig()`。設定変更時にグラニュラー Worklet へパラメータを再送し、選択範囲も再同期する。
 
 ## コンポーネント設計
 
 ### MainApp
 
 - 音声コンテキスト初期化（ユーザージェスチャー後）
-- キーボードショートカット
 - レイアウト管理、エラーハンドリング
 
 ### SynthEngine
@@ -293,9 +403,61 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
+**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み（M3 までにループ・フィルター・視覚 FB 完了）、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段/ソロ）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。**M4**: フルスクリーントグルボタンを同エリアに追加。**音量導線**: ツールバー左端の `VolumeStatusBar` が入力レベルと「音量（アテニュエーション）」（`config.audio.attenuation`、0-1）を常時表示し、クリックで `ConfigPanel` の「マイク入力」/「音声」セクションを開く。
+
+### VolumeStatusBar
+
+`SynthEngine` 上部ツールバー左端に配置。音声初期化後のみ表示。
+
+| 表示 | ラベル・内容 | 説明テキスト（常時表示） | クリック時 |
+| --- | --- | --- | --- |
+| 入力 | マイクアイコン + レベルバー + % | マイク入力の音量です。クリックで入力設定を開きます。 | `openConfigPanelSection("mic-input")` |
+| 音量（アテニュエーション） | スピーカーアイコン + 0-1 の値 | 再生出力の音量（0-1）です。クリックで入力設定を開きます。 | `openConfigPanelSection("audio")` |
+
+Tooltip は使わない。詳細調整は `ConfigPanel` の該当セクションで行う。
+
+### VariantSwitcher
+
+筐体バリアント（`original` / `new`）の切替 UI。`uiStore.hardwareVariant` を読み書きする。`SynthEngine` 上部に配置。音声・MIDI・Store キーは切替しない。
+
+### PlayerControlSurface
+
+`variant`（`HardwareVariant`）と `playerLayout`（`PlayerLayout`）を受け取り、`PlayerModule` / `NewPlayerModule` を選択して A/B を描画。`playerLayout === "solo"` のとき Player B を非表示にする。
+
 ### WaveDisplay
 
-Canvas ベース。Props で `chunks`, `selection`, `cursors`, `color` を受け取り、`requestAnimationFrame` で描画。
+Canvas ベース。`WaveStore` から `chunks` / `selection` / `cursors` を購読し、`requestAnimationFrame` で描画。
+
+**チャンク着色**（オリジナル `Wave::draw` 準拠）:
+
+| 状態 | 色 |
+| --- | --- |
+| 選択範囲外 | `#808080`（グレー） |
+| 選択範囲内 | アクセント色 + `selectionAlphaFromFilter`（0.5〜1.0） |
+| 再生カーソル位置 | `config.visual.colors.cursor`（白） |
+
+**再生カーソル**: グレイントリガー時に `synthStore` が `selection.start` と `performance.now()` を `waveStore.setCursor` へ渡す。`drawChunks` 内の `computeCursorIndices` が毎フレーム `startChunk + floor(elapsed / msPerChunk)` で位置を算出し、選択終端を超えたカーソルは非表示。
+
+M4 で `ParticleSystem` を統合（グレイントリガー時にパーティクル放出、波形背面に白点描画）。
+
+### PianoKeyboard
+
+画面上のピアノ鍵盤 + PC キーボード入力。`keyboard-layout.ts` がレイアウトの正本。
+
+**マウス / ポインタ**:
+
+- `onMouseLeave` は使わない（鍵盤外へドラッグしたとき誤 `noteOff` を防ぐ）
+- `pointerdown` で `setPointerCapture`、ドラッグ中は `elementFromPoint` で鍵を追跡（グライド演奏）
+- `pointerup` / `pointercancel` で capture 解放と `noteOff`
+
+**PC キーボード**:
+
+- `pressedPcKeysRef` で押下中キーを追跡。`keydown` は `event.repeat` と重複押下を無視
+- `keyup` は追跡セットに含まれるキーのみ `noteOff`（フォーカス喪失等の偽 keyup を無視）
+
+### ParticleSystem
+
+純粋 TS クラス（`src/features/synth-engine/particle-system.ts`）。オリジナル `ParticleController` 準拠。React/DOM 非依存で `WaveDisplay` から利用。
 
 ### GranularSynthesizer
 
@@ -317,12 +479,17 @@ class GranularSynthesizer {
 
 **折りたたみ式の常設パネル。** デフォルト最小化、展開時に全設定を GUI 編集できる。移植・デバッグ時にオリジナル定数をいじりながら挙動を確認する用途を兼ねる。
 
-- **配置**: 画面右端の `Drawer`（`persistent`）または FAB + 展開パネル
-- **最小化時**: 歯車アイコンのみ、または細いラベルバー
-- **展開時**: MUI `Tabs` でセクション分割
-- **M1**: `ConfigStore` 接続 + 「音声」タブ（`waveLength`, `chunkCount` 等）
-- **M2 以降**: 実装した機能に合わせてタブを追加（グラニュラー、フィルター、視覚）
-- **M4**: 「プリセット」タブ（保存・読み込み・JSON 入出力）
+- **配置**: 画面右端の MUI `Drawer`（`persistent`）
+- **最小化時**: 歯車 FAB。`uiStore.isConfigPanelOpen === false` がデフォルト
+- **展開時**: MUI `Accordion` の縦積み（`ConfigAccordionSection`）。**`Tabs` は使わない** — 複数セクションを同時に開ける
+- **セクション一覧**（`ConfigPanel.tsx` の `title`）: 音声 / マイク入力 / グラニュラー / フィルター / 視覚 / プリセット / MIDI
+- **セクションジャンプ**: `uiStore.openConfigPanelSection(sectionId)` でドロワーを開き、対象アコーディオンを自動展開・スクロール。`VolumeStatusBar` から利用
+- **実装メモ**: 子コンポーネント名は `AudioTab` 等の歴史的命名だが、UI 上はアコーディオンセクション
+- **M1**: `ConfigStore` 接続 + 「音声」セクション（`waveLength`, `chunkCount` 等）
+- **M1 拡張**: 「マイク入力」セクション（`MicInputSettings`）
+- **M2 以降**: グラニュラー、フィルター、視覚セクションを追加
+- **M4**: 「プリセット」セクション（保存・読み込み・JSON 入出力）、「MIDI」セクション（デバイス一覧・CC マッピング表示）
+- **スライダー永続化**: `useDeferredConfigSlider` — `onChange` で `applyConfig`（メモリのみ）、`onChangeCommitted` で `persistConfig`（localStorage）。色ピッカー等は `updateConfig` で即時永続化
 
 ```typescript
 // 最小化状態は UIStore で管理（ConfigStore ではない）
@@ -332,7 +499,7 @@ interface UIState {
 }
 ```
 
-変更は `updateConfig` → `ConfigManager` → 各 Store / Worklet へ伝播する。開閉は `uiStore.toggleConfigPanel()`。
+変更は `applyConfig` / `updateConfig` → `ConfigManager` → `subscribeConfig` 経由で `synthStore.syncConfig` 等へ伝播する。開閉は `uiStore.toggleConfigPanel()`。
 
 ## AudioWorklet 実装方針
 
@@ -410,13 +577,14 @@ flowchart TB
 - 線形補間
 - `port.onmessage` でパラメータ受信
 - トリガー時に `postMessage({ type: 'cursorTrigger', ... })`
+- **`LazyParam`**: `selectionStart` / `selectionSize` / `grainDurationCoeff` を遅延適用。`updateConfig` でボイス再生成後は `invalidate()` し、次の `process()` で `applySelectionParams()` が新ボイスへ再適用する
 
 ### メインスレッド ↔ Worklet 通信
 
 | 方向 | メッセージ例 |
 | --- | --- |
-| Main → Worklet | `setAudioBuffer`, `setSelection`, `noteOn`, `noteOff`, `setLooping`, `setGrainDurationCoeff` |
-| Worklet → Main | `recordingComplete`, `waveChunk`, `cursorTrigger`, `grainEnd` |
+| Main → Worklet | `setBuffer`, `setSelection`, `noteOn`, `noteOff`, `setLooping`, `setGrainDurationCoeff`, `setAttenuation`, `updateConfig` |
+| Worklet → Main | `cursorTrigger`, `cursorEnd` |
 
 ## オリジナルとの意図的な差異
 
@@ -432,22 +600,37 @@ flowchart TB
 
 ## 設定の動的変更
 
-`ConfigStore` の変更を各 Store / AudioWorklet に伝播します。
+`ConfigStore` の変更を各 Store / AudioWorklet に伝播する。スライダーはドラッグ中に `applyConfig` でメモリ反映、離したとき `persistConfig` で localStorage 保存。
 
-```typescript
-// 設定変更時の反映例
-useEffect(() => {
-  if (config.audio.chunkCount !== currentChunkCount) {
-    waveStore.updateChunks(config.audio.chunkCount);
-  }
-  granularSynth.updateParams({
-    maxGrains: config.granular.maxGrains,
-    minGrainDuration: config.granular.minGrainDuration,
-  });
-}, [config]);
+```mermaid
+flowchart LR
+    ConfigPanel -->|applyConfig / updateConfig| ConfigStore
+    ConfigStore --> ConfigManager
+    ConfigManager -->|subscribeConfig| SynthStore
+    ConfigManager -->|subscribeConfig| WaveStore
+    SynthStore -->|syncConfig| GranularSynthesizer
+    SynthStore -->|syncSelection| GranularSynthesizer
+    WaveStore -->|clampSelectionToConfig| WaveStore
 ```
 
-チャンク数変更時は選択範囲の再計算、色設定は CSS カスタムプロパティへ即時反映。
+**`syncConfig` の処理順**（`synth-store.ts`）:
+
+1. `GranularSynthesizer.updateConfig` — granular / envelope パラメータを Worklet へ送信（内部でボイス再生成）
+2. `setGrainDurationCoeff` / `setFilterCutoff` — 演奏 UI の現在値を再送
+3. ループ ON なら `setLooping(true)` を再送
+4. `syncSelection` — 選択範囲をサンプル単位で再送
+
+**Worklet 側のボイス再生成**（`granular-processor.ts` の `updateConfig`）:
+
+| パラメータ | 再適用方法 |
+| --- | --- |
+| `buffer` | `applyBufferToVoices()` |
+| `attenuation` | `applyAttenuation()` |
+| `selectionStart` / `selectionSize` / `grainDurationCoeff` | `LazyParam.invalidate()` → 次 `process()` で `applySelectionParams()` |
+| ループ有効状態 | `syncConfig` が `setLooping(true)` を再送 |
+| アクティブノート | 再生成で喪失（設定変更中の演奏は非対象） |
+
+チャンク数・最大選択サイズ変更時は `waveStore.clampSelectionToConfig()` で選択をクランプ。色設定は `WaveDisplay` が `config.visual.colors` を直接購読して即時反映。
 
 ## パフォーマンス最適化
 
@@ -498,8 +681,8 @@ src/
 ├── domain/
 │   ├── config/                 # 実装済み
 │   ├── audio/                  # 純粋関数（Worklet とテストで共有）
-│   └── midi/                   # Web MIDI ラッパー（M4）
-├── stores/                     # グローバル Zustand（Audio, Wave, Synth, Config, UI）
+│   └── midi/                   # Web MIDI ラッパー（M4 実装済み）
+├── stores/                     # グローバル Zustand（Audio, Wave, Synth, Config, UI, Midi）
 ├── hooks/                      # アプリ全体のフック
 ├── test/                       # setup, test-utils
 ├── App.tsx
@@ -508,7 +691,7 @@ src/
 
 **Store の配置**: Phase 1 は単一エンジンのため `src/stores/` に集約。Phase 2 で `engineId` キーを増やすか、エンジンごとにインスタンス化する。
 
-**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（折りたたみ式）。`ConfigStore` と同時に導入し、マイルストーンごとにタブを増やす。プリセット・JSON は M4。
+**設定 UI**: `ConfigPanel` は **M1 から** `features/synth-engine/components/` に常設（`Drawer` + `Accordion`）。`ConfigStore` と同時に導入し、マイルストーンごとにアコーディオンセクションを増やす。プリセット・JSON・MIDI セクションは M4 で追加済み。
 
 ## 今後の拡張
 

@@ -1,6 +1,13 @@
 # Collidoscope Web版 実装仕様
 
-本ドキュメントは、Open Collidoscope を Web 技術で再実装する際の**目標・機能要件・設定値**を定義します。オリジナル実装の分析は [original-analysis.md](original-analysis.md)、アーキテクチャ設計は [web-design.md](web-design.md) を参照してください。
+ドキュメント索引: [README.md](README.md)
+
+本ドキュメントは、Open Collidoscope を Web 技術で再実装する際の**目標・機能要件・設定値**を定義します。
+
+- オリジナル実装の分析: [original-analysis.md](original-analysis.md)
+- アーキテクチャ設計: [web-design.md](web-design.md)
+- UI 対応・実装ギャップ: [ui-mapping.md](ui-mapping.md)
+- 公式資料ミラー: [`opencollidoscope_downloads/`](../opencollidoscope_downloads/)（Introduction、MIDI reference、Physical Build 等）
 
 ## プロジェクトの目的
 
@@ -24,53 +31,69 @@
 
 コンポーネントは Phase 1 から `engineId` を受け取れる形で設計し、Phase 2 で複製可能にする。
 
+## ハードウェアバージョンと Web 版 UI 方針
+
+オープンソース Collidoscope には **オリジナル版**と**新版**の 2 種類の物理筐体がある（詳細は [original-analysis.md](original-analysis.md) の「物理ハードウェア」、[ui-mapping.md](ui-mapping.md) の「物理コントロール形状」）。
+
+| 方針 | 内容 |
+| --- | --- |
+| Phase 1 の基準 | **オリジナル版**をデフォルト。M2.5 で両バリアントの UI 配置と `uiStore` による本切替を完成 |
+| MIDI / 音声 | 両バージョン共通。`CollidoscopeApp` の処理式を Web 版の正とする |
+| 配置・形状・実装ギャップ | [ui-mapping.md](ui-mapping.md) · [layout-specs/](layout-specs/README.md)（`<variant>/layout.html`）を参照 |
+
+演奏用コントロールの形状・実装状態は [ui-mapping.md](ui-mapping.md) を参照（本書では重複記載しない）。
+
 ## Phase 1 マイルストーン
 
-仕様上 Phase 1 に含まれる機能を、実装順に分割する。M1〜M3 で「演奏できる最小版」、M4 で拡張と運用面を完成させる。
+仕様上 Phase 1 に含まれる機能を、実装順に分割する。**M1〜M4 は完了**（単一エンジンで演奏・拡張運用まで到達）。次は Phase 2（Wave 1 / 黄色波形）。
 
 | マイルストーン | 目標 | 含む機能 |
 | --- | --- | --- |
-| **M1** | 録音して波形が見える | マイク、録音、チャンク波形表示、**設定パネル（折りたたみ・音声タブ）** |
-| **M2** | 選択して演奏できる | 選択 UI、グラニュラーシンセ、ピアノ鍵盤、**設定パネルにグラニュラータブ追加** |
-| **M3** | 演奏の質とフィードバック | ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚タブ追加** |
-| **M4** | 拡張・本番運用 | プリセット、JSON 入出力、MIDI、パーティクル、ショートカット |
+| **M1** | 録音して波形が見える | マイク、録音、チャンク波形表示、**設定パネル（折りたたみ・音声セクション）** |
+| **M2** | 選択して演奏できる | 選択 UI、グラニュラーシンセ、ピアノ鍵盤、**設定パネルにグラニュラーセクション追加** |
+| **M2.5** | **UI 配置確定（両バリアント）+ バリアント切替** | `layout-specs/original/` + `new/` を参照した 180 度投影グリッド、`PlayerControlSurface` で A/B 両面配置。オリジナル=`PlayerModule`、新版=`NewPlayerModule`（`VerticalMobileKnob`、C3-C6 鍵盤）。`uiStore.hardwareVariant` + `VariantSwitcher`、`uiStore.playerLayout`（向き合い/二段。`solo` は M3）。Filter / Loop / B 側はプレースホルダ可 |
+| **M3** | 演奏の質とフィードバック | ソロモード（Player B 非表示）、ループ、フィルター、オシロスコープ、再生カーソル、**設定パネルにフィルター/視覚セクション追加**（M2.5 のスロットへ配線） |
+| **M4** | 拡張・本番運用 | プリセット、JSON 入出力、Web MIDI、パーティクル、PC 鍵盤レイアウト、フルスクリーンボタン |
 
-**設定 UI**: デバッグとパラメータ確認のため、**M1 から折りたたみ式の設定パネルを常設**する。普段は最小化（アイコンまたは細いバー）し、クリックで展開して GUI から `ConfigManager` 経由で値を変更できる。プリセット保存・JSON 入出力は **M4** で追加する。
+**設定 UI**: デバッグとパラメータ確認のため、**M1 から折りたたみ式の設定パネルを常設**する（`Drawer` + `Accordion`、MUI `Tabs` は未使用）。普段は最小化（歯車 FAB）し、クリックで展開して GUI から `ConfigManager` 経由で値を変更できる。プリセット保存・JSON 入出力は **M4** で `ConfigPanel`「プリセット」セクションに実装済み。
 
 **調査タスク**（M1 の先頭で実施。未完了でも postMessage フォールバックで継続可）:
 
 - [x] Vite `?worker&url` による Worklet の TypeScript ビルド（`spike-processor` で `addModule`・440Hz 出力を確認）
 - [x] GitHub Pages 向け [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) による COOP/COEP 迂回（`crossOriginIsolated` / `SharedArrayBuffer` を確認。初回リロードあり）
 
-実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/spike-processor.ts`（スパイク用。M1 本実装時に `recording-processor` へ置き換え）
+実装の正本: `vite.config.ts`（coi プラグイン + dev/preview ヘッダー）、`src/index.html`、`src/features/synth-engine/worklets/recording-processor.ts`（録音）・`granular-processor.ts`（グラニュラー再生）、`src/domain/audio/mic-input.ts`・`recording-normalize.ts`（マイク入力調整）、`src/features/synth-engine/components/MicInputSettings.tsx`（設定 UI）
 
 ### マイルストーンと Store の導入タイミング
 
 | マイルストーン | 新規 Store / UI |
 | --- | --- |
 | M1 | `audioStore`, `waveStore`, `configStore`, `uiStore`（`isConfigPanelOpen`）, 折りたたみ `ConfigPanel` |
-| M2 | `synthStore`, グラニュラータブ |
-| M3 | フィルター・視覚タブ（Store は既存を拡張） |
-| M4 | プリセット API（`configStore`）、MIDI、パーティクル |
+| M2 | `synthStore`, グラニュラーセクション |
+| M2.5 | `uiStore` 拡張（`hardwareVariant`, `playerLayout`）, `VariantSwitcher` |
+| M3 | フィルター・視覚セクション（Store は既存を拡張） |
+| M4 | プリセット API（`configStore`）、`midiStore`、パーティクル、`uiStore.isFullscreen` |
 
 ## 機能一覧
 
 | 機能 | 説明 | Phase | マイルストーン |
 | --- | --- | --- | --- |
 | マイク入力 | `getUserMedia` でマイクから音声取得 | 1 | M1 |
+| マイク入力調整（Web 独自） | 入力ゲイン、ブラウザ処理トグル、コンプレッサー、録音後ピーク正規化、レベルメーター | 1 | M1 拡張 |
 | 録音 | 指定時間の録音、フェードイン/アウト、チャンク分割 | 1 | M1 |
 | 波形表示 | チャンク min/max バー、選択範囲ハイライト、アニメーション | 1 | M1 |
 | 選択操作 | 開始位置（ドラッグ）、サイズ（ホイール） | 1 | M2 |
 | グラニュラーシンセ | グレイン生成、Hann 窓、ピッチ、ループ | 1 | M2 |
-| ピアノ鍵盤 | 画面上の鍵盤 + PC キーボード | 1 | M2 |
+| ピアノ鍵盤 | 画面上の鍵盤 + PC キーボード（Z-/ 行=白鍵、A-L 行=黒鍵、C キー=C4） | 1 | M2 / M4 |
 | ループ | 選択範囲のループ再生 | 1 | M3 |
 | フィルター | ローパス、指数的カットオフ制御 | 1 | M3 |
 | オシロスコープ | 再生中の出力波形をリアルタイム表示 | 1 | M3 |
 | 再生カーソル | ループ中の再生位置表示 | 1 | M3 |
 | パーティクル | duration coeff に連動した視覚フィードバック | 1 | M4 |
 | MIDI 入力 | Web MIDI API による外部コントローラー対応 | 1 | M4 |
-| 設定パネル（折りたたみ GUI） | 常設。最小化がデフォルト。`ConfigManager` と双方向バインド | 1 | M1 着手、マイルストーンごとにタブ拡張 |
+| 設定パネル（折りたたみ GUI） | `Drawer` + `Accordion`。最小化がデフォルト。`ConfigManager` と双方向バインド | 1 | M1 着手、マイルストーンごとにセクション拡張 |
 | プリセット・JSON 入出力 | 設定の保存・読み込み・エクスポート | 1 | M4 |
+| フルスクリーン | Fullscreen API 切替ボタン（`SynthEngine` 上部） | 1 | M4 |
 | 第 2 エンジン | 独立した黄色波形システム | 2 | — |
 
 ## 設定値
@@ -86,6 +109,27 @@
 | サンプルレート | 44100 Hz | Web Audio API デフォルト |
 | 最大選択サイズ | 37 チャンク | 1〜チャンク数 |
 | アテニュエーション | -12dB（0.25118864315096） | 0〜1 |
+
+### マイク入力設定（`config.micInput`、Web 独自）
+
+オリジナルにはない。録音レベル調整は Scarlett のハードゲイン、再生レベルはグラニュラーの固定アテニュエーション（-12dB）のみ。
+
+| パラメータ | デフォルト | 範囲 | 反映タイミング |
+| --- | --- | --- | --- |
+| 入力ゲイン（`inputGain`） | 1.0 倍 | 0〜5 | 即時（`GainNode`） |
+| 自動ゲイン調整（`autoGainControl`） | OFF | boolean | マイク許可後は即時（`applyConstraints`） |
+| ノイズ抑制（`noiseSuppression`） | OFF | boolean | 同上 |
+| エコー除去（`echoCancellation`） | OFF | boolean | 同上 |
+| 入力コンプレッサー（`compressorEnabled`） | OFF | boolean | 即時（グラフ再接続） |
+| コンプレッサーしきい値（`compressorThreshold`） | -24 dB | -100〜0 | 即時 |
+| コンプレッサーニー（`compressorKnee`） | 30 dB | 0〜40 | 即時 |
+| コンプレッサーレシオ（`compressorRatio`） | 12 : 1 | 1〜20 | 即時 |
+| コンプレッサーアタック（`compressorAttack`） | 0.003 秒 | 0〜1 | 即時 |
+| コンプレッサーリリース（`compressorRelease`） | 0.25 秒 | 0〜1 | 即時 |
+| 録音後ピーク正規化（`normalizeRecording`） | ON | boolean | 録音完了時 |
+| 正規化目標ピーク（`normalizeTargetPeak`） | 100%（1.0） | 10〜100%（UI スライダー。スキーマは 1〜100%） | 次回録音完了時 |
+
+録音後の音量バランス・割れの調整は **再生側** の `config.audio.attenuation` で行う。ピーク正規化は録音バッファをフルレンジに揃えるためのもの。
 
 ### グラニュラーシンセシス設定
 
@@ -118,20 +162,18 @@
 | --- | --- |
 | Wave 1 色（赤） | `#F3063E` |
 | Wave 2 色（黄） | `#FFCC00` |
+| 範囲外チャンク色 | `#808080` |
 | カーソル色 | `#FFFFFF` |
 | 最大パーティクル数 | 150 |
 | チャンクアニメーションフレーム数 | 3 |
 
 ### MIDI 設定
 
-| パラメータ | デフォルト |
-| --- | --- |
-| ピッチベンド範囲 | 0〜149 |
-| CC1 | 選択サイズ |
-| CC2 | グレイン持続時間 |
-| CC4 | ループ ON/OFF |
-| CC5 | 録音トリガー |
-| CC7 | フィルターカットオフ |
+公式定義: [`opencollidoscope_downloads/Collidoscope MIDI messages reference.pdf`](../opencollidoscope_downloads/Collidoscope%20MIDI%20messages%20reference.pdf)
+
+MIDI マッピング一覧: [ui-mapping.md — 電子的対応](ui-mapping.md#電子的対応正本)。
+
+**CC7 フィルター（Web 版の正）**: [original-analysis.md — フィルター](original-analysis.md#フィルター) の `CollidoscopeApp` 式と同一（式の記載は同節のみ）。
 
 ### 設定管理要件
 
@@ -141,24 +183,38 @@
 4. 設定パネル UI から各値を変更可能
 5. 複数プリセットの保存・呼び出し
 6. localStorage への永続化（Zod でランタイム検証）
+7. **`applyConfig` はアトミック** — バリデーション通過後のみ config を更新。失敗時は既存値を維持
+8. **設定変更時の演奏状態維持** — granular パラメータ変更で Worklet がボイス再生成しても、選択範囲・Duration 係数・ループ状態を `syncConfig` / `LazyParam.invalidate()` で再適用（詳細は [web-design.md — 設定の動的変更](web-design.md#設定の動的変更)）
 
-実装の正本: `src/domain/config/`（`config-schema.ts`, `config-manager.ts`, `default-config.ts`）
+実装の正本: `src/domain/config/`（`config-schema.ts`, `config-manager.ts`, `default-config.ts`）。プリセットは `localStorage["collidoscope-presets"]` に名前付きで保存。設定パネルのスライダーは `useDeferredConfigSlider`（`applyConfig` + `persistConfig`）を使用。
+
+### Web MIDI 入力
+
+- 実装: `src/domain/midi/`（`MidiManager`, `midi-parser`, `midi-router`）+ `src/stores/midi-store.ts`
+- Phase 1 は MIDI チャンネル 1（ch 0）のみ。`CollidoscopeApp::receiveCommands()` と同一マッピング
+- シンセ初期化後に自動有効化。失敗時は `ConfigPanel`「MIDI」セクションから再試行
+- CC 番号は `config.midi.ccMappings` で参照（デフォルト: CC1=選択サイズ、CC2=Duration、CC4=ループ、CC5=録音、CC7=フィルター）
 
 ## 機能仕様詳細
 
 ### 音声入力
 
-- `navigator.mediaDevices.getUserMedia` でマイクアクセス
-- `MediaStreamAudioSourceNode` に接続
-- 録音トリガー時に AudioWorklet へストリームを渡す
+- `navigator.mediaDevices.getUserMedia` でマイクアクセス（`config.micInput` のブラウザ処理制約を渡す）
+- 制約が `OverconstrainedError` 等で拒否された場合は `{ audio: true }` でフォールバック再取得（`audio-store.ts` の `requestMicStream`）
+- `initializeAudio` 失敗時は作成済み `AudioContext` を `close()` してリソースを解放
+- `MediaStreamAudioSourceNode` → `GainNode` →（任意）`DynamicsCompressorNode` → `AnalyserNode` → 録音 Worklet
+- マイク許可後は監視用に `AnalyserNode` → `GainNode(0)` → `destination` でグラフを駆動（レベルメーター）
+- 録音トリガー時に `AnalyserNode` を Worklet へ接続。完了後は監視経路に戻す
+- ブラウザ処理（AGC / ノイズ抑制 / エコー除去）は設定パネルから `applyConstraints` で切替。非対応項目は `getCapabilities()` で UI を無効化
 
 ### 録音
 
 - `AudioWorkletNode` で録音（`ScriptProcessorNode` は使用しない）
 - 録音時間は設定可能
 - 録音と同時にチャンク分割し、各チャンクの min/max を計算
-- 録音開始・終了にフェードイン/アウト
+- 録音開始・終了にフェードイン/アウト（20ms リニア。オリジナル `BufferToWaveRecorderNode` と同様）
 - 新規録音時は既存バッファを破棄
+- **Web 独自**: 録音完了時、`normalizeRecording` が ON ならバッファ全体をピーク正規化し、全チャンク min/max を再計算（`normalizePeakBuffer` + `refreshChunksFromBuffer`。Worklet 逐次報告の端数漏れを補完）
 
 ### 波形表示
 
@@ -169,10 +225,12 @@
 
 ### 選択操作
 
-| 操作 | UI |
-| --- | --- |
-| 選択開始位置 | スライダーのノブを水平ドラッグ（0〜チャンク数-1） |
-| 選択サイズ | ノブ上でマウスホイール（1〜最大選択サイズ） |
+| 操作 | 筐体 UI | 補助操作 |
+| --- | --- | --- |
+| 選択開始位置 | Wavejet 水平レール（波形直下） | 波形ドラッグ、横ホイール |
+| 選択サイズ | Wavejet ノブ相当の縦スライダー（演奏列） | 波形上ホイール |
+
+選択範囲は `waveStore.setSelection` でクランプする: `size` は `maxSelectionSize` と `chunkCount` の小さい方、`start` は `chunkCount - size` 以下。グラニュラー Worklet へのサンプル換算は `waveStore.chunkCount`（録音時に確定）を使用し、config の `chunkCount` とは独立。
 
 ### グラニュラーシンセシス
 
@@ -193,26 +251,28 @@
 
 ### 再生カーソルとパーティクル
 
-- ループ再生中、選択範囲上に再生位置カーソルを表示
-- duration coeff > 1 のときパーティクルを放出
-- 最大パーティクル数 150
+- グレイントリガー時、選択範囲の開始チャンクから再生位置カーソルを表示
+- カーソルは `secondsPerChunk = waveLength / chunkCount` に基づき選択範囲内を左から右へ移動（オリジナル `Wave::update` 準拠）
+- `cursorTrigger` 受信時: `waveStore.setCursor(voiceId, selection.start, performance.now())`
+- `cursorEnd` 受信時: `waveStore.removeCursor(voiceId)`
+- `grainDurationCoeff > 1` のときパーティクルを放出（オリジナル `ParticleController` 準拠）
+- 実装: `src/features/synth-engine/particle-system.ts` + `WaveDisplay` 統合
+- 最大パーティクル数 150。白 1px ドット、選択範囲内ランダム位置、クラウド境界バウンス
+- スポーン数は duration 係数とフィルター CC（0–127 正規化）に比例
 
 ## UI 仕様
 
-### 全体レイアウト
+### 演奏 UI と設定 UI の分離
 
-- Phase 1: 単一シンセエンジンを画面中央に配置
-- 各エンジン: 波形表示、ピアノ鍵盤、コントロールパネル
+| UI | コンポーネント | 役割 |
+| --- | --- | --- |
+| **演奏 UI** | `PlayerControlSurface` + `WaveDisplay` + `PianoKeyboard` 等 | オリジナル筐体の物理配置を模す。日常の演奏操作のみ |
+| **音量導線** | `VolumeStatusBar`（`SynthEngine` 上部ツールバー） | 入力レベル・「音量（アテニュエーション）」の概要表示。クリックで設定パネルの該当セクションへジャンプ |
+| **設定 UI** | `ConfigPanel`（折りたたみ Drawer） | デバッグ・全パラメータ調整。演奏画面の主要操作はここに置かない |
 
-### UI コンポーネント
+Phase 1 では **プレイヤー A（Wave 0・赤）** を機能面の基準とし、画面上は **180 度投影** により A 端が下部（鍵盤帯）、B 端が上部に来る（[layout-specs — 座標系と Web 投影](layout-specs/README.md#座標系と-web-投影)）。配置の正本は [layout-specs/original/](layout-specs/README.md)。コンポーネント状態・実装ギャップは [ui-mapping.md](ui-mapping.md) を参照。
 
-| コンポーネント | 機能 |
-| --- | --- |
-| ピアノ鍵盤 | クリック / PC キーボード（A,S,D,F...）で MIDI ノート送信 |
-| スライダー | Selection Start, Selection Size, Duration, Filter（演奏用の主要操作） |
-| ボタン | Record, Loop ON/OFF |
-| 設定パネル | 折りたたみ式。全パラメータを GUI で編集（デバッグ・調整用） |
-| プリセット / JSON | 設定の名前付き保存とファイル入出力（M4） |
+`ControlPanel` 暫定横一列は `SynthEngine` から外れ、`PlayerControlSurface`（12 行グリッド・A/B 両面）に置換済み。Filter・ループは A 側で配線済み（M3）。
 
 ### 設定パネル（折りたたみ GUI）
 
@@ -224,20 +284,35 @@
 | 展開 | クリック / トグルでパネル表示。再度操作で最小化可能 |
 | データ源 | `ConfigStore` ↔ `ConfigManager`（Zod 検証済み） |
 | 反映 | 変更はリアルタイムで音声エンジン・Worklet に伝播 |
-| 段階的拡張 | M1: 音声タブ → M2: グラニュラー → M3: フィルター・視覚 → M4: MIDI・プリセット |
+| 段階的拡張 | M1: 音声 → M2: グラニュラー → M3: フィルター・視覚 → M4: プリセット・MIDI |
+| 音量導線 | `VolumeStatusBar`（ツールバー左端）から「マイク入力」「音声」セクションへワンクリックでジャンプ |
 
-実装時は MUI の `Drawer`（`anchor="right"`, `variant="persistent"`）または浮動 `Paper` を想定。オリジナルの物理ノブに相当する「演奏用コントロール」と、設定パネルの「全パラメータ調整」を役割分担する。
+実装時は MUI の `Drawer`（`anchor="right"`, `variant="persistent"`）または浮動 `Paper` を想定。**演奏用コントロールは `PlayerControlSurface` に筐体配置で置き、全パラメータ調整は `ConfigPanel` に限定する**（[ui-mapping.md](ui-mapping.md) 参照）。
 
-### キーボードショートカット
+### PC 鍵盤（ピアノ演奏）
 
-| キー | 操作 |
-| --- | --- |
-| `R` | 録音開始 |
-| `W` / `S` | 選択サイズ増減 |
-| `A` / `D` | 選択開始位置調整 |
-| Space | ループ ON/OFF |
-| `9` / `0` | グレイン持続時間調整 |
-| `F` | フルスクリーン切替 |
+画面上の `PianoKeyboard` に加え、PC キーボードから G#3〜C5（17 鍵）を演奏できる。正本: `src/features/synth-engine/keyboard-layout.ts`。
+
+| 行 | キー | 音（オクターブ offset 0） |
+| --- | --- | --- |
+| 白鍵（Z 行） | Z X **C** V B N M , . / | A3 B3 **C4** D4 E4 F4 G4 A4 B4 C5 |
+| 黒鍵（A 行） | **A** S — F G — J K L | **G#3** A#3 — C#4 D#4 — F#4 G#4 A#4 |
+
+- **C キー = C4（MIDI 60、rate 1.0 = 録音原音）**
+- **A キー = G#3**（Z=A3 の左隣の黒鍵に物理位置が一致）
+- D / H / ; は黒鍵なし区間のため未割当
+- オクターブシフトは `OctaveButton` のみ（±2 オクターブ）
+- `keyup` は押下追跡済みキーのみ `noteOff`（フォーカス喪失等の偽イベントを無視）
+- 画面上鍵盤はポインタキャプチャ + ドラッググライド（`onMouseLeave` は使わない）
+
+### フルスクリーン
+
+- `SynthEngine` 上部のトグルボタンで Fullscreen API 切替
+- キーボードショートカットは設けない（ブラウザ標準の F11 等に委ねる）
+
+### オリジナル C++ デバッグショートカット（Web 版では未実装）
+
+オリジナル `CollidoscopeApp` の Wave 0 向けデバッグキー（`r`/`a`/`d`/`w`/`s`/`9`/`0`/Space/`f`）は Web 版 Phase 1 では移植していない。PC キーボードはピアノ演奏専用。
 
 ## 技術スタック
 
@@ -311,7 +386,8 @@ AudioWorklet 対応が必須:
 | --- | --- | --- |
 | E2E テスト | Playwright は MCP のみ | 主要ユーザーフロー実装後 |
 | カバレッジ閾値 | レポート生成済み、閾値未設定 | テストが一定数増えた段階 |
-| 音声処理本体 | 設定ドメインのみ実装済み | Phase 1 実装フェーズ |
+| Phase 2（Wave 1） | 単一エンジン（Wave 0）のみ | デュアルエンジン・縦分割レイアウト |
+| C++ デバッグショートカット | 未移植（PC 鍵盤はピアノ演奏専用） | 必要なら別途検討 |
 
 ## パフォーマンス要件
 

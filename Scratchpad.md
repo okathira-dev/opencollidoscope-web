@@ -5,65 +5,173 @@
 
 ## 現在のタスク
 
-### Phase 1 実装（次: M1）
+**次フェーズの優先順位**:
 
-### M1: 録音 → 波形表示
+1. **Phase 2** — 第 2 音声処理システム（Wave 1 / 黄色波形）
 
-- [x] スパイク: Vite `?worker&url` で空 Worklet を `addModule` できること
-- [x] スパイク: [coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker)（GitHub Pages / SharedArrayBuffer 用。未完了でも postMessage で継続可）
-- [ ] `src/features/synth-engine/` 骨格（`SynthEngine.tsx`, `index.ts`）
-- [ ] `src/domain/audio/` — チャンク計算・フェード等の純粋関数 + 単体テスト
-- [ ] `src/stores/` — `audioStore`, `waveStore`, `configStore`, `uiStore`（`isConfigPanelOpen`）
-- [ ] `ConfigPanel` — 折りたたみ式、**音声タブ**のみ（`ConfigManager` 接続）
-- [ ] `recording-processor` Worklet（TypeScript）
-- [ ] 録音バッファ共有（優先: SharedArrayBuffer、フォールバック: postMessage）
-- [ ] マイク入力・`AudioContext` 初期化（`audioStore`）
-- [ ] `WaveDisplay`（Canvas）+ Record UI
-- [ ] `App.tsx` を `SynthEngine` に接続
+---
 
-### M2: 選択 + グラニュラー + 鍵盤
+## 完了済みタスク
 
-- [ ] `granular-processor` Worklet（`PGranular` 移植、`domain/audio` と共有）
-- [ ] `synthStore` 追加
-- [ ] `ConfigPanel` に **グラニュラータブ** 追加
-- [ ] 選択 UI（スライダー + ホイール）
-- [ ] `PianoKeyboard` + PC キーボード
+### 方針確定（配置 vs 電子）
 
-### M3: ループ・フィルター・オシロスコープ
+- [x] 配置（空間）の正本を `docs/layout-specs/<variant>/layout.html` + `layout.css` に確定。Web は `PlayerModule`（6×12）で再現（実行時に layout-specs を直接読み込まない）
+- [x] 電子的つながり（MIDI・処理式・Store キー）の正本を [ui-mapping.md — 電子的対応](docs/ui-mapping.md#電子的対応正本) · [original-analysis.md](docs/original-analysis.md) に確定
+- [x] バリアント切替でも MIDI / Store は不変と明文化
+- [x] ドキュメント同期（ui-mapping / web-spec / web-design / layout-specs / hardware-layout）
 
-- [ ] ループ ON/OFF
-- [ ] `BiquadFilterNode` ローパス
-- [ ] `ConfigPanel` に **フィルター・視覚タブ** 追加
-- [ ] `Oscilloscope`（`AnalyserNode` + Canvas）
-- [ ] 再生カーソル表示
+### 音量設定の導線改善
+
+- [x] `uiStore.openConfigPanelSection` — 設定パネルの特定アコーディオンへジャンプ
+- [x] `VolumeStatusBar` — ツールバー左端に入力レベル・出力音量を常時表示、説明テキスト付き
+- [x] `ConfigPanel` — アテニュエーションに説明文追加
+- [x] ドキュメント同期（ui-mapping / web-design / web-spec）
+
+### モダン TypeScript リファクタリング
+
+- [x] 定数化 (`src/consts/midi.ts`, `src/consts/audio.ts`)
+- [x] `WaveSelection` discriminated union + `isWaveSelectionEmpty` type guard
+- [x] MIDI パーサー型安全化 / ルーター handler map
+- [x] `chunkToSampleRange` 集約、`Array.with()` / `.some()` / `Object.fromEntries` / `Set`
+- [x] `AudioInputGraph` クラス、`unwrapSliderValue` ヘルパー
+- [x] ホットパス維持理由コメント (Worklet / domain / canvas)
+- [x] `pnpm check` / `pnpm test` 通過
+
+### Wavejet パフォーマンス改善
+
+- [x] WaveDisplay: rAF ループを React deps から切り離し（ref + store subscribe）
+- [x] Zustand セレクタ細粒度化（`useWaveSelectionIsNull`, config 分割セレクタ）
+- [x] `React.memo` 適用（WaveDisplay, SelectionRail, PianoKeyboard, PlayerModule 等）
+- [x] パーティクル誤発火修正、Canvas 描画最適化、アイドル rAF 停止
+- [x] `setSelection` 等値ガード、`setChunks` バッチ化、MIDI 二重 sync 除去
+- [x] `syncConfig` フィールド別分岐、`structuredClone` 除去 + merge 参照保持
+- [x] `pnpm check` / `pnpm test` 通過
+
+### 設定変更時の状態喪失バグ修正
+
+- [x] `LazyParam.invalidate()` 追加、`updateConfig` 後に全 LazyParam を invalidate
+- [x] `synth-store.syncConfig` で `syncSelection` も呼ぶ
+- [x] `ConfigManager.applyConfig` / `loadFromStorage` をアトミック化
+- [x] `pnpm check` / `pnpm test` 通過
+- [x] ドキュメント同期（web-spec / web-design）
+
+### PR #31 Copilot レビュー対応
+
+- [x] 修正 5件（wave-store setChunk/setSelection、synth-store syncSelection、audio-store initializeAudio、PianoKeyboard keyup）
+- [x] `pnpm check` / `pnpm test` 通過
+- [x] ドキュメント同期（web-spec / web-design / ui-mapping）
+
+### WaveDisplay 描画修正（オリジナル準拠）
+
+- [x] 選択範囲外チャンクを `#808080`（グレー）に着色
+- [x] `CursorState`（`startChunk` + `startTime`）導入、`wave-store` / `synth-store` 更新
+- [x] 再生カーソルを `secondsPerChunk` ベースの時間アニメーションに修正
+- [x] ドキュメント同期（ui-mapping / web-spec / web-design / original-analysis）
+
+### マイク入力調整（Web 独自拡張）
+
+- [x] `config.micInput` スキーマ（入力ゲイン、ブラウザ処理、コンプレッサー、録音後正規化）
+- [x] `audio-store` 入力グラフ（Gain → Compressor? → Analyser → Worklet）
+- [x] `MicInputSettings` — 設定パネル「マイク入力」セクション（各項目に説明文）
+- [x] `recording-normalize.ts` — 録音完了時のピーク正規化
+- [x] ドキュメント同期（web-spec / web-design / ui-mapping）
 
 ### M4: プリセット・MIDI・パーティクル
 
-- [ ] `ConfigPanel` に **プリセット・JSON 入出力**（`savePreset` 等）
-- [ ] Web MIDI API（`src/domain/midi/`）
-- [ ] パーティクル演出
-- [ ] キーボードショートカット一式
+- [x] PC キーボードレイアウト変更（C キー = C4、A キー = G#3）
+- [x] `ConfigPanel` に **プリセット・JSON 入出力**（`savePreset` 等）
+- [x] Web MIDI API（`src/domain/midi/`）
+- [x] パーティクル演出（元実装準拠）
+- [x] フルスクリーン切替ボタン
 
-## 完了済みタスク
+### M3: ループ・フィルター・オシロスコープ
+
+- [x] **ソロモード** — `playerLayout: "solo"` + Player B 非表示
+- [x] ループ ON/OFF — オリジナル=トグル / 新版=プッシュ（A 側）
+- [x] フィルター — `synthStore.filterCutoff` → `BiquadFilterNode`（A 側）
+- [x] 選択アルファのフィルター連動（透明度 0.5〜1.0）
+- [x] `ConfigPanel` に **フィルター・視覚セクション** 追加
+- [x] `Oscilloscope`（`AnalyserNode` + Canvas）
+- [x] 再生カーソル表示（全ボイスのグレイントリガー → 白色チャンク）
+- [x] 選択境界の終点バー表示
+- [x] `WaveDisplay` 描画をオリジナル C++ 準拠に修正（チャンク単位着色、背景矩形削除）
+- [x] フィルター処理式をオリジナル準拠 + `minCutoff` を設定パネル可変に
+- [x] `PianoKeyboard` マウス操作修正（`onMouseLeave` 廃止、ポインタキャプチャ、ドラッググライド）
+- [x] ドキュメント同期（ui-mapping / web-spec / web-design / layout-specs / hardware-layout）
+
+### M2.5 バリアント切替
+
+- [x] `uiStore` に `hardwareVariant: "original" | "new"` を追加
+- [x] `uiStore` に `playerLayout: "facing" | "stacked" | "solo"` を追加
+- [x] `VariantSwitcher` UI — `SynthEngine` から `uiStore` 連携
+- [x] ドキュメント同期（web-spec / hardware-layout / web-design）
+
+### M2.5 new 版: UI 配置確定
+
+- [x] `new/layout.html` + `layout.css` — A 側は B の 180 度点対称、`loop-button-*`
+- [x] `new-layout.ts` — zone 非依存の単一テンプレート（B は `rotate(180deg)`）
+- [x] `NewPlayerModule` — 6×12 グリッド・`VerticalMobileKnob` / `LoopPushButton`
+- [x] `VerticalMobileKnob` — Wavejet 対称の縦レール + ホイール（上下=Filter、ホイール=Duration）
+- [x] `PianoKeyboard` — new 版は C3-C6（37 鍵、`octaveCount=3`）
+- [x] `PlayerControlSurface` — `variant` prop で original/new 切替
+- [x] A/B 両面・向き合い/二段モード
+- [x] B 側配置のみ — オーバーレイ + `WaveDisplayPlaceholder`
+- [x] `SynthEngine` 暫定バリアント切替（ToggleButtonGroup）→ `VariantSwitcher` + `uiStore` に置換
+- [x] ドキュメント同期（layout-specs / ui-mapping / web-spec / web-design / hardware-layout）
+- [ ] Introduction Fig.1・Physical Build / CAD を人間が再確認 — 任意
+
+### M2.5 オリジナル版: UI 配置確定
+
+- [x] `original/layout.html` + `layout.css` — 配置正本（Planner + `-a`/`-b`）
+- [x] `original-layout.ts` — `playerModuleAreas` / `playerModuleTemplate`
+- [x] `PlayerModule` — 6×12 グリッド・単一プレイヤーモジュール
+- [x] `PlayerControlSurface` — A/B 両面・向き合い/二段モード（B は CSS `rotate(180deg)`）
+- [x] `HorizontalSlider` — Filter / Duration（横スライダー + MUI アイコン）
+- [x] Loop スイッチ縦向き（`rotate(90deg)`）
+- [x] Wavejet サイズ UI 削除（`SelectionRail` 開始位置のみ）
+- [x] B 側配置のみ — オーバーレイ + `WaveDisplayPlaceholder`（Wave 0 データ非表示）
+- [x] `ControlPanel` を `SynthEngine` から外し `PlayerControlSurface` に置換
+- [x] ドキュメント同期（layout-specs / web-spec / web-design / ui-mapping / hardware-layout）
+
+### M2 残り: 演奏 UI（筐体レイアウト）— 暫定版
+
+- [x] `ControlPanel` 新規 — 演奏用コントロール列（M2.5 で `PlayerControlSurface` に置換済み）
+- [x] `VerticalSlider` / `RecordButton` / `SelectionRail` コンポーネント
+- [x] `SynthEngine` レイアウトを筐体配置へ変更
+- [x] Wavejet 水平レール（`SelectionRail`）
+- [x] Duration スライダー・録音ボタン・鍵盤
+- [x] フィルター・ループの配置枠
+
+### M2: 選択 + グラニュラー + 鍵盤（コア）
+
+- [x] `src/domain/audio/` — grain.ts、env-asr.ts + テスト
+- [x] `granular-processor` Worklet + `GranularSynthesizer` + `synthStore`
+- [x] `waveStore` 選択状態 + Worklet 同期
+- [x] `WaveDisplay` 選択 UI
+- [x] `PianoKeyboard` + PC キーボード
+- [x] `ConfigPanel` グラニュラーセクション
+- [x] `SynthEngine` 統合
+
+### M1: 録音 → 波形表示
+
+- [x] スパイク・Worklet・ストア・`WaveDisplay`・`ConfigPanel` 音声セクション
 
 技術判断・ドキュメント
 
 - [X] Tone.js 削除、Web Audio API + AudioWorklet 一本化
 - [X] マイルストーン M1〜M4、折りたたみ設定 UI、ディレクトリ方針をドキュメント化
 - [X] `docs/original-analysis.md` / `web-spec.md` / `web-design.md`
-- [X] 旧 spec/design 削除、参照パス更新
-- [X] lint-staged 修正（vitest タスク空時は `[]` を返す）
+- [X] `docs/ui-mapping.md` — 電子 / 形状 / 配置を分離した UI 対応表
+- [X] `docs/hardware-layout.md` — 座標系・投影メモ
 
 TDD 基盤・設定ドメイン
 
 - [X] Vitest / Testing Library / coverage 基盤
 - [X] `src/domain/config/`（Zod + ConfigManager + テスト）
 
-オリジナル分析・初期設計
-
-- [X] オリジナル C++ 分析、AudioWorklet 方針、2 波形構造の整理
-
 ## 技術判断（確定済み）
+
+ドキュメント管轄の詳細: [docs/README.md](docs/README.md)
 
 | 項目 | 決定 |
 | --- | --- |
@@ -71,11 +179,25 @@ TDD 基盤・設定ドメイン
 | Worklet | TypeScript（`?worker&url`） |
 | バッファ | SharedArrayBuffer 優先 / postMessage フォールバック |
 | GitHub Pages | coi-serviceworker を M1 スパイクで検証済み |
-| 設定 UI | M1 から折りたたみ `ConfigPanel` 常設。プリセット・JSON は M4 |
+| 設定 UI | M1 から折りたたみ `ConfigPanel` 常設。**演奏用 UI は `PlayerControlSurface`** |
+| **UI 配置の正本** | **`docs/layout-specs/<variant>/layout.html`（kebab-case + `-a`/`-b`）** |
+| **Web 配置実装** | **`PlayerModule`（6×12）×2 + `original-layout.ts` / `new-layout.ts`** |
+| **電子的つながりの正本** | **`ui-mapping.md` · `original-analysis.md`** |
+| **UI バリアント** | **`original` / `new` を `uiStore.hardwareVariant` で切替** |
+| **プレイヤー配置** | **`uiStore.playerLayout`（`facing` / `stacked` / `solo`）** |
+| **配置 vs 機能** | **M2.5=配置確定、M3=機能配線** |
 | ディレクトリ | `src/features/synth-engine/` + `src/stores/` + `src/domain/` |
 
 ## 振り返り
 
-- M1 スパイク完了（`feature/update-dev-env` ブランチ）。`?worker&url` で TS Worklet を `addModule` 可能。coi-serviceworker + 静的配信（COOP/COEP ヘッダーなし）で `crossOriginIsolated` / `SharedArrayBuffer` / AudioWorklet テスト成功。
-- スパイク診断で Worklet 経由の 440Hz 音声出力・GainNode 音量調節（再生/停止）を確認。
-- 次: M1 本体（`SynthEngine` 骨格、`recording-processor` 等）へ着手。診断 UI（`App.tsx`）は本実装時に置き換え。
+- M1 スパイク完了。`?worker&url` + coi-serviceworker で SharedArrayBuffer / AudioWorklet を確認。
+- M1 本体完了。録音 Worklet → チャンク min/max → Canvas 波形表示、折りたたみ ConfigPanel（音声セクション）、Zustand ストア4つ。
+- M2 コア完了。PGranular 移植、選択 UI、PianoKeyboard、synthStore。
+- M2.5 オリジナル版完了。`PlayerModule` ベースの A/B 配置、向き合い/二段モード、横スライダー、B 側プレースホルダ。
+- M2.5 new 版完了。`NewPlayerModule` + `new-layout.ts`（単一テンプレート）、`VerticalMobileKnob`、C3-C6 鍵盤、`loop-button-*`。
+- M2.5 バリアント切替完了。`uiStore.hardwareVariant` + `playerLayout`、`VariantSwitcher`。
+- M3 完了。ソロモード、ループ/フィルター配線、`BiquadFilterNode`、オシロスコープ、再生カーソル、終点バー、ConfigPanel フィルター/視覚セクション。WaveDisplay 描画修正、フィルター式調整、PianoKeyboard マウス修正、ドキュメント同期。
+- M4 完了。PC キーボードレイアウト（Z-/ + A-L 行）、プリセット/JSON I/O、フルスクリーンボタン、パーティクル演出、Web MIDI（`src/domain/midi/`）。
+- WaveDisplay 描画修正。範囲外グレー着色、カーソル時間アニメーション（`CursorState` + RAF）、ドキュメント同期。
+- PR #31 Copilot レビュー対応。wave-store / synth-store / audio-store / PianoKeyboard の 5 件修正、ドキュメント同期。
+- 設定変更時の状態喪失バグ修正。`LazyParam.invalidate()`、`syncConfig` + `syncSelection`、`ConfigManager` アトミック化、ドキュメント同期。

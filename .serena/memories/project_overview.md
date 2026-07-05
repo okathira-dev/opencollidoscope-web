@@ -17,6 +17,7 @@
 
 - `src/` — アプリケーションソース（`domain/config/` に設定バリデーション実装済み）
 - `opencollidoscope/` — オリジナル C++ ソース（参照用）
+- `opencollidoscope_downloads/` — 公式 Downloads の PDF ミラー（ガイド PDF + CAD 図面 PDF）。バイナリ・3D CAD は `.gitignore` で除外
 - `docs/original-analysis.md` — オリジナル C++ 実装分析
 - `docs/web-spec.md` — Web版実装仕様
 - `docs/web-design.md` — Web版設計書
