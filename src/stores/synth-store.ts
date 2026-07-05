@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { midiNoteToRate } from "../domain/audio/index.ts";
+import type { CollidoscopeConfig } from "../domain/config/index.ts";
 import { GranularSynthesizer } from "../features/synth-engine/granular-synthesizer.ts";
 import {
   clampKeyboardOctaveOffset,
@@ -34,6 +35,25 @@ interface SynthState {
 let synthesizer: GranularSynthesizer | null = null;
 let unsubscribeWaveSelection: (() => void) | null = null;
 let unsubscribeConfig: (() => void) | null = null;
+
+function configAffectsAudioEngine(config: CollidoscopeConfig, prev: CollidoscopeConfig): boolean {
+  return (
+    config.audio !== prev.audio ||
+    config.granular !== prev.granular ||
+    config.envelope !== prev.envelope ||
+    config.filter !== prev.filter
+  );
+}
+
+function configAffectsSelectionBounds(
+  config: CollidoscopeConfig,
+  prev: CollidoscopeConfig,
+): boolean {
+  return (
+    config.audio.chunkCount !== prev.audio.chunkCount ||
+    config.audio.maxSelectionSize !== prev.audio.maxSelectionSize
+  );
+}
 
 function addActiveNote(notes: number[], midiNote: number): number[] {
   if (notes.includes(midiNote)) {
@@ -95,9 +115,13 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
     unsubscribeWaveSelection = subscribeWaveSelection(() => {
       getSynthStoreState().syncSelection();
     });
-    unsubscribeConfig = subscribeConfig(() => {
-      getWaveStoreState().clampSelectionToConfig();
-      getSynthStoreState().syncConfig();
+    unsubscribeConfig = subscribeConfig((config, prev) => {
+      if (configAffectsSelectionBounds(config, prev)) {
+        getWaveStoreState().clampSelectionToConfig();
+      }
+      if (configAffectsAudioEngine(config, prev)) {
+        getSynthStoreState().syncConfig();
+      }
     });
 
     set({ isInitialized: true });

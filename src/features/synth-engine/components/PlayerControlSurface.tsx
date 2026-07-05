@@ -1,12 +1,12 @@
 import { Box, Typography } from "@mui/material";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import {
   useIsRecording,
   useStartRecording,
   useStopRecording,
 } from "../../../stores/audio-store.ts";
-import { useConfig, useConfigAudio } from "../../../stores/config-store.ts";
+import { useConfigAudio, useConfigGranularDurationRange } from "../../../stores/config-store.ts";
 import {
   useFilterCutoff,
   useGrainDurationCoeff,
@@ -16,7 +16,7 @@ import {
   useSetLoopEnabled,
 } from "../../../stores/synth-store.ts";
 import type { HardwareVariant, PlayerLayout } from "../../../stores/ui-store.ts";
-import { useWaveSelection } from "../../../stores/wave-store.ts";
+import { useWaveSelectionIsNull } from "../../../stores/wave-store.ts";
 import { PLAYER_A_COLOR, PLAYER_B_COLOR } from "../original-layout.ts";
 import { NewPlayerModule } from "./NewPlayerModule.tsx";
 import { PlayerModule } from "./PlayerModule.tsx";
@@ -36,7 +36,7 @@ function shouldRotatePlayerB(playerLayout: PlayerLayout): boolean {
   return playerLayout === "facing" || playerLayout === "solo";
 }
 
-export function PlayerControlSurface({
+function PlayerControlSurfaceComponent({
   disabled = false,
   hasRecordedBuffer = false,
   isSynthInitialized = false,
@@ -44,12 +44,12 @@ export function PlayerControlSurface({
   playerLayout = "facing",
   variant = "original",
 }: PlayerControlSurfaceProps) {
-  const config = useConfig();
+  const durationRange = useConfigGranularDurationRange();
   const audioConfig = useConfigAudio();
   const isRecording = useIsRecording();
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
-  const selection = useWaveSelection();
+  const selectionIsNull = useWaveSelectionIsNull();
   const grainDurationCoeff = useGrainDurationCoeff();
   const setGrainDurationCoeff = useSetGrainDurationCoeff();
   const filterCutoff = useFilterCutoff();
@@ -57,7 +57,7 @@ export function PlayerControlSurface({
   const loopEnabled = useLoopEnabled();
   const setLoopEnabled = useSetLoopEnabled();
 
-  const selectionDisabled = disabled || selection.isNull;
+  const selectionDisabled = disabled || selectionIsNull;
   const pianoDisabled = !hasRecordedBuffer || !isSynthInitialized;
   const ModuleComponent = variant === "new" ? NewPlayerModule : PlayerModule;
 
@@ -93,8 +93,8 @@ export function PlayerControlSurface({
       selectionDisabled
       grainDurationCoeff={grainDurationCoeff}
       onDurationChange={() => {}}
-      durationMin={config.granular.grainDurationRange.min}
-      durationMax={config.granular.grainDurationRange.max}
+      durationMin={durationRange.min}
+      durationMax={durationRange.max}
       filterValue={0}
       onFilterChange={() => {}}
       filterDisabled
@@ -179,8 +179,8 @@ export function PlayerControlSurface({
             selectionDisabled={selectionDisabled}
             grainDurationCoeff={grainDurationCoeff}
             onDurationChange={handleDurationChange}
-            durationMin={config.granular.grainDurationRange.min}
-            durationMax={config.granular.grainDurationRange.max}
+            durationMin={durationRange.min}
+            durationMax={durationRange.max}
             filterValue={filterCutoff}
             onFilterChange={setFilterCutoff}
             loopEnabled={loopEnabled}
@@ -195,3 +195,5 @@ export function PlayerControlSurface({
     </Box>
   );
 }
+
+export const PlayerControlSurface = memo(PlayerControlSurfaceComponent);

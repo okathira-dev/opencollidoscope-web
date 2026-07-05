@@ -35,3 +35,19 @@ export function drawOscilloscope(
 export function createOscilloscopeBuffer(analyser: AnalyserNode): Uint8Array<ArrayBuffer> {
   return new Uint8Array(analyser.fftSize);
 }
+
+const SILENCE_THRESHOLD = 2;
+
+/** オシロスコープ波形が無音（中央値付近）かどうか */
+export function isOscilloscopeSilent(
+  analyser: AnalyserNode,
+  dataBuffer: Uint8Array<ArrayBuffer>,
+): boolean {
+  analyser.getByteTimeDomainData(dataBuffer);
+  for (let i = 0; i < dataBuffer.length; i++) {
+    if (Math.abs((dataBuffer[i] ?? 128) - 128) > SILENCE_THRESHOLD) {
+      return false;
+    }
+  }
+  return true;
+}

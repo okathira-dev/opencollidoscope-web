@@ -1,4 +1,4 @@
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 import { handleKnobWheel } from "../knob-controls.ts";
 
@@ -11,6 +11,11 @@ export function useKnobWheel(
   durationStep: number,
   enabled = true,
 ): void {
+  const durationValueRef = useRef(durationValue);
+  durationValueRef.current = durationValue;
+  const onDurationChangeRef = useRef(onDurationChange);
+  onDurationChangeRef.current = onDurationChange;
+
   useEffect(() => {
     const element = elementRef.current;
     if (!element || !enabled) {
@@ -20,8 +25,8 @@ export function useKnobWheel(
     const onWheel = (event: WheelEvent) => {
       handleKnobWheel(
         event,
-        durationValue,
-        onDurationChange,
+        durationValueRef.current,
+        onDurationChangeRef.current,
         durationMin,
         durationMax,
         durationStep,
@@ -30,13 +35,5 @@ export function useKnobWheel(
 
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => element.removeEventListener("wheel", onWheel);
-  }, [
-    durationMax,
-    durationMin,
-    durationStep,
-    durationValue,
-    elementRef,
-    enabled,
-    onDurationChange,
-  ]);
+  }, [durationMax, durationMin, durationStep, elementRef, enabled]);
 }

@@ -33,15 +33,23 @@ const useConfigStoreInternal = create<ConfigState>((set) => ({
   configManager,
   presets: syncPresetsFromManager(),
   applyConfig: (updates) => {
+    const prev = configManager.getConfig();
     configManager.applyConfig(updates);
-    set({ config: configManager.getConfig() });
+    const next = configManager.getConfig();
+    if (next !== prev) {
+      set({ config: next });
+    }
   },
   persistConfig: () => {
     configManager.persistConfig();
   },
   updateConfig: (updates) => {
+    const prev = configManager.getConfig();
     configManager.updateConfig(updates);
-    set({ config: configManager.getConfig() });
+    const next = configManager.getConfig();
+    if (next !== prev) {
+      set({ config: next });
+    }
   },
   resetConfig: () => {
     configManager.resetConfig();
@@ -75,6 +83,22 @@ export function useConfig(): CollidoscopeConfig {
 
 export function useConfigAudio() {
   return useConfigStoreInternal((state) => state.config.audio);
+}
+
+export function useConfigChunkCount(): number {
+  return useConfigStoreInternal((state) => state.config.audio.chunkCount);
+}
+
+export function useConfigWaveLength(): number {
+  return useConfigStoreInternal((state) => state.config.audio.waveLength);
+}
+
+export function useConfigCursorColor(): string {
+  return useConfigStoreInternal((state) => state.config.visual.colors.cursor);
+}
+
+export function useConfigGranularDurationRange() {
+  return useConfigStoreInternal((state) => state.config.granular.grainDurationRange);
 }
 
 export function useConfigMicInput() {
@@ -125,10 +149,12 @@ export function getConfigState(): ConfigState {
   return useConfigStoreInternal.getState();
 }
 
-export function subscribeConfig(listener: (config: CollidoscopeConfig) => void): () => void {
+export function subscribeConfig(
+  listener: (config: CollidoscopeConfig, prev: CollidoscopeConfig) => void,
+): () => void {
   return useConfigStoreInternal.subscribe((state, prev) => {
     if (state.config !== prev.config) {
-      listener(state.config);
+      listener(state.config, prev.config);
     }
   });
 }

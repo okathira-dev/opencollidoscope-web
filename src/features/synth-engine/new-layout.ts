@@ -32,7 +32,8 @@ export function playerModuleTemplate(zone: NewLayoutZone, display: "red" | "yell
 }
 
 /** グリッドの縦の配分（display 3 行 + wavejet + 鍵盤 2 行） */
-export const NEW_PLAYER_MODULE_GRID_ROWS = "1fr 1fr 1fr auto auto auto";
+export const NEW_PLAYER_MODULE_GRID_ROWS =
+  "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto auto auto";
 
 /** グリッドの横の配分（端コントロール + オクターブ + 鍵盤 10 列） */
 export const NEW_PLAYER_MODULE_GRID_COLUMNS = "auto auto repeat(10, 1fr)";

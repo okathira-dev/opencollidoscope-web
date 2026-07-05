@@ -32,7 +32,6 @@ function createMidiActions() {
         return;
       }
       waveState.setSelection(start, waveState.selection.size);
-      getSynthStoreState().syncSelection();
     },
     setSelectionSize: (size: number) => {
       const waveState = getWaveStoreState();
@@ -40,7 +39,6 @@ function createMidiActions() {
         return;
       }
       waveState.setSelection(waveState.selection.start, size);
-      getSynthStoreState().syncSelection();
     },
     setGrainDurationCoeff: (coeff: number) => {
       getSynthStoreState().setGrainDurationCoeff(coeff);

@@ -32,6 +32,7 @@ interface WaveState {
   particleTriggerTick: number;
   initChunks: (count: number) => void;
   setChunk: (index: number, min: number, max: number) => void;
+  setChunks: (chunks: ChunkData[]) => void;
   clearChunks: () => void;
   setSelection: (start: number, size: number) => void;
   clearSelection: () => void;
@@ -74,11 +75,19 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     if (index < 0 || index >= get().chunks.length) {
       return;
     }
+    const existing = get().chunks[index];
+    if (existing && existing.min === min && existing.max === max) {
+      return;
+    }
     set((state) => {
       const chunks = [...state.chunks];
       chunks[index] = { min, max, updatedAt: performance.now() };
       return { chunks };
     });
+  },
+
+  setChunks: (chunks) => {
+    set({ chunks });
   },
 
   clearChunks: () =>
@@ -94,6 +103,14 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     const clampedSize = Math.max(1, Math.min(size, maxSize));
     const maxStart = Math.max(0, chunkCount - clampedSize);
     const clampedStart = Math.max(0, Math.min(start, maxStart));
+    const { selection: current } = get();
+    if (
+      current.start === clampedStart &&
+      current.size === clampedSize &&
+      current.isNull === chunkCount <= 0
+    ) {
+      return;
+    }
 
     set({
       selection: {
@@ -142,6 +159,16 @@ export function useWaveChunkCount(): number {
 
 export function useWaveSelection(): WaveSelection {
   return useWaveStoreInternal((state) => state.selection);
+}
+
+export function useWaveSelectionIsNull(): boolean {
+  return useWaveStoreInternal((state) => state.selection.isNull);
+}
+
+export function subscribeWaveStore(
+  listener: (state: WaveState, prev: WaveState) => void,
+): () => void {
+  return useWaveStoreInternal.subscribe(listener);
 }
 
 export function useSetWaveSelection() {

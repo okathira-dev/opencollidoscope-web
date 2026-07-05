@@ -22,6 +22,11 @@ export class ConfigManager {
   }
 
   getConfig(): CollidoscopeConfig {
+    return this.config;
+  }
+
+  /** 外部へ渡す用途（export 等）向けのディープコピー */
+  cloneConfig(): CollidoscopeConfig {
     return structuredClone(this.config);
   }
 

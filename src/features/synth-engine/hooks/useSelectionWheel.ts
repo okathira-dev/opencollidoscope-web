@@ -1,11 +1,10 @@
 import { type RefObject, useEffect } from "react";
 
-import type { WaveSelection } from "../../../stores/wave-store.ts";
+import { getWaveStoreState } from "../../../stores/wave-store.ts";
 import { handleSelectionWheel, type SetWaveSelection } from "../selection-controls.ts";
 
 export function useSelectionWheel(
   elementRef: RefObject<HTMLElement | null>,
-  selection: WaveSelection,
   setSelection: SetWaveSelection,
   enabled = true,
 ): void {
@@ -16,10 +15,10 @@ export function useSelectionWheel(
     }
 
     const onWheel = (event: WheelEvent) => {
-      handleSelectionWheel(event, selection, setSelection);
+      handleSelectionWheel(event, getWaveStoreState().selection, setSelection);
     };
 
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => element.removeEventListener("wheel", onWheel);
-  }, [elementRef, enabled, selection, setSelection]);
+  }, [elementRef, enabled, setSelection]);
 }

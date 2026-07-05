@@ -3,7 +3,7 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import GrainIcon from "@mui/icons-material/Grain";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import { Box, Switch, Typography } from "@mui/material";
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 import {
   type OriginalLayoutZone,
@@ -58,7 +58,7 @@ function slotSx(gridArea: string) {
 
 const iconSx = { fontSize: 18, color: "text.secondary" } as const;
 
-export function PlayerModule({
+function PlayerModuleComponent({
   zone,
   displayColor,
   color,
@@ -106,13 +106,23 @@ export function PlayerModule({
           ...slotSx(`display-${displayColor}`),
           p: 0,
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
         }}
       >
         {displayContent}
       </Box>
 
       {/* ---- Record / Mic ---- */}
-      <Box sx={{ ...slotSx(s("record-button")), opacity: interactive ? 1 : 0.4 }}>
+      <Box
+        sx={{
+          ...slotSx(s("record-button")),
+          opacity: interactive ? 1 : 0.4,
+          minHeight: 108,
+          alignItems: "center",
+        }}
+      >
         <RecordButton
           isRecording={isRecording}
           onToggle={onRecordToggle}
@@ -228,3 +238,5 @@ export function PlayerModule({
     </Box>
   );
 }
+
+export const PlayerModule = memo(PlayerModuleComponent);

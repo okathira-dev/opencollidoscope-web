@@ -36,7 +36,7 @@ import {
   useSetPlayerLayout,
   useToggleFullscreen,
 } from "../../stores/ui-store.ts";
-import { useWaveSelection } from "../../stores/wave-store.ts";
+import { useWaveSelectionIsNull } from "../../stores/wave-store.ts";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
 import { PlayerControlSurface } from "./components/PlayerControlSurface.tsx";
 import { VariantSwitcher } from "./components/VariantSwitcher.tsx";
@@ -55,7 +55,7 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
   const initializeSynth = useInitializeSynth();
   const syncSynthBuffer = useSyncSynthBuffer();
   const syncSynthSelection = useSyncSynthSelection();
-  const selection = useWaveSelection();
+  const selectionIsNull = useWaveSelectionIsNull();
   const hardwareVariant = useHardwareVariant();
   const playerLayout = usePlayerLayout();
   const setPlayerLayout = useSetPlayerLayout();
@@ -96,7 +96,7 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
     };
   }, [isSynthInitialized, initializeMidi, disposeMidi]);
 
-  const hasRecordedBuffer = recordedBuffer !== null && !selection.isNull;
+  const hasRecordedBuffer = recordedBuffer !== null && !selectionIsNull;
 
   return (
     <Box

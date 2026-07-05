@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 import {
   NEW_PLAYER_MODULE_GRID_COLUMNS,
@@ -53,7 +53,7 @@ function slotSx(gridArea: string) {
   } as const;
 }
 
-export function NewPlayerModule({
+function NewPlayerModuleComponent({
   zone,
   displayColor,
   color,
@@ -100,12 +100,22 @@ export function NewPlayerModule({
           ...slotSx(`display-${displayColor}`),
           p: 0,
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
         }}
       >
         {displayContent}
       </Box>
 
-      <Box sx={{ ...slotSx(s("record-button")), opacity: interactive ? 1 : 0.4 }}>
+      <Box
+        sx={{
+          ...slotSx(s("record-button")),
+          opacity: interactive ? 1 : 0.4,
+          minHeight: 108,
+          alignItems: "center",
+        }}
+      >
         <RecordButton
           isRecording={isRecording}
           onToggle={onRecordToggle}
@@ -196,3 +206,5 @@ export function NewPlayerModule({
     </Box>
   );
 }
+
+export const NewPlayerModule = memo(NewPlayerModuleComponent);

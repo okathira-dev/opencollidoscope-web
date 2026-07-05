@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
   useActiveNotes,
@@ -40,7 +40,7 @@ interface PianoKeyboardProps {
   octaveCount?: number;
 }
 
-export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboardProps) {
+function PianoKeyboardComponent({ disabled = false, octaveCount = 2 }: PianoKeyboardProps) {
   const noteOn = useNoteOn();
   const noteOff = useNoteOff();
   const activeNotes = useActiveNotes();
@@ -305,3 +305,5 @@ export function PianoKeyboard({ disabled = false, octaveCount = 2 }: PianoKeyboa
     </Box>
   );
 }
+
+export const PianoKeyboard = memo(PianoKeyboardComponent);

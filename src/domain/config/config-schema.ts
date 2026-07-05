@@ -170,38 +170,67 @@ export function mergeCollidoscopeConfig(
   base: CollidoscopeConfig,
   updates: PartialCollidoscopeConfig,
 ): CollidoscopeConfig {
-  return {
-    audio: { ...base.audio, ...updates.audio },
-    micInput: { ...base.micInput, ...updates.micInput },
-    granular: {
+  const audio = updates.audio !== undefined ? { ...base.audio, ...updates.audio } : base.audio;
+
+  const micInput =
+    updates.micInput !== undefined ? { ...base.micInput, ...updates.micInput } : base.micInput;
+
+  let granular = base.granular;
+  if (updates.granular !== undefined) {
+    granular = {
       ...base.granular,
       ...updates.granular,
-      grainDurationRange: {
-        ...base.granular.grainDurationRange,
-        ...updates.granular?.grainDurationRange,
-      },
-    },
-    envelope: { ...base.envelope, ...updates.envelope },
-    filter: { ...base.filter, ...updates.filter },
-    visual: {
+      grainDurationRange:
+        updates.granular.grainDurationRange !== undefined
+          ? { ...base.granular.grainDurationRange, ...updates.granular.grainDurationRange }
+          : base.granular.grainDurationRange,
+    };
+  }
+
+  const envelope =
+    updates.envelope !== undefined ? { ...base.envelope, ...updates.envelope } : base.envelope;
+
+  const filter = updates.filter !== undefined ? { ...base.filter, ...updates.filter } : base.filter;
+
+  let visual = base.visual;
+  if (updates.visual !== undefined) {
+    visual = {
       ...base.visual,
       ...updates.visual,
-      colors: {
-        ...base.visual.colors,
-        ...updates.visual?.colors,
-      },
-    },
-    midi: {
+      colors:
+        updates.visual.colors !== undefined
+          ? { ...base.visual.colors, ...updates.visual.colors }
+          : base.visual.colors,
+    };
+  }
+
+  let midi = base.midi;
+  if (updates.midi !== undefined) {
+    midi = {
       ...base.midi,
       ...updates.midi,
-      pitchBendRange: {
-        ...base.midi.pitchBendRange,
-        ...updates.midi?.pitchBendRange,
-      },
-      ccMappings: {
-        ...base.midi.ccMappings,
-        ...updates.midi?.ccMappings,
-      },
-    },
-  };
+      pitchBendRange:
+        updates.midi.pitchBendRange !== undefined
+          ? { ...base.midi.pitchBendRange, ...updates.midi.pitchBendRange }
+          : base.midi.pitchBendRange,
+      ccMappings:
+        updates.midi.ccMappings !== undefined
+          ? { ...base.midi.ccMappings, ...updates.midi.ccMappings }
+          : base.midi.ccMappings,
+    };
+  }
+
+  if (
+    audio === base.audio &&
+    micInput === base.micInput &&
+    granular === base.granular &&
+    envelope === base.envelope &&
+    filter === base.filter &&
+    visual === base.visual &&
+    midi === base.midi
+  ) {
+    return base;
+  }
+
+  return { audio, micInput, granular, envelope, filter, visual, midi };
 }

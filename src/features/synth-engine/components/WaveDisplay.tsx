@@ -1,21 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { selectionAlphaFromFilter } from "../../../domain/audio/index.ts";
-import { useConfig } from "../../../stores/config-store.ts";
+import { getAudioStoreState, subscribeRecordingStatus } from "../../../stores/audio-store.ts";
+import {
+  useConfigChunkCount,
+  useConfigCursorColor,
+  useConfigWaveLength,
+} from "../../../stores/config-store.ts";
 import { useAnalyserNode, useGrainDurationCoeff } from "../../../stores/synth-store.ts";
 import {
   type ChunkData,
   type CursorState,
+  getWaveStoreState,
+  subscribeWaveStore,
   useParticleTriggerTick,
   useSetWaveSelection,
-  useWaveChunks,
-  useWaveCursors,
-  useWaveSelection,
+  useWaveSelectionIsNull,
   type WaveSelection,
 } from "../../../stores/wave-store.ts";
 import { useSelectionWheel } from "../hooks/useSelectionWheel.ts";
 import { ParticleSystem } from "../particle-system.ts";
-import { createOscilloscopeBuffer, drawOscilloscope } from "./Oscilloscope.tsx";
+import {
+  createOscilloscopeBuffer,
+  drawOscilloscope,
+  isOscilloscopeSilent,
+} from "./Oscilloscope.tsx";
 
 const CHUNK_WIDTH = 7;
 const CHUNK_STEP = 9;
@@ -24,11 +33,26 @@ const ANIMATION_FRAME_MS = 16;
 const KNOB_RADIUS = 8;
 const OUT_OF_SELECTION_COLOR = "#808080";
 
+/** カーソルインデックス計算用 — フレームごとに clear して再利用 */
+const cursorIndexPool = new Set<number>();
+
 interface WaveDisplayProps {
   color: string;
   filterCutoff?: number;
   height?: string | number;
   minHeight?: number;
+}
+
+interface RenderSnapshot {
+  chunks: ChunkData[];
+  selection: WaveSelection;
+  cursors: Record<number, CursorState>;
+  color: string;
+  filterCutoff: number;
+  chunkCount: number;
+  cursorColor: string;
+  secondsPerChunk: number;
+  analyserNode: AnalyserNode | null;
 }
 
 function getAnimationScale(updatedAt: number, now: number): number {
@@ -83,20 +107,15 @@ function colorWithAlpha(hexColor: string, alpha: number): string {
   return `${hexColor}${alphaHex}`;
 }
 
-/**
- * 各ボイスのカーソルを現在のチャンクインデックスに変換する。
- * 壁時計と secondsPerChunk (= waveLength / chunkCount) で進行し、
- * MIDI ノートの再生レート (ピッチ) には連動しない演出用の位置。
- */
 function computeCursorIndices(
   cursors: Record<number, CursorState>,
   selection: WaveSelection,
   now: number,
   secondsPerChunk: number,
 ): Set<number> {
-  const indices = new Set<number>();
+  cursorIndexPool.clear();
   if (selection.isNull) {
-    return indices;
+    return cursorIndexPool;
   }
 
   const selectionEnd = selection.start + selection.size - 1;
@@ -106,11 +125,11 @@ function computeCursorIndices(
     const elapsed = now - cursor.startTime;
     const pos = cursor.startChunk + Math.floor(elapsed / msPerChunk);
     if (pos <= selectionEnd) {
-      indices.add(pos);
+      cursorIndexPool.add(pos);
     }
   }
 
-  return indices;
+  return cursorIndexPool;
 }
 
 function drawSelectionBars(
@@ -123,12 +142,12 @@ function drawSelectionBars(
     return;
   }
 
+  const barColor = colorWithAlpha(color, 0.5);
   const startBarX = selection.start * CHUNK_STEP;
-  ctx.fillStyle = colorWithAlpha(color, 0.5);
+  ctx.fillStyle = barColor;
   ctx.fillRect(startBarX, 0, CHUNK_WIDTH, height);
 
   const endBarX = selectionEndChunkIndex(selection) * CHUNK_STEP;
-  ctx.fillStyle = colorWithAlpha(color, 0.5);
   ctx.fillRect(endBarX, 0, CHUNK_WIDTH, height);
 
   const knobX = selectionKnobX(selection.start);
@@ -146,26 +165,40 @@ function drawSelectionBars(
   ctx.stroke();
 }
 
+function hasActiveChunkAnimation(chunks: ChunkData[], now: number): boolean {
+  const maxAge = ANIMATION_FRAMES * ANIMATION_FRAME_MS;
+  for (const chunk of chunks) {
+    if (chunk.updatedAt > 0 && now - chunk.updatedAt < maxAge) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function drawChunks(
   ctx: CanvasRenderingContext2D,
-  chunks: ChunkData[],
-  selection: WaveSelection,
-  color: string,
+  snapshot: RenderSnapshot,
   width: number,
   height: number,
   now: number,
-  filterCutoff: number,
-  cursors: Record<number, CursorState>,
-  cursorColor: string,
-  secondsPerChunk: number,
-  analyser: AnalyserNode | null,
   oscilloscopeBuffer: Uint8Array<ArrayBuffer> | null,
   particleSystem: ParticleSystem,
 ): void {
+  const {
+    chunks,
+    selection,
+    color,
+    filterCutoff,
+    cursors,
+    cursorColor,
+    secondsPerChunk,
+    analyserNode,
+  } = snapshot;
   const centerY = height / 2;
   const maxBarHeight = (height * 3) / 5 / 2;
   const cursorIndices = computeCursorIndices(cursors, selection, now, secondsPerChunk);
   const selectionAlpha = selectionAlphaFromFilter(filterCutoff);
+  const selectionFillStyle = colorWithAlpha(color, selectionAlpha);
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#000000";
@@ -177,8 +210,8 @@ function drawChunks(
   ctx.lineTo(width, centerY);
   ctx.stroke();
 
-  if (analyser && oscilloscopeBuffer) {
-    drawOscilloscope(ctx, analyser, width, height, oscilloscopeBuffer);
+  if (analyserNode && oscilloscopeBuffer) {
+    drawOscilloscope(ctx, analyserNode, width, height, oscilloscopeBuffer);
   }
 
   particleSystem.draw(ctx, cursorColor);
@@ -204,7 +237,7 @@ function drawChunks(
     if (cursorIndices.has(index)) {
       ctx.fillStyle = cursorColor;
     } else if (isInSelection(index, selection)) {
-      ctx.fillStyle = colorWithAlpha(color, selectionAlpha);
+      ctx.fillStyle = selectionFillStyle;
     } else {
       ctx.fillStyle = OUT_OF_SELECTION_COLOR;
     }
@@ -213,55 +246,53 @@ function drawChunks(
   }
 }
 
-export function WaveDisplay({
+function WaveDisplayComponent({
   color,
   filterCutoff = 127,
   height = "40vh",
   minHeight = 200,
 }: WaveDisplayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const oscilloscopeBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const particleSystemRef = useRef<ParticleSystem>(new ParticleSystem());
-  const chunks = useWaveChunks();
-  const selection = useWaveSelection();
-  const cursors = useWaveCursors();
-  const particleTriggerTick = useParticleTriggerTick();
-  const grainDurationCoeff = useGrainDurationCoeff();
-  const setSelection = useSetWaveSelection();
-  const config = useConfig();
-  const analyserNode = useAnalyserNode();
-  const secondsPerChunk = config.audio.waveLength / config.audio.chunkCount;
+  const snapshotRef = useRef<RenderSnapshot>({
+    chunks: [],
+    selection: { start: 0, size: 1, isNull: true },
+    cursors: {},
+    color,
+    filterCutoff,
+    chunkCount: 150,
+    cursorColor: "#FFFFFF",
+    secondsPerChunk: 2 / 150,
+    analyserNode: null,
+  });
   const animationFrameRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
   const dragOffsetChunksRef = useRef(0);
+  const isRecordingRef = useRef(false);
+
+  const selectionIsNull = useWaveSelectionIsNull();
+  const particleTriggerTick = useParticleTriggerTick();
+  const grainDurationCoeff = useGrainDurationCoeff();
+  const setSelection = useSetWaveSelection();
+  const chunkCount = useConfigChunkCount();
+  const waveLength = useConfigWaveLength();
+  const cursorColor = useConfigCursorColor();
+  const analyserNode = useAnalyserNode();
   const [isDragging, setIsDragging] = useState(false);
 
-  useSelectionWheel(canvasRef, selection, setSelection, !selection.isNull);
+  useSelectionWheel(canvasRef, setSelection, !selectionIsNull);
 
+  // 描画スナップショット ref を同期
   useEffect(() => {
-    if (particleTriggerTick === 0) {
-      return;
-    }
-    if (selection.isNull || grainDurationCoeff <= 1) {
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    const canvasHeight = canvas?.clientHeight ?? minHeight;
-    const selectionEnd = selection.start + selection.size - 1;
-
-    particleSystemRef.current.addParticles(
-      {
-        particleSpread: grainDurationCoeff,
-        filterCoeff: filterCutoff / 127,
-        selectionStart: selection.start,
-        selectionEnd,
-        canvasHeight,
-      },
-      CHUNK_STEP,
-      CHUNK_WIDTH,
-    );
-  }, [particleTriggerTick, grainDurationCoeff, selection, filterCutoff, minHeight]);
+    snapshotRef.current.color = color;
+    snapshotRef.current.filterCutoff = filterCutoff;
+    snapshotRef.current.chunkCount = chunkCount;
+    snapshotRef.current.cursorColor = cursorColor;
+    snapshotRef.current.secondsPerChunk = waveLength / chunkCount;
+    snapshotRef.current.analyserNode = analyserNode;
+  }, [color, filterCutoff, chunkCount, cursorColor, waveLength, analyserNode]);
 
   useEffect(() => {
     if (analyserNode) {
@@ -269,74 +300,162 @@ export function WaveDisplay({
     } else {
       oscilloscopeBufferRef.current = null;
     }
+    snapshotRef.current.analyserNode = analyserNode;
   }, [analyserNode]);
 
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
+  const ensureRafRunning = useCallback(() => {
+    if (animationFrameRef.current !== null) {
       return;
     }
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
+    const renderFrame = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        animationFrameRef.current = null;
+        return;
+      }
 
-    const width = config.audio.chunkCount * CHUNK_STEP + CHUNK_WIDTH;
-    const canvasHeight = canvas.clientHeight;
+      if (!ctxRef.current) {
+        ctxRef.current = canvas.getContext("2d");
+      }
+      const ctx = ctxRef.current;
+      if (!ctx) {
+        animationFrameRef.current = null;
+        return;
+      }
 
-    if (canvas.width !== width || canvas.height !== canvasHeight) {
-      canvas.width = width;
-      canvas.height = canvasHeight;
-    }
+      const snapshot = snapshotRef.current;
+      const width = snapshot.chunkCount * CHUNK_STEP + CHUNK_WIDTH;
+      const canvasHeight = canvas.clientHeight;
 
-    particleSystemRef.current.update();
+      if (canvas.width !== width || canvas.height !== canvasHeight) {
+        canvas.width = width;
+        canvas.height = canvasHeight;
+        ctxRef.current = canvas.getContext("2d");
+      }
+      const drawCtx = ctxRef.current;
+      if (!drawCtx) {
+        animationFrameRef.current = null;
+        return;
+      }
 
-    drawChunks(
-      ctx,
-      chunks,
-      selection,
-      color,
-      width,
-      canvasHeight,
-      performance.now(),
-      filterCutoff,
-      cursors,
-      config.visual.colors.cursor,
-      secondsPerChunk,
-      analyserNode,
-      oscilloscopeBufferRef.current,
-      particleSystemRef.current,
-    );
-    // オシロスコープ・カーソルスイープ・パーティクルのため常時 rAF。静止時のみ停止する最適化は将来検討。
-    animationFrameRef.current = requestAnimationFrame(render);
-  }, [
-    chunks,
-    selection,
-    color,
-    config.audio.chunkCount,
-    config.visual.colors.cursor,
-    filterCutoff,
-    cursors,
-    analyserNode,
-    secondsPerChunk,
-  ]);
+      const now = performance.now();
+      particleSystemRef.current.update();
 
+      drawChunks(
+        drawCtx,
+        snapshot,
+        width,
+        canvasHeight,
+        now,
+        oscilloscopeBufferRef.current,
+        particleSystemRef.current,
+      );
+
+      const hasCursors = Object.keys(snapshot.cursors).length > 0;
+      const hasParticles = particleSystemRef.current.getActiveCount() > 0;
+      const hasChunkAnim = hasActiveChunkAnimation(snapshot.chunks, now);
+      const analyser = snapshot.analyserNode;
+      const oscBuffer = oscilloscopeBufferRef.current;
+      const hasSignal = analyser && oscBuffer ? !isOscilloscopeSilent(analyser, oscBuffer) : false;
+
+      if (
+        !isDraggingRef.current &&
+        !isRecordingRef.current &&
+        !hasCursors &&
+        !hasParticles &&
+        !hasChunkAnim &&
+        !hasSignal
+      ) {
+        animationFrameRef.current = null;
+        return;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(renderFrame);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(renderFrame);
+  }, []);
+
+  // wave-store / audio-store 購読 — React 再レンダリングなしで ref 更新 + rAF 再開
   useEffect(() => {
-    animationFrameRef.current = requestAnimationFrame(render);
+    const waveState = getWaveStoreState();
+    snapshotRef.current.chunks = waveState.chunks;
+    snapshotRef.current.selection = waveState.selection;
+    snapshotRef.current.cursors = waveState.cursors;
+
+    const unsubscribeWave = subscribeWaveStore((state) => {
+      snapshotRef.current.chunks = state.chunks;
+      snapshotRef.current.selection = state.selection;
+      snapshotRef.current.cursors = state.cursors;
+      ensureRafRunning();
+    });
+
+    isRecordingRef.current = getAudioStoreState().isRecording;
+    const unsubscribeRecording = subscribeRecordingStatus((recording) => {
+      isRecordingRef.current = recording;
+      if (recording) {
+        ensureRafRunning();
+      }
+    });
+
+    ensureRafRunning();
+
+    const canvas = canvasRef.current;
+    const resizeObserver =
+      canvas &&
+      new ResizeObserver(() => {
+        ensureRafRunning();
+      });
+    if (canvas && resizeObserver) {
+      resizeObserver.observe(canvas);
+    }
+
     return () => {
+      unsubscribeWave();
+      unsubscribeRecording();
+      resizeObserver?.disconnect();
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
-  }, [render]);
+  }, [ensureRafRunning]);
+
+  // パーティクル発火 — selection は store から都度取得（ドラッグ中の誤発火防止）
+  useEffect(() => {
+    if (particleTriggerTick === 0) {
+      return;
+    }
+    const currentSelection = getWaveStoreState().selection;
+    if (currentSelection.isNull || grainDurationCoeff <= 1) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const canvasHeight = canvas?.clientHeight ?? minHeight;
+    const selectionEnd = currentSelection.start + currentSelection.size - 1;
+
+    particleSystemRef.current.addParticles(
+      {
+        particleSpread: grainDurationCoeff,
+        filterCoeff: filterCutoff / 127,
+        selectionStart: currentSelection.start,
+        selectionEnd,
+        canvasHeight,
+      },
+      CHUNK_STEP,
+      CHUNK_WIDTH,
+    );
+    ensureRafRunning();
+  }, [particleTriggerTick, grainDurationCoeff, filterCutoff, minHeight, ensureRafRunning]);
 
   const clampStart = useCallback(
     (start: number) => {
-      const maxStart = Math.max(0, config.audio.chunkCount - 1);
+      const maxStart = Math.max(0, chunkCount - 1);
       return Math.max(0, Math.min(start, maxStart));
     },
-    [config.audio.chunkCount],
+    [chunkCount],
   );
 
   const updateStartFromPointer = useCallback(
@@ -350,15 +469,17 @@ export function WaveDisplay({
       const scaleX = canvas.width / rect.width;
       const x = (clientX - rect.left) * scaleX;
       const chunkIndex = chunkIndexFromX(x);
+      const currentSelection = snapshotRef.current.selection;
       const newStart = clampStart(chunkIndex + dragOffsetChunksRef.current);
-      setSelection(newStart, selection.size);
+      setSelection(newStart, currentSelection.size);
     },
-    [clampStart, selection.size, setSelection],
+    [clampStart, setSelection],
   );
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLCanvasElement>) => {
-      if (selection.isNull) {
+      const currentSelection = snapshotRef.current.selection;
+      if (currentSelection.isNull) {
         return;
       }
 
@@ -373,17 +494,18 @@ export function WaveDisplay({
       const y = (event.clientY - rect.top) * (canvas.height / rect.height);
       const chunkIndex = chunkIndexFromX(x);
 
-      dragOffsetChunksRef.current = selection.start - chunkIndex;
+      dragOffsetChunksRef.current = currentSelection.start - chunkIndex;
       isDraggingRef.current = true;
       setIsDragging(true);
       canvas.setPointerCapture(event.pointerId);
+      ensureRafRunning();
 
-      if (!isPointerOverKnob(x, y, selection, canvas.height)) {
+      if (!isPointerOverKnob(x, y, currentSelection, canvas.height)) {
         dragOffsetChunksRef.current = 0;
-        setSelection(clampStart(chunkIndex), selection.size);
+        setSelection(clampStart(chunkIndex), currentSelection.size);
       }
     },
-    [clampStart, selection, setSelection],
+    [clampStart, setSelection, ensureRafRunning],
   );
 
   const handlePointerMove = useCallback(
@@ -416,11 +538,14 @@ export function WaveDisplay({
         width: "100%",
         height,
         minHeight,
+        flex: height === "100%" ? 1 : undefined,
         display: "block",
         backgroundColor: "#000000",
-        cursor: isDragging ? "grabbing" : selection.isNull ? "default" : "grab",
+        cursor: isDragging ? "grabbing" : selectionIsNull ? "default" : "grab",
         touchAction: "none",
       }}
     />
   );
 }
+
+export const WaveDisplay = memo(WaveDisplayComponent);

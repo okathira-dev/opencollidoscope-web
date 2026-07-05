@@ -13,29 +13,72 @@ alwaysApply: true
 2. ロジックを触った場合は `pnpm test`
 
 `pnpm check:fix` や `pnpm biome-check` だけでは不十分（型チェックが含まれない）。
+`pnpm biome check --write` を使った場合も **必ず直後に `pnpm check` を通す**（format だけ成功して parse が壊れていることがある）。
+
+**`pnpm check` が parse エラーで失敗した状態でターンを終えてはならない。**
+
+## パースエラーの典型パターン（Biome `parse`）
+
+波括弧 `{}` の欠落・重複に加え、次も高頻度で発生する。
+
+| 症状 | 原因 |
+| --- | --- |
+| `Expected a semicolon... but found none` がシグネチャ行を指す | 関数ヘッダー直後の `{` 欠落、または `): ReturnType` のあと `{` がない |
+| 同じ引数リスト・戻り値が 2 回並ぶ | 部分 StrReplace でシグネチャが重複（古い行が残った） |
+| `Illegal use of an export declaration not at the top level` | 上記により関数ブロックが閉じず、以降の export がブロック内扱いになる |
+
+### 実例（禁止パターン）
+
+```typescript
+// ❌ シグネチャ重複 + 開き波括弧欠落
+function configAffectsSelectionBounds(
+  config: CollidoscopeConfig,
+  prev: CollidoscopeConfig,
+): boolean {
+  config: CollidoscopeConfig,
+  prev: CollidoscopeConfig,
+): boolean
+  return (...);
+}
+
+// ✅ 関数全体を一塊で置換
+function configAffectsSelectionBounds(
+  config: CollidoscopeConfig,
+  prev: CollidoscopeConfig,
+): boolean {
+  return (...);
+}
+```
 
 ## 部分置換（StrReplace）の注意
 
-パースエラーの主因は、メソッド・クラス・ブロックの **波括弧 `{}` の欠落・重複**。
+パースエラーの主因は、メソッド・クラス・ブロックの **波括弧 `{}` の欠落・重複** と **関数シグネチャの部分置換**。
 
 ### 置換前
 
 - 対象ファイルを Read し、置換範囲の前後数行を確認する
 - `old_string` はファイル内容と**完全一致**させる（インデント・改行を含む）
+- 関数・メソッドを触るときは **シグネチャ行から対応する `}` まで** を置換単位の最小範囲とする
 
-### 置換後
+### 置換後（必須 Read-back）
 
-- 編集したファイルを Read し、以下を目視確認する:
-  - メソッドシグネチャの直後に `{` があるか（`: void` のあと `{` が欠けていないか）
-  - 対応する `}` が閉じているか
-  - 同じメソッド名の重複定義がないか
-  - import が未使用になっていないか
+編集したファイルを Read し、以下を目視確認する:
+
+- メソッドシグネチャの直後に `{` があるか（`: void` / `): boolean` のあと `{` が欠けていないか）
+- **同じ関数の引数・戻り値宣言が二重になっていないか**
+- 対応する `}` が閉じているか
+- 同じメソッド名の重複定義がないか
+- import が未使用になっていないか
+
+疑わしいときは Grep で `function 関数名` / `export function` の出現回数を確認する。
 
 ### 避けるパターン
 
 - クラス内メソッドを部分的に置換し、古い定義が残る
+- 関数シグネチャだけ StrReplace し、本体の `{` や旧シグネチャ行を残す
 - `if` ブロックの `}` だけを置換範囲から漏らす
 - 複数メソッドを一度に置換し、中間の `{` / `}` を壊す
+- format 実行後に Read-back せずターンを終える
 
 ## 大きな変更は Write を検討
 
@@ -46,5 +89,5 @@ alwaysApply: true
 `pnpm check` で parse エラーが出たら:
 
 1. エラー行付近を Read する
-2. 波括弧の対応・重複定義を修正する
-3. 再度 `pnpm check` で確認する
+2. 波括弧の対応・**シグネチャ重複**・重複定義を修正する
+3. 再度 `pnpm check` で確認する（`pnpm check` 成功まで返答しない）

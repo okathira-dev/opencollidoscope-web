@@ -1,7 +1,7 @@
 import { Box, Slider, Typography } from "@mui/material";
-import { useCallback, useRef } from "react";
+import { memo, useCallback, useRef } from "react";
 
-import { useConfig } from "../../../stores/config-store.ts";
+import { useConfigChunkCount } from "../../../stores/config-store.ts";
 import { useSetWaveSelection, useWaveSelection } from "../../../stores/wave-store.ts";
 import { useSelectionWheel } from "../hooks/useSelectionWheel.ts";
 
@@ -9,16 +9,16 @@ export interface SelectionRailProps {
   disabled?: boolean;
 }
 
-export function SelectionRail({ disabled = false }: SelectionRailProps) {
-  const config = useConfig();
+function SelectionRailComponent({ disabled = false }: SelectionRailProps) {
+  const chunkCount = useConfigChunkCount();
   const selection = useWaveSelection();
   const setSelection = useSetWaveSelection();
   const railRef = useRef<HTMLDivElement>(null);
 
   const isEnabled = !disabled && !selection.isNull;
-  useSelectionWheel(railRef, selection, setSelection, isEnabled);
+  useSelectionWheel(railRef, setSelection, isEnabled);
 
-  const maxSelectionStart = Math.max(0, config.audio.chunkCount - 1);
+  const maxSelectionStart = Math.max(0, chunkCount - 1);
 
   const handleStartChange = useCallback(
     (_: Event, value: number | number[]) => {
@@ -69,3 +69,5 @@ export function SelectionRail({ disabled = false }: SelectionRailProps) {
     </Box>
   );
 }
+
+export const SelectionRail = memo(SelectionRailComponent);

@@ -124,11 +124,11 @@ function disconnectRecordingChain(): void {
 function refreshChunksFromBuffer(buffer: Float32Array, chunkCount: number): void {
   const samplesPerChunk = Math.round(buffer.length / chunkCount);
   const waveStore = getWaveStoreState();
-
-  for (let index = 0; index < chunkCount; index++) {
+  const chunks = Array.from({ length: chunkCount }, (_, index) => {
     const { min, max } = computeChunkMinMax(buffer, index, samplesPerChunk);
-    waveStore.setChunk(index, min, max);
-  }
+    return { min, max, updatedAt: performance.now() };
+  });
+  waveStore.setChunks(chunks);
 }
 
 function finalizeRecordedBuffer(buffer: Float32Array | null): Float32Array | null {
@@ -430,6 +430,14 @@ export function useUpdateMicConstraints() {
 
 export function getAudioStoreState(): AudioState {
   return useAudioStoreInternal.getState();
+}
+
+export function subscribeRecordingStatus(listener: (isRecording: boolean) => void): () => void {
+  return useAudioStoreInternal.subscribe((state, prev) => {
+    if (state.isRecording !== prev.isRecording) {
+      listener(state.isRecording);
+    }
+  });
 }
 
 export function getInputAnalyserNode(): AnalyserNode | null {

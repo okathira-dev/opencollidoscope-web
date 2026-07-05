@@ -19,6 +19,16 @@
 
 ## 完了済みタスク
 
+### Wavejet パフォーマンス改善
+
+- [x] WaveDisplay: rAF ループを React deps から切り離し（ref + store subscribe）
+- [x] Zustand セレクタ細粒度化（`useWaveSelectionIsNull`, config 分割セレクタ）
+- [x] `React.memo` 適用（WaveDisplay, SelectionRail, PianoKeyboard, PlayerModule 等）
+- [x] パーティクル誤発火修正、Canvas 描画最適化、アイドル rAF 停止
+- [x] `setSelection` 等値ガード、`setChunks` バッチ化、MIDI 二重 sync 除去
+- [x] `syncConfig` フィールド別分岐、`structuredClone` 除去 + merge 参照保持
+- [x] `pnpm check` / `pnpm test` 通過
+
 ### 設定変更時の状態喪失バグ修正
 
 - [x] `LazyParam.invalidate()` 追加、`updateConfig` 後に全 LazyParam を invalidate

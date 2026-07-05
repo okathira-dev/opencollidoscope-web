@@ -28,8 +28,9 @@ export function playerModuleTemplate(zone: OriginalLayoutZone, display: "red" | 
     .join(" ");
 }
 
-/** グリッドの縦の配分 */
-export const PLAYER_MODULE_GRID_ROWS = "1fr 1fr 1fr auto auto auto";
+/** minmax(0,1fr) で fr 行が内容 min-content に引っ張られて display が縮むのを防ぐ */
+export const PLAYER_MODULE_GRID_ROWS =
+  "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto auto auto";
 
 /** グリッドの横の配分 */
 export const PLAYER_MODULE_GRID_COLUMNS = "auto 1fr 1fr auto repeat(7, 1fr) auto";

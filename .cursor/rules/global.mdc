@@ -39,8 +39,9 @@ alwaysApply: true
 コードを変更したターンでは、**ユーザーへの返答前に必ず `pnpm check` を実行**する（Biome + `tsc` + markdownlint）。
 
 - `pnpm check:fix` だけでは型チェックが走らない。最終確認は常に `pnpm check`。
+- `pnpm biome check --write` 後も同様。**parse エラー（`PARSE_ERROR`）が出たまま返答しない。**
 - ロジック変更時は `pnpm test` も実行する。
-- 詳細手順は [code-edit-verification.mdc](mdc:.cursor/rules/code-edit-verification.mdc) を参照。
+- 詳細手順（シグネチャ重複・Read-back チェックリスト）は [code-edit-verification.mdc](mdc:.cursor/rules/code-edit-verification.mdc) を参照。
 
 ## コミット・PR
 

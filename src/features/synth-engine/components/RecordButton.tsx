@@ -87,7 +87,14 @@ export function RecordButton({
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ textAlign: "center", maxWidth: 100, lineHeight: 1.2 }}
+          sx={{
+            textAlign: "center",
+            minHeight: "2.4em",
+            lineHeight: 1.2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
         >
           {statusText}
         </Typography>

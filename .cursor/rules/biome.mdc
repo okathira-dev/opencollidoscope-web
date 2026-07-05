@@ -23,7 +23,9 @@ alwaysApply: false
 ## エージェント運用
 
 - **コード編集後は必ず `pnpm check` を実行**してからタスク完了とする（詳細は [code-edit-verification.mdc](mdc:.cursor/rules/code-edit-verification.mdc)）。
-- Biome の parse エラーは多くが TypeScript の `{` / `}` 不整合。format だけでは直らないことがある。
+- Biome の parse エラーは多くが TypeScript の `{` / `}` 不整合、または **関数シグネチャの部分置換による重複**。format だけでは直らないことがある。
+- `pnpm biome check --write` 実行後も **必ず `pnpm check`**（parse + tsc）。format 成功 ≠ 構文 OK。
+- parse エラー時は format の再実行より、該当行付近の Read と関数ブロック全体の修正を優先する。
 
 ## Markdown
 
