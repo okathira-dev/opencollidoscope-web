@@ -45,31 +45,31 @@ export function keyboardTopMidi(octaveCount: number): number {
   return KEYBOARD_BASE_MIDI + octaveCount * OCTAVE_SHIFT_SEMITONES;
 }
 
+function buildOctaveKeys(octave: number): { whiteKeys: WhiteKeyDef[]; blackKeys: BlackKeyDef[] } {
+  const whiteKeys: WhiteKeyDef[] = WHITE_SEMITONES_PER_OCTAVE.map((semitone) => ({
+    relativeSemitone: octave * OCTAVE_SHIFT_SEMITONES + semitone,
+    label: noteLabel(semitone),
+  }));
+
+  const blackKeys: BlackKeyDef[] = BLACK_PATTERN.map((pattern) => ({
+    relativeSemitone: octave * OCTAVE_SHIFT_SEMITONES + pattern.semitone,
+    label: noteLabel(pattern.semitone),
+    whiteOffset: octave * 7 + pattern.whiteOffset,
+  }));
+
+  return { whiteKeys, blackKeys };
+}
+
 export function buildKeyboardLayout(octaveCount = 2): {
   whiteKeys: WhiteKeyDef[];
   blackKeys: BlackKeyDef[];
 } {
-  const whiteKeys: WhiteKeyDef[] = [];
-  const blackKeys: BlackKeyDef[] = [];
-
-  for (let octave = 0; octave < octaveCount; octave++) {
-    for (const semitone of WHITE_SEMITONES_PER_OCTAVE) {
-      whiteKeys.push({
-        relativeSemitone: octave * 12 + semitone,
-        label: noteLabel(semitone),
-      });
-    }
-    for (const pattern of BLACK_PATTERN) {
-      blackKeys.push({
-        relativeSemitone: octave * 12 + pattern.semitone,
-        label: noteLabel(pattern.semitone),
-        whiteOffset: octave * 7 + pattern.whiteOffset,
-      });
-    }
-  }
+  const octaveKeys = Array.from({ length: octaveCount }, (_, octave) => buildOctaveKeys(octave));
+  const whiteKeys = octaveKeys.flatMap((keys) => keys.whiteKeys);
+  const blackKeys = octaveKeys.flatMap((keys) => keys.blackKeys);
 
   whiteKeys.push({
-    relativeSemitone: octaveCount * 12,
+    relativeSemitone: octaveCount * OCTAVE_SHIFT_SEMITONES,
     label: "C",
   });
 

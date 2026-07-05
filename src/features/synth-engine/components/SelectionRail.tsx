@@ -2,7 +2,12 @@ import { Box, Slider, Typography } from "@mui/material";
 import { memo, useCallback, useRef } from "react";
 
 import { useConfigChunkCount } from "../../../stores/config-store.ts";
-import { useSetWaveSelection, useWaveSelection } from "../../../stores/wave-store.ts";
+import {
+  isWaveSelectionEmpty,
+  useSetWaveSelection,
+  useWaveSelection,
+} from "../../../stores/wave-store.ts";
+import { unwrapSliderValue } from "../../../utils/slider.ts";
 import { useSelectionWheel } from "../hooks/useSelectionWheel.ts";
 
 export interface SelectionRailProps {
@@ -15,27 +20,29 @@ function SelectionRailComponent({ disabled = false }: SelectionRailProps) {
   const setSelection = useSetWaveSelection();
   const railRef = useRef<HTMLDivElement>(null);
 
-  const isEnabled = !disabled && !selection.isNull;
+  const isEnabled = !disabled && !isWaveSelectionEmpty(selection);
   useSelectionWheel(railRef, setSelection, isEnabled);
 
   const maxSelectionStart = Math.max(0, chunkCount - 1);
+  const selectionStart = selection.kind === "active" ? selection.start : 0;
+  const selectionSize = selection.kind === "active" ? selection.size : 1;
 
   const handleStartChange = useCallback(
     (_: Event, value: number | number[]) => {
-      const start = Array.isArray(value) ? (value[0] ?? selection.start) : value;
-      setSelection(Math.round(start), selection.size);
+      const start = unwrapSliderValue(value, selectionStart);
+      setSelection(Math.round(start), selectionSize);
     },
-    [selection.start, selection.size, setSelection],
+    [selectionStart, selectionSize, setSelection],
   );
 
   return (
     <Box sx={{ px: 1, width: "100%" }}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-        Wavejet: 開始 {selection.start} / サイズ {selection.size} チャンク
+        Wavejet: 開始 {selectionStart} / サイズ {selectionSize} チャンク
       </Typography>
       <Box ref={railRef}>
         <Slider
-          value={selection.start}
+          value={selectionStart}
           min={0}
           max={maxSelectionStart}
           step={1}

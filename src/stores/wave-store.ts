@@ -8,10 +8,10 @@ export interface ChunkData {
   updatedAt: number;
 }
 
-export interface WaveSelection {
-  start: number;
-  size: number;
-  isNull: boolean;
+export type WaveSelection = { kind: "active"; start: number; size: number } | { kind: "empty" };
+
+export function isWaveSelectionEmpty(selection: WaveSelection): selection is { kind: "empty" } {
+  return selection.kind === "empty";
 }
 
 /**
@@ -43,18 +43,21 @@ interface WaveState {
 }
 
 function createDefaultSelection(chunkCount: number, maxSelectionSize: number): WaveSelection {
+  if (chunkCount <= 0) {
+    return { kind: "empty" };
+  }
   const size = Math.min(maxSelectionSize, chunkCount);
   return {
+    kind: "active",
     start: 0,
     size: Math.max(1, size),
-    isNull: chunkCount <= 0,
   };
 }
 
 const useWaveStoreInternal = create<WaveState>((set, get) => ({
   chunks: [],
   chunkCount: 0,
-  selection: { start: 0, size: 1, isNull: true },
+  selection: { kind: "empty" },
   cursors: {},
   particleTriggerTick: 0,
 
@@ -80,9 +83,10 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
       return;
     }
     set((state) => {
-      const chunks = [...state.chunks];
-      chunks[index] = { min, max, updatedAt: performance.now() };
-      return { chunks };
+      const newChunk = { min, max, updatedAt: performance.now() };
+      // Array.with() はエンジンネイティブ実装 (V8/JSC/SpiderMonkey) で最適化済み。
+      // spread + index 代入と同じ O(n) だが単一 native call で完結する。
+      return { chunks: state.chunks.with(index, newChunk) };
     });
   },
 
@@ -93,7 +97,7 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
   clearChunks: () =>
     set((state) => ({
       chunks: state.chunks.map(() => ({ min: 0, max: 0, updatedAt: 0 })),
-      selection: { ...state.selection, isNull: true },
+      selection: { kind: "empty" },
     })),
 
   setSelection: (start, size) => {
@@ -104,31 +108,36 @@ const useWaveStoreInternal = create<WaveState>((set, get) => ({
     const maxStart = Math.max(0, chunkCount - clampedSize);
     const clampedStart = Math.max(0, Math.min(start, maxStart));
     const { selection: current } = get();
+
+    const nextSelection: WaveSelection =
+      chunkCount <= 0
+        ? { kind: "empty" }
+        : { kind: "active", start: clampedStart, size: clampedSize };
+
     if (
-      current.start === clampedStart &&
-      current.size === clampedSize &&
-      current.isNull === chunkCount <= 0
+      current.kind === nextSelection.kind &&
+      current.kind === "active" &&
+      nextSelection.kind === "active" &&
+      current.start === nextSelection.start &&
+      current.size === nextSelection.size
     ) {
       return;
     }
+    if (current.kind === "empty" && nextSelection.kind === "empty") {
+      return;
+    }
 
-    set({
-      selection: {
-        start: clampedStart,
-        size: clampedSize,
-        isNull: chunkCount <= 0,
-      },
-    });
+    set({ selection: nextSelection });
   },
 
   clearSelection: () =>
     set({
-      selection: { start: 0, size: 1, isNull: true },
+      selection: { kind: "empty" },
     }),
 
   clampSelectionToConfig: () => {
     const { selection } = get();
-    if (selection.isNull) {
+    if (selection.kind === "empty") {
       return;
     }
     get().setSelection(selection.start, selection.size);
@@ -162,7 +171,7 @@ export function useWaveSelection(): WaveSelection {
 }
 
 export function useWaveSelectionIsNull(): boolean {
-  return useWaveStoreInternal((state) => state.selection.isNull);
+  return useWaveStoreInternal((state) => state.selection.kind === "empty");
 }
 
 export function subscribeWaveStore(
@@ -189,14 +198,8 @@ export function getWaveStoreState(): WaveState {
 
 export function subscribeWaveSelection(listener: (selection: WaveSelection) => void): () => void {
   return useWaveStoreInternal.subscribe((state, prev) => {
-    const current = state.selection;
-    const previous = prev.selection;
-    if (
-      current.start !== previous.start ||
-      current.size !== previous.size ||
-      current.isNull !== previous.isNull
-    ) {
-      listener(current);
+    if (state.selection !== prev.selection) {
+      listener(state.selection);
     }
   });
 }

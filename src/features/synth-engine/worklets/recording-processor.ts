@@ -1,3 +1,4 @@
+import { NO_CHUNK_REPORTED } from "../../../consts/audio.ts";
 import { computeChunkMinMax, computeFadeGain } from "../../../domain/audio/index.ts";
 import type {
   RecordingCompleteMessage,
@@ -14,7 +15,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
   private samplesPerChunk = 0;
   private fadeSamples = 0;
   private isRecording = false;
-  private lastReportedChunk = -1;
+  private lastReportedChunk = NO_CHUNK_REPORTED;
 
   constructor() {
     super();
@@ -35,7 +36,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
     // オリジナル std::lround(getNumFrames() / mNumChunks) と同じ（BufferToWaveRecorderNode.cpp）
     this.samplesPerChunk = Math.round(this.totalSamples / this.chunkCount);
     this.writeIndex = 0;
-    this.lastReportedChunk = -1;
+    this.lastReportedChunk = NO_CHUNK_REPORTED;
     this.isRecording = true;
 
     if (message.sharedBuffer) {
@@ -83,6 +84,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
       return;
     }
 
+    // 完了したチャンクのみ逐次報告 (incremental report)。
     for (
       let index = this.lastReportedChunk + 1;
       index <= completedUpTo && index < this.chunkCount;
@@ -111,6 +113,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
       return true;
     }
 
+    // perf: process() 内の順次書込み + フェード。buffer[writeIndex] への in-place 代入。
     for (let i = 0; i < input.length; i++) {
       if (this.writeIndex >= this.totalSamples) {
         this.isRecording = false;

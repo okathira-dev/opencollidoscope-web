@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
 import {
+  DEFAULT_SAMPLE_RATE,
+  GAIN_RAMP_TIME_CONSTANT,
+  INPUT_ANALYSER_FFT_SIZE,
+} from "../consts/audio.ts";
+import {
   applyCompressorSettings,
   buildMicMediaConstraints,
   computeBufferLength,
@@ -36,14 +41,99 @@ interface AudioState {
   ) => Promise<void>;
 }
 
+/** マイク入力グラフのノード群を一括管理する */
+class AudioInputGraph {
+  private gainNode: GainNode | null = null;
+  private compressorNode: DynamicsCompressorNode | null = null;
+  private analyserNode: AnalyserNode | null = null;
+  private silentOutputNode: GainNode | null = null;
+  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
+  private compressorEnabled = false;
+
+  ensureNodes(audioContext: AudioContext): void {
+    if (this.gainNode && this.gainNode.context === audioContext) {
+      return;
+    }
+
+    this.gainNode = audioContext.createGain();
+    this.compressorNode = audioContext.createDynamicsCompressor();
+    this.analyserNode = audioContext.createAnalyser();
+    this.analyserNode.fftSize = INPUT_ANALYSER_FFT_SIZE;
+    this.silentOutputNode = audioContext.createGain();
+    this.silentOutputNode.gain.value = 0;
+    this.silentOutputNode.connect(audioContext.destination);
+  }
+
+  setMediaStreamSource(source: MediaStreamAudioSourceNode): void {
+    this.mediaStreamSource = source;
+  }
+
+  getCompressorNode(): DynamicsCompressorNode | null {
+    return this.compressorNode;
+  }
+
+  getAnalyserNode(): AnalyserNode | null {
+    return this.analyserNode;
+  }
+
+  isCompressorEnabled(): boolean {
+    return this.compressorEnabled;
+  }
+
+  rebuild(compressorEnabled: boolean): void {
+    if (!this.gainNode || !this.compressorNode || !this.analyserNode || !this.silentOutputNode) {
+      return;
+    }
+
+    this.gainNode.disconnect();
+    this.compressorNode.disconnect();
+    this.analyserNode.disconnect();
+
+    if (compressorEnabled) {
+      this.gainNode.connect(this.compressorNode);
+      this.compressorNode.connect(this.analyserNode);
+    } else {
+      this.gainNode.connect(this.analyserNode);
+    }
+
+    this.analyserNode.connect(this.silentOutputNode);
+    this.compressorEnabled = compressorEnabled;
+  }
+
+  connectMonitoringChain(): void {
+    if (!this.mediaStreamSource || !this.gainNode) {
+      return;
+    }
+    this.mediaStreamSource.connect(this.gainNode);
+  }
+
+  connectRecordingChain(workletNode: AudioWorkletNode): void {
+    if (!this.analyserNode || !this.silentOutputNode) {
+      return;
+    }
+    this.analyserNode.disconnect(this.silentOutputNode);
+    this.analyserNode.connect(workletNode);
+  }
+
+  disconnectRecordingChain(workletNode: AudioWorkletNode): void {
+    if (!this.analyserNode || !this.silentOutputNode) {
+      return;
+    }
+    this.analyserNode.disconnect(workletNode);
+    this.analyserNode.connect(this.silentOutputNode);
+  }
+
+  applyInputGain(audioContext: AudioContext, gain: number): void {
+    if (!this.gainNode) {
+      return;
+    }
+    this.gainNode.gain.setTargetAtTime(gain, audioContext.currentTime, GAIN_RAMP_TIME_CONSTANT);
+  }
+}
+
 let workletNode: AudioWorkletNode | null = null;
-let mediaStreamSource: MediaStreamAudioSourceNode | null = null;
-let inputGainNode: GainNode | null = null;
-let compressorNode: DynamicsCompressorNode | null = null;
-let inputAnalyserNode: AnalyserNode | null = null;
-let silentOutputNode: GainNode | null = null;
+let inputGraph: AudioInputGraph | null = null;
 let sharedBuffer: SharedArrayBuffer | null = null;
-let compressorEnabled = false;
 
 const DEFAULT_MIC_CONSTRAINT_SUPPORT: MicConstraintSupport = {
   autoGainControl: false,
@@ -59,65 +149,11 @@ function isSharedArrayBufferAvailable(): boolean {
   }
 }
 
-function ensureInputNodes(audioContext: AudioContext): void {
-  if (inputGainNode && inputGainNode.context === audioContext) {
-    return;
+function getInputGraph(): AudioInputGraph {
+  if (!inputGraph) {
+    inputGraph = new AudioInputGraph();
   }
-
-  inputGainNode = audioContext.createGain();
-  compressorNode = audioContext.createDynamicsCompressor();
-  inputAnalyserNode = audioContext.createAnalyser();
-  inputAnalyserNode.fftSize = 256;
-  silentOutputNode = audioContext.createGain();
-  silentOutputNode.gain.value = 0;
-  silentOutputNode.connect(audioContext.destination);
-}
-
-function wireInputChain(enabled: boolean): void {
-  if (!inputGainNode || !compressorNode || !inputAnalyserNode || !silentOutputNode) {
-    return;
-  }
-
-  inputGainNode.disconnect();
-  compressorNode.disconnect();
-  inputAnalyserNode.disconnect();
-
-  if (enabled) {
-    inputGainNode.connect(compressorNode);
-    compressorNode.connect(inputAnalyserNode);
-  } else {
-    inputGainNode.connect(inputAnalyserNode);
-  }
-
-  inputAnalyserNode.connect(silentOutputNode);
-
-  compressorEnabled = enabled;
-}
-
-function connectMonitoringChain(): void {
-  if (!mediaStreamSource || !inputGainNode) {
-    return;
-  }
-
-  mediaStreamSource.connect(inputGainNode);
-}
-
-function connectRecordingChain(): void {
-  if (!inputAnalyserNode || !workletNode || !silentOutputNode) {
-    return;
-  }
-
-  inputAnalyserNode.disconnect(silentOutputNode);
-  inputAnalyserNode.connect(workletNode);
-}
-
-function disconnectRecordingChain(): void {
-  if (!inputAnalyserNode || !workletNode || !silentOutputNode) {
-    return;
-  }
-
-  inputAnalyserNode.disconnect(workletNode);
-  inputAnalyserNode.connect(silentOutputNode);
+  return inputGraph;
 }
 
 // 録音完了・正規化後に全チャンクを再計算。worklet 逐次報告で漏れた端数もここで補完する。
@@ -160,7 +196,9 @@ function handleWorkletMessage(event: MessageEvent<RecordingWorkletOutputMessage>
     const rawBuffer =
       message.buffer ?? (sharedBuffer ? new Float32Array(sharedBuffer) : audioState.recordedBuffer);
 
-    disconnectRecordingChain();
+    if (workletNode) {
+      getInputGraph().disconnectRecordingChain(workletNode);
+    }
 
     useAudioStoreInternal.setState({
       isRecording: false,
@@ -198,17 +236,9 @@ async function requestMicStream(config: MicInputConfig): Promise<MediaStream> {
   }
 }
 
-function applyInputGain(audioContext: AudioContext, gain: number): void {
-  if (!inputGainNode) {
-    return;
-  }
-
-  inputGainNode.gain.setTargetAtTime(gain, audioContext.currentTime, 0.05);
-}
-
 const useAudioStoreInternal = create<AudioState>((set, get) => ({
   audioContext: null,
-  sampleRate: 44100,
+  sampleRate: DEFAULT_SAMPLE_RATE,
   isRecording: false,
   isInitialized: false,
   recordedBuffer: null,
@@ -244,16 +274,18 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
         ? detectMicConstraintSupport(audioTrack)
         : DEFAULT_MIC_CONSTRAINT_SUPPORT;
 
-      mediaStreamSource = audioContext.createMediaStreamSource(micStream);
-      ensureInputNodes(audioContext);
+      const graph = getInputGraph();
+      graph.ensureNodes(audioContext);
+      const compressorNode = graph.getCompressorNode();
       if (!compressorNode) {
         throw new Error("マイク入力ノードの初期化に失敗しました");
       }
       applyCompressorSettings(compressorNode, micConfig);
-      wireInputChain(micConfig.compressorEnabled);
-      applyInputGain(audioContext, micConfig.inputGain);
+      graph.rebuild(micConfig.compressorEnabled);
+      graph.applyInputGain(audioContext, micConfig.inputGain);
+      graph.setMediaStreamSource(audioContext.createMediaStreamSource(micStream));
       ensureWorkletNode(audioContext);
-      connectMonitoringChain();
+      graph.connectMonitoringChain();
 
       set({
         audioContext,
@@ -305,7 +337,7 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
     };
     node.port.postMessage(startMessage);
 
-    connectRecordingChain();
+    getInputGraph().connectRecordingChain(node);
 
     set({
       isRecording: true,
@@ -325,20 +357,22 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
 
   applyMicInputConfig: async (config) => {
     const { audioContext, isRecording } = get();
+    const graph = getInputGraph();
+    const compressorNode = graph.getCompressorNode();
     if (!audioContext || !compressorNode) {
       return;
     }
 
-    applyInputGain(audioContext, config.inputGain);
+    graph.applyInputGain(audioContext, config.inputGain);
     applyCompressorSettings(compressorNode, config);
 
-    if (config.compressorEnabled !== compressorEnabled) {
-      if (isRecording) {
-        disconnectRecordingChain();
+    if (config.compressorEnabled !== graph.isCompressorEnabled()) {
+      if (isRecording && workletNode) {
+        graph.disconnectRecordingChain(workletNode);
       }
-      wireInputChain(config.compressorEnabled);
-      if (isRecording) {
-        connectRecordingChain();
+      graph.rebuild(config.compressorEnabled);
+      if (isRecording && workletNode) {
+        graph.connectRecordingChain(workletNode);
       }
     }
   },
@@ -348,7 +382,7 @@ const useAudioStoreInternal = create<AudioState>((set, get) => ({
     if (!audioContext) {
       return;
     }
-    applyInputGain(audioContext, gain);
+    getInputGraph().applyInputGain(audioContext, gain);
   },
 
   updateMicConstraints: async (constraints) => {
@@ -441,5 +475,5 @@ export function subscribeRecordingStatus(listener: (isRecording: boolean) => voi
 }
 
 export function getInputAnalyserNode(): AnalyserNode | null {
-  return inputAnalyserNode;
+  return inputGraph?.getAnalyserNode() ?? null;
 }

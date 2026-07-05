@@ -1,6 +1,8 @@
 import { Box, Slider, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
+import { unwrapSliderValue } from "../../../utils/slider.ts";
+
 export interface HorizontalSliderProps {
   value: number;
   onChange: (value: number) => void;
@@ -31,8 +33,7 @@ export function HorizontalSlider({
   "aria-label": ariaLabel,
 }: HorizontalSliderProps) {
   const handleChange = (_: Event, newValue: number | number[]) => {
-    const next = Array.isArray(newValue) ? (newValue[0] ?? value) : newValue;
-    onChange(next);
+    onChange(unwrapSliderValue(newValue, value));
   };
 
   return (

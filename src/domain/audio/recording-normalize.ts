@@ -1,5 +1,6 @@
 export function computeBufferPeak(samples: Float32Array): number {
   let peak = 0;
+  // perf: 88K+ samples の全走査。GC ゼロの index ループを維持する。
   for (let i = 0; i < samples.length; i++) {
     const sample = Math.abs(samples[i] ?? 0);
     if (sample > peak) {
@@ -20,6 +21,7 @@ export function normalizePeakBuffer(samples: Float32Array, targetPeak: number): 
   }
 
   const scale = targetPeak / peak;
+  // perf: in-place mutation (samples[i] = …) は配列メソッドでは表現不可。
   for (let i = 0; i < samples.length; i++) {
     samples[i] = (samples[i] ?? 0) * scale;
   }

@@ -120,6 +120,7 @@ Web MIDI 入力（M4、`src/domain/midi/` + `midiStore`）も上記と同一 Sto
 | 筐体バリアント切替 | `VariantSwitcher`（`uiStore.hardwareVariant`） | M2.5 |
 | プレイヤー配置モード | 向き合い / 二段 / ソロ（`uiStore.playerLayout`） | M2.5 / M3 |
 | フルスクリーントグル | Fullscreen API（`uiStore.isFullscreen`） | M4 |
+| 音量ステータスバー | `VolumeStatusBar`（`SynthEngine` 上部ツールバー左端）。入力レベル＋「音量（アテニュエーション）」0-1 を常時表示し、クリックで `ConfigPanel` の該当セクション（マイク入力 / 音声）を開く | M1 拡張 |
 | プリセットセクション | 名前付き保存・JSON 入出力 | M4 |
 | MIDI セクション | 入力デバイス一覧・CC マッピング表示 | M4 |
 

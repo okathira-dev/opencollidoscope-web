@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
+import { MIDI_CC_MAX } from "../../../consts/midi.ts";
 import { selectionAlphaFromFilter } from "../../../domain/audio/index.ts";
 import { getAudioStoreState, subscribeRecordingStatus } from "../../../stores/audio-store.ts";
 import {
@@ -12,6 +13,7 @@ import {
   type ChunkData,
   type CursorState,
   getWaveStoreState,
+  isWaveSelectionEmpty,
   subscribeWaveStore,
   useParticleTriggerTick,
   useSetWaveSelection,
@@ -30,6 +32,9 @@ const CHUNK_WIDTH = 7;
 const CHUNK_STEP = 9;
 const ANIMATION_FRAMES = 3;
 const ANIMATION_FRAME_MS = 16;
+const ANIMATION_SCALE_STEP = 0.15;
+const KNOB_HIT_SLOP = 4;
+const MAX_BAR_HEIGHT_RATIO = 3 / 10;
 const KNOB_RADIUS = 8;
 const OUT_OF_SELECTION_COLOR = "#808080";
 
@@ -66,7 +71,7 @@ function getAnimationScale(updatedAt: number, now: number): number {
     return 1;
   }
 
-  return 1 + (ANIMATION_FRAMES - frame) * 0.15;
+  return 1 + (ANIMATION_FRAMES - frame) * ANIMATION_SCALE_STEP;
 }
 
 function chunkIndexFromX(x: number): number {
@@ -83,17 +88,23 @@ function isPointerOverKnob(
   selection: WaveSelection,
   canvasHeight: number,
 ): boolean {
+  if (isWaveSelectionEmpty(selection)) {
+    return false;
+  }
   const knobX = selectionKnobX(selection.start);
   const centerY = canvasHeight / 2;
-  return Math.hypot(x - knobX, y - centerY) <= KNOB_RADIUS + 4;
+  return Math.hypot(x - knobX, y - centerY) <= KNOB_RADIUS + KNOB_HIT_SLOP;
 }
 
 function selectionEndChunkIndex(selection: WaveSelection): number {
+  if (isWaveSelectionEmpty(selection)) {
+    return 0;
+  }
   return selection.start + selection.size - 1;
 }
 
 function isInSelection(index: number, selection: WaveSelection): boolean {
-  if (selection.isNull) {
+  if (isWaveSelectionEmpty(selection)) {
     return false;
   }
   return index >= selection.start && index < selection.start + selection.size;
@@ -114,7 +125,7 @@ function computeCursorIndices(
   secondsPerChunk: number,
 ): Set<number> {
   cursorIndexPool.clear();
-  if (selection.isNull) {
+  if (isWaveSelectionEmpty(selection)) {
     return cursorIndexPool;
   }
 
@@ -138,7 +149,7 @@ function drawSelectionBars(
   color: string,
   height: number,
 ): void {
-  if (selection.isNull) {
+  if (isWaveSelectionEmpty(selection)) {
     return;
   }
 
@@ -195,7 +206,7 @@ function drawChunks(
     analyserNode,
   } = snapshot;
   const centerY = height / 2;
-  const maxBarHeight = (height * 3) / 5 / 2;
+  const maxBarHeight = height * MAX_BAR_HEIGHT_RATIO;
   const cursorIndices = computeCursorIndices(cursors, selection, now, secondsPerChunk);
   const selectionAlpha = selectionAlphaFromFilter(filterCutoff);
   const selectionFillStyle = colorWithAlpha(color, selectionAlpha);
@@ -218,6 +229,9 @@ function drawChunks(
 
   drawSelectionBars(ctx, selection, color, height);
 
+  // perf: 150 chunks × 60fps。fillStyle/fillRect の JS→レンダリングエンジン境界が
+  // ボトルネック。ループ方式の差は数μs 以下で無意味。
+  // early break で画面外チャンクをスキップするため forEach は使用不可。
   for (let index = 0; index < chunks.length; index++) {
     const chunk = chunks[index];
     if (!chunk) {
@@ -248,7 +262,7 @@ function drawChunks(
 
 function WaveDisplayComponent({
   color,
-  filterCutoff = 127,
+  filterCutoff = MIDI_CC_MAX,
   height = "40vh",
   minHeight = 200,
 }: WaveDisplayProps) {
@@ -258,7 +272,7 @@ function WaveDisplayComponent({
   const particleSystemRef = useRef<ParticleSystem>(new ParticleSystem());
   const snapshotRef = useRef<RenderSnapshot>({
     chunks: [],
-    selection: { start: 0, size: 1, isNull: true },
+    selection: { kind: "empty" },
     cursors: {},
     color,
     filterCutoff,
@@ -428,7 +442,7 @@ function WaveDisplayComponent({
       return;
     }
     const currentSelection = getWaveStoreState().selection;
-    if (currentSelection.isNull || grainDurationCoeff <= 1) {
+    if (isWaveSelectionEmpty(currentSelection) || grainDurationCoeff <= 1) {
       return;
     }
 
@@ -439,7 +453,7 @@ function WaveDisplayComponent({
     particleSystemRef.current.addParticles(
       {
         particleSpread: grainDurationCoeff,
-        filterCoeff: filterCutoff / 127,
+        filterCoeff: filterCutoff / MIDI_CC_MAX,
         selectionStart: currentSelection.start,
         selectionEnd,
         canvasHeight,
@@ -470,6 +484,10 @@ function WaveDisplayComponent({
       const x = (clientX - rect.left) * scaleX;
       const chunkIndex = chunkIndexFromX(x);
       const currentSelection = snapshotRef.current.selection;
+      if (isWaveSelectionEmpty(currentSelection)) {
+        return;
+      }
+
       const newStart = clampStart(chunkIndex + dragOffsetChunksRef.current);
       setSelection(newStart, currentSelection.size);
     },
@@ -479,7 +497,7 @@ function WaveDisplayComponent({
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLCanvasElement>) => {
       const currentSelection = snapshotRef.current.selection;
-      if (currentSelection.isNull) {
+      if (isWaveSelectionEmpty(currentSelection)) {
         return;
       }
 

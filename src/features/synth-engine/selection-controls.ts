@@ -1,4 +1,5 @@
 import type { WaveSelection } from "../../stores/wave-store.ts";
+import { isWaveSelectionEmpty } from "../../stores/wave-store.ts";
 
 export type SetWaveSelection = (start: number, size: number) => void;
 
@@ -7,7 +8,7 @@ export function handleSelectionWheel(
   selection: WaveSelection,
   setSelection: SetWaveSelection,
 ): void {
-  if (selection.isNull) {
+  if (isWaveSelectionEmpty(selection)) {
     return;
   }
 

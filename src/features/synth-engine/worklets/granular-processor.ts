@@ -1,3 +1,5 @@
+import { AUDIO_RENDER_QUANTUM, LOOP_VOICE_ID } from "../../../consts/audio.ts";
+import { NO_MIDI_NOTE } from "../../../consts/midi.ts";
 import { EnvASR, EnvASRState } from "../../../domain/audio/env-asr.ts";
 import {
   clampSelectionSize,
@@ -18,8 +20,6 @@ const DEFAULT_ATTACK_TIME = 0.01;
 const DEFAULT_RELEASE_TIME = 0.05;
 const DEFAULT_SUSTAIN_LEVEL = 1.0;
 const DEFAULT_ATTENUATION = 0.25118864315096;
-const NO_MIDI_NOTE = -50;
-const LOOP_VOICE_ID = -1;
 
 interface PGrain {
   phase: number;
@@ -141,6 +141,8 @@ class PGranular {
     let envSamples = 0;
     let becameIdle = false;
 
+    // perf: AudioWorklet process() 内ではメモリ割り当て禁止。
+    // per-sample envelope tick + early-break on idle。
     for (let i = 0; i < numSamples; i++) {
       tempBuffer[i] = this.envASR.tick();
       envSamples++;
@@ -164,6 +166,7 @@ class PGranular {
     envelopeValues: Float32Array,
     numSamples: number,
   ): void {
+    // perf: swap-and-pop で dead grain を O(1) 削除。grainIdx は swap 時に increment しない。
     for (let grainIdx = 0; grainIdx < this.numAliveGrains; ) {
       const grain = this.grains[grainIdx];
       if (!grain) {
@@ -259,6 +262,7 @@ class PGranular {
 
     const numSamplesToOut = Math.min(numSamples, duration - age);
 
+    // perf: 最内ループ — 線形補間 + Hann IIR + read-modify-write 累積。GC ゼロ必須。
     for (let sampleIdx = 0; sampleIdx < numSamplesToOut; sampleIdx++) {
       const readIndex = Math.floor(phase);
       const nextReadIndex = readIndex === this.bufferLen - 1 ? 0 : readIndex + 1;
@@ -362,7 +366,8 @@ class GranularProcessor extends AudioWorkletProcessor {
 
   constructor() {
     super();
-    this.tempBuffer = new Float32Array(128);
+    // AudioWorklet レンダリング量子 (128 samples) 分の envelope スクラッチバッファを事前確保。
+    this.tempBuffer = new Float32Array(AUDIO_RENDER_QUANTUM);
 
     this.port.onmessage = (event: MessageEvent<GranularWorkletInputMessage>) => {
       this.handleMessage(event.data);
@@ -561,6 +566,7 @@ class GranularProcessor extends AudioWorkletProcessor {
       this.loopVoice.process(output, this.tempBuffer, output.length);
     }
 
+    // perf: 共有 output + 再利用 tempBuffer への additive mix。
     for (let i = 0; i < this.maxVoices; i++) {
       const voice = this.noteVoices[i];
       if (!voice || voice.isIdle()) {

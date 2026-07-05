@@ -12,6 +12,7 @@ import { buildKeyboardLayout, keyboardTopMidi, relativeToMidiNote } from "../key
 const KEY_HEIGHT = 140;
 const BLACK_KEY_WIDTH = 18;
 const BLACK_KEY_HEIGHT = 90;
+const WHITE_KEY_REFERENCE_WIDTH = 28;
 const KEY_DATA_ATTR = "data-relative-semitone";
 
 function keyboardRangeLabel(octaveCount: number): string {
@@ -54,23 +55,18 @@ function PianoKeyboardComponent({ disabled = false, octaveCount = 2 }: PianoKeyb
 
   const whiteKeyCount = whiteKeys.length;
   const whiteKeyWidthPercent = 100 / whiteKeyCount;
-  const blackKeyWidthPercent = whiteKeyWidthPercent * (BLACK_KEY_WIDTH / 28);
+  const blackKeyWidthPercent = whiteKeyWidthPercent * (BLACK_KEY_WIDTH / WHITE_KEY_REFERENCE_WIDTH);
   const blackKeyHeightRatio = BLACK_KEY_HEIGHT / KEY_HEIGHT;
 
-  const pcKeyToRelative = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const key of whiteKeys) {
-      if (key.pcKey) {
-        map[key.pcKey] = key.relativeSemitone;
-      }
-    }
-    for (const key of blackKeys) {
-      if (key.pcKey) {
-        map[key.pcKey] = key.relativeSemitone;
-      }
-    }
-    return map;
-  }, [whiteKeys, blackKeys]);
+  const pcKeyToRelative = useMemo(
+    () =>
+      Object.fromEntries(
+        [...whiteKeys, ...blackKeys]
+          .filter((key): key is typeof key & { pcKey: string } => key.pcKey != null)
+          .map((key) => [key.pcKey, key.relativeSemitone]),
+      ),
+    [whiteKeys, blackKeys],
+  );
 
   const blackKeyLeftPercent = useCallback(
     (whiteOffset: number) => {
@@ -206,7 +202,7 @@ function PianoKeyboardComponent({ disabled = false, octaveCount = 2 }: PianoKeyb
   );
 
   const isActive = useCallback(
-    (relativeSemitone: number) => activeNotes.includes(resolveMidiNote(relativeSemitone)),
+    (relativeSemitone: number) => activeNotes.has(resolveMidiNote(relativeSemitone)),
     [activeNotes, resolveMidiNote],
   );
 

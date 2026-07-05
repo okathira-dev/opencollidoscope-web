@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { memo, type ReactNode } from "react";
+import { MIDI_CC_MAX } from "../../../consts/midi.ts";
 
 import {
   NEW_PLAYER_MODULE_GRID_COLUMNS,
@@ -172,7 +173,7 @@ function NewPlayerModuleComponent({
           filterValue={filterValue}
           onFilterChange={onFilterChange}
           filterMin={0}
-          filterMax={127}
+          filterMax={MIDI_CC_MAX}
           durationValue={grainDurationCoeff}
           onDurationChange={onDurationChange}
           durationMin={durationMin}

@@ -4,7 +4,7 @@ import { MidiManager } from "../domain/midi/index.ts";
 import { getAudioStoreState } from "./audio-store.ts";
 import { getConfigState, subscribeConfig } from "./config-store.ts";
 import { getSynthStoreState } from "./synth-store.ts";
-import { getWaveStoreState } from "./wave-store.ts";
+import { getWaveStoreState, isWaveSelectionEmpty } from "./wave-store.ts";
 
 interface MidiState {
   isSupported: boolean;
@@ -28,17 +28,19 @@ function createMidiActions() {
     },
     setSelectionStart: (start: number) => {
       const waveState = getWaveStoreState();
-      if (waveState.selection.isNull) {
+      const { selection } = waveState;
+      if (isWaveSelectionEmpty(selection)) {
         return;
       }
-      waveState.setSelection(start, waveState.selection.size);
+      waveState.setSelection(start, selection.size);
     },
     setSelectionSize: (size: number) => {
       const waveState = getWaveStoreState();
-      if (waveState.selection.isNull) {
+      const { selection } = waveState;
+      if (isWaveSelectionEmpty(selection)) {
         return;
       }
-      waveState.setSelection(waveState.selection.start, size);
+      waveState.setSelection(selection.start, size);
     },
     setGrainDurationCoeff: (coeff: number) => {
       getSynthStoreState().setGrainDurationCoeff(coeff);

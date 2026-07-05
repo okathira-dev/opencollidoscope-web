@@ -1,5 +1,6 @@
 export {
   type ChunkMinMax,
+  chunkToSampleRange,
   computeBufferLength,
   computeChunkIndex,
   computeChunkMinMax,

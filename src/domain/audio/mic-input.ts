@@ -51,6 +51,7 @@ export function computeInputPeakLevel(
 ): number {
   analyser.getFloatTimeDomainData(buffer);
   let peak = 0;
+  // perf: rAF 毎フレーム呼ばれる。GC ゼロ保証のため index ループを維持する。
   for (let i = 0; i < buffer.length; i++) {
     const sample = Math.abs(buffer[i] ?? 0);
     if (sample > peak) {

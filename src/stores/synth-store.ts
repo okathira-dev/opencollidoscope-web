@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
-import { midiNoteToRate } from "../domain/audio/index.ts";
+import { MIDI_CC_MAX } from "../consts/midi.ts";
+import { chunkToSampleRange, midiNoteToRate } from "../domain/audio/index.ts";
 import type { CollidoscopeConfig } from "../domain/config/index.ts";
 import { GranularSynthesizer } from "../features/synth-engine/granular-synthesizer.ts";
 import {
@@ -10,14 +11,14 @@ import {
 } from "../features/synth-engine/keyboard-layout.ts";
 import { getAudioStoreState } from "./audio-store.ts";
 import { getConfigState, subscribeConfig } from "./config-store.ts";
-import { getWaveStoreState, subscribeWaveSelection } from "./wave-store.ts";
+import { getWaveStoreState, isWaveSelectionEmpty, subscribeWaveSelection } from "./wave-store.ts";
 
 interface SynthState {
   isInitialized: boolean;
   grainDurationCoeff: number;
   filterCutoff: number;
   loop: { enabled: boolean };
-  activeNotes: number[];
+  activeNotes: ReadonlySet<number>;
   keyboardOctaveOffset: number;
 
   initializeSynth: () => Promise<void>;
@@ -55,23 +56,25 @@ function configAffectsSelectionBounds(
   );
 }
 
-function addActiveNote(notes: number[], midiNote: number): number[] {
-  if (notes.includes(midiNote)) {
+function addActiveNote(notes: ReadonlySet<number>, midiNote: number): ReadonlySet<number> {
+  if (notes.has(midiNote)) {
     return notes;
   }
-  return [...notes, midiNote];
+  return new Set([...notes, midiNote]);
 }
 
-function removeActiveNote(notes: number[], midiNote: number): number[] {
-  return notes.filter((note) => note !== midiNote);
+function removeActiveNote(notes: ReadonlySet<number>, midiNote: number): ReadonlySet<number> {
+  const next = new Set(notes);
+  next.delete(midiNote);
+  return next;
 }
 
 const useSynthStoreInternal = create<SynthState>((set, get) => ({
   isInitialized: false,
   grainDurationCoeff: 1.0,
-  filterCutoff: 127,
+  filterCutoff: MIDI_CC_MAX,
   loop: { enabled: false },
-  activeNotes: [],
+  activeNotes: new Set(),
   keyboardOctaveOffset: 0,
 
   initializeSynth: async () => {
@@ -93,13 +96,14 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
       }
 
       if (message.type === "cursorTrigger") {
-        if (waveStore.selection.isNull) {
+        const { selection } = waveStore;
+        if (isWaveSelectionEmpty(selection)) {
           return;
         }
         // オリジナル準拠: グレイン開始サンプルではなく常に selection.start からスイープ。
         // 進行速度は waveLength/chunkCount 固定のため、再生レート 1.0 (C4) のときのみ
         // バッファ上の読み取り速度と視覚が一致する。
-        waveStore.setCursor(message.voiceId, waveStore.selection.start, performance.now());
+        waveStore.setCursor(message.voiceId, selection.start, performance.now());
         waveStore.triggerParticleSpawn();
       } else if (message.type === "cursorEnd") {
         waveStore.removeCursor(message.voiceId);
@@ -153,7 +157,7 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
   },
 
   setFilterCutoff: (value) => {
-    const clamped = Math.max(0, Math.min(127, Math.round(value)));
+    const clamped = Math.max(0, Math.min(MIDI_CC_MAX, Math.round(value)));
     synthesizer?.setFilterCutoff(clamped);
     set({ filterCutoff: clamped });
   },
@@ -168,7 +172,7 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
     for (const midiNote of state.activeNotes) {
       synthesizer?.noteOff(midiNote);
     }
-    set({ keyboardOctaveOffset: nextOffset, activeNotes: [] });
+    set({ keyboardOctaveOffset: nextOffset, activeNotes: new Set() });
   },
 
   syncBuffer: (buffer) => {
@@ -178,15 +182,18 @@ const useSynthStoreInternal = create<SynthState>((set, get) => ({
   syncSelection: () => {
     const waveState = getWaveStoreState();
     const audioState = getAudioStoreState();
+    const { selection } = waveState;
 
-    if (waveState.selection.isNull || !audioState.recordedBuffer) {
+    if (isWaveSelectionEmpty(selection) || !audioState.recordedBuffer) {
       return;
     }
 
-    const totalSamples = audioState.recordedBuffer.length;
-    const samplesPerChunk = Math.round(totalSamples / waveState.chunkCount);
-    const startSample = waveState.selection.start * samplesPerChunk;
-    const sizeSamples = waveState.selection.size * samplesPerChunk;
+    const { startSample, sizeSamples } = chunkToSampleRange(
+      selection.start,
+      selection.size,
+      audioState.recordedBuffer.length,
+      waveState.chunkCount,
+    );
 
     synthesizer?.setSelection(startSample, sizeSamples);
   },
@@ -218,7 +225,7 @@ export function useFilterCutoff(): number {
   return useSynthStoreInternal((state) => state.filterCutoff);
 }
 
-export function useActiveNotes(): number[] {
+export function useActiveNotes(): ReadonlySet<number> {
   return useSynthStoreInternal((state) => state.activeNotes);
 }
 
@@ -296,9 +303,9 @@ export function disposeSynth(): void {
   synthesizer = null;
   useSynthStoreInternal.setState({
     isInitialized: false,
-    activeNotes: [],
+    activeNotes: new Set(),
     loop: { enabled: false },
-    filterCutoff: 127,
+    filterCutoff: MIDI_CC_MAX,
     keyboardOctaveOffset: 0,
   });
 }

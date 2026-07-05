@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { WaveSelection } from "../../stores/wave-store.ts";
 import { handleSelectionWheel } from "./selection-controls.ts";
 
-const baseSelection: WaveSelection = { start: 10, size: 5, isNull: false };
+const baseSelection: WaveSelection = { kind: "active", start: 10, size: 5 };
 
 describe("handleSelectionWheel", () => {
   it("縦ホイールで選択サイズを変更する", () => {
@@ -25,13 +25,13 @@ describe("handleSelectionWheel", () => {
     expect(setSelection).toHaveBeenCalledWith(11, 5);
   });
 
-  it("isNull のときは何もしない", () => {
+  it("empty のときは何もしない", () => {
     const setSelection = vi.fn();
     const preventDefault = vi.fn();
 
     handleSelectionWheel(
       { deltaX: 0, deltaY: -100, preventDefault },
-      { start: 0, size: 1, isNull: true },
+      { kind: "empty" },
       setSelection,
     );
 

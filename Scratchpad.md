@@ -5,6 +5,23 @@
 
 ## 現在のタスク
 
+### 音量設定の導線改善（完了）
+
+- [x] `uiStore.openConfigPanelSection` — 設定パネルの特定アコーディオンへジャンプ
+- [x] `VolumeStatusBar` — ツールバー左端に入力レベル・出力音量を常時表示、説明テキスト付き
+- [x] `ConfigPanel` — アテニュエーションに説明文追加
+- [x] ドキュメント同期（ui-mapping / web-design / web-spec）
+
+### モダン TypeScript リファクタリング（完了）
+
+- [x] 定数化 (`src/consts/midi.ts`, `src/consts/audio.ts`)
+- [x] `WaveSelection` discriminated union + `isWaveSelectionEmpty` type guard
+- [x] MIDI パーサー型安全化 / ルーター handler map
+- [x] `chunkToSampleRange` 集約、`Array.with()` / `.some()` / `Object.fromEntries` / `Set`
+- [x] `AudioInputGraph` クラス、`unwrapSliderValue` ヘルパー
+- [x] ホットパス維持理由コメント (Worklet / domain / canvas)
+- [x] `pnpm check` / `pnpm test` 通過
+
 ### 方針（配置 vs 電子）
 
 **配置（空間）**: `docs/layout-specs/<variant>/layout.html` + `layout.css` を正本とする。Web 実装は `PlayerModule`（6×12）を組み合わせて再現する（実行時に layout-specs を直接読み込まない）。

@@ -307,11 +307,14 @@ interface MidiState {
 ```typescript
 interface UIState {
   isConfigPanelOpen: boolean;  // false = 最小化（デフォルト）
+  configPanelTargetSection: ConfigPanelSectionId | null;  // ジャンプ先アコーディオン ID
   hardwareVariant: "original" | "new";  // デフォルト "original"
   playerLayout: "facing" | "stacked" | "solo";  // デフォルト "facing"
   isFullscreen: boolean;
 
   openConfigPanel: () => void;
+  openConfigPanelSection: (sectionId: ConfigPanelSectionId) => void;
+  clearConfigPanelTargetSection: () => void;
   closeConfigPanel: () => void;
   toggleConfigPanel: () => void;
   setHardwareVariant: (variant: "original" | "new") => void;
@@ -320,7 +323,9 @@ interface UIState {
 }
 ```
 
-パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1（`isConfigPanelOpen`）、M2.5（`hardwareVariant`, `playerLayout`）、M4（`isFullscreen`）。
+`ConfigPanelSectionId`: `"audio"` | `"mic-input"` | `"granular"` | `"filter"` | `"visual"` | `"preset"` | `"midi"`
+
+パネルの開閉は `UIStore`、設定値は `ConfigStore`。**導入タイミング**: M1（`isConfigPanelOpen`）、M2.5（`hardwareVariant`, `playerLayout`）、M4（`isFullscreen`）。`openConfigPanelSection` は `VolumeStatusBar` などから特定アコーディオンへジャンプする際に使う。
 
 ### WaveStore
 
@@ -398,7 +403,18 @@ interface SynthEngineProps {
 
 Phase 1 では `engineId=0` のみ。子コンポーネント（WaveDisplay, ControlPanel, PianoKeyboard）を統合。
 
-**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み（M3 までにループ・フィルター・視覚 FB 完了）、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段/ソロ）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。**M4**: フルスクリーントグルボタンを同エリアに追加。
+**演奏面の配置（M2.5 完了）**: `PlayerControlSurface` が `original-layout.ts` / `new-layout.ts`（180 度投影）で A/B 両面を駆動。配置の正本は [layout-specs/](layout-specs/README.md) の kebab-case ブロック名。オリジナル版は `PlayerModule` + 横スライダー、新版は `NewPlayerModule` + `VerticalMobileKnob`（縦レール + ホイール）+ C3-C6 鍵盤。A 側は機能配線済み（M3 までにループ・フィルター・視覚 FB 完了）、B 側は配置のみ。筐体バリアント切替は `VariantSwitcher`（`uiStore.hardwareVariant`）。プレイヤー配置モード（向き合い/二段/ソロ）は `uiStore.playerLayout` + `SynthEngine` 上部の ToggleButtonGroup。**M4**: フルスクリーントグルボタンを同エリアに追加。**音量導線**: ツールバー左端の `VolumeStatusBar` が入力レベルと「音量（アテニュエーション）」（`config.audio.attenuation`、0-1）を常時表示し、クリックで `ConfigPanel` の「マイク入力」/「音声」セクションを開く。
+
+### VolumeStatusBar
+
+`SynthEngine` 上部ツールバー左端に配置。音声初期化後のみ表示。
+
+| 表示 | ラベル・内容 | 説明テキスト（常時表示） | クリック時 |
+| --- | --- | --- | --- |
+| 入力 | マイクアイコン + レベルバー + % | マイク入力の音量です。クリックで入力設定を開きます。 | `openConfigPanelSection("mic-input")` |
+| 音量（アテニュエーション） | スピーカーアイコン + 0-1 の値 | 再生出力の音量（0-1）です。クリックで入力設定を開きます。 | `openConfigPanelSection("audio")` |
+
+Tooltip は使わない。詳細調整は `ConfigPanel` の該当セクションで行う。
 
 ### VariantSwitcher
 
@@ -467,6 +483,7 @@ class GranularSynthesizer {
 - **最小化時**: 歯車 FAB。`uiStore.isConfigPanelOpen === false` がデフォルト
 - **展開時**: MUI `Accordion` の縦積み（`ConfigAccordionSection`）。**`Tabs` は使わない** — 複数セクションを同時に開ける
 - **セクション一覧**（`ConfigPanel.tsx` の `title`）: 音声 / マイク入力 / グラニュラー / フィルター / 視覚 / プリセット / MIDI
+- **セクションジャンプ**: `uiStore.openConfigPanelSection(sectionId)` でドロワーを開き、対象アコーディオンを自動展開・スクロール。`VolumeStatusBar` から利用
 - **実装メモ**: 子コンポーネント名は `AudioTab` 等の歴史的命名だが、UI 上はアコーディオンセクション
 - **M1**: `ConfigStore` 接続 + 「音声」セクション（`waveLength`, `chunkCount` 等）
 - **M1 拡張**: 「マイク入力」セクション（`MicInputSettings`）

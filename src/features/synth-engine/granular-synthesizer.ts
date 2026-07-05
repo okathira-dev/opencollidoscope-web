@@ -1,3 +1,4 @@
+import { MIDI_CC_MAX } from "../../consts/midi.ts";
 import { midiNoteToRate, midiToFilterCutoff } from "../../domain/audio/index.ts";
 import type { CollidoscopeConfig } from "../../domain/config/index.ts";
 import type {
@@ -19,7 +20,7 @@ export class GranularSynthesizer {
   private minCutoff = 200;
   private maxCutoff = 22050;
   private qFactor = Math.SQRT1_2;
-  private lastFilterMidi = 127;
+  private lastFilterMidi = MIDI_CC_MAX;
 
   constructor(audioContext: AudioContext) {
     this.audioContext = audioContext;
@@ -105,7 +106,7 @@ export class GranularSynthesizer {
   }
 
   setFilterCutoff(midiValue: number): void {
-    this.lastFilterMidi = Math.max(0, Math.min(127, Math.round(midiValue)));
+    this.lastFilterMidi = Math.max(0, Math.min(MIDI_CC_MAX, Math.round(midiValue)));
     this.applyFilterFrequency();
   }
 

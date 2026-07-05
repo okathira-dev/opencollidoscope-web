@@ -5,6 +5,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import { Box, Switch, Typography } from "@mui/material";
 import { memo, type ReactNode } from "react";
 
+import { MIDI_CC_MAX } from "../../../consts/midi.ts";
 import {
   type OriginalLayoutZone,
   PLAYER_MODULE_GRID_COLUMNS,
@@ -209,7 +210,7 @@ function PlayerModuleComponent({
           value={filterValue}
           onChange={onFilterChange}
           min={0}
-          max={127}
+          max={MIDI_CC_MAX}
           step={1}
           disabled={!interactive || filterDisabled}
           label="Filter"

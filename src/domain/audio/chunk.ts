@@ -34,6 +34,18 @@ export function computeChunkRange(
   return { start, end };
 }
 
+export function chunkToSampleRange(
+  chunkStart: number,
+  chunkSize: number,
+  totalSamples: number,
+  chunkCount: number,
+): { startSample: number; sizeSamples: number } {
+  const samplesPerChunk = computeSamplesPerChunk(totalSamples, chunkCount);
+  const startSample = chunkStart * samplesPerChunk;
+  const sizeSamples = chunkSize * samplesPerChunk;
+  return { startSample, sizeSamples };
+}
+
 export function computeChunkMinMax(
   samples: Float32Array,
   chunkIndex: number,
@@ -48,6 +60,9 @@ export function computeChunkMinMax(
   let min = samples[start] ?? 0;
   let max = samples[start] ?? 0;
 
+  // perf: ~588 samples/chunk の min/max 走査。.reduce() は毎イテレーション {min,max}
+  // オブジェクトを生成し GC 圧がかかる。index ループは V8 bounds-check hoisting +
+  // register allocation で最速。
   for (let i = start + 1; i < end; i++) {
     const sample = samples[i] ?? 0;
     if (sample < min) {

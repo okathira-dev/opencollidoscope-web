@@ -2,6 +2,12 @@ export const MAX_PARTICLES = 150;
 export const MAX_PARTICLE_ADD = 22;
 export const MAX_GRAIN_DURATION_COEFF = 8;
 export const PARTICLE_CLOUD_SIZE_COEFF = 40;
+const FLYOVER_MAX_AGE = 300;
+const PARTICLE_MAX_ROTATION = 5;
+const PARTICLE_JITTER_MAX = 5;
+const PARTICLE_MIN_LIFESPAN = 30;
+const PARTICLE_MAX_LIFESPAN = 60;
+const FLYOVER_PROBABILITY_RANGE = 500;
 
 export interface Particle {
   cloudCenterX: number;
@@ -64,6 +70,8 @@ export class ParticleSystem {
   }
 
   update(): void {
+    // perf: rAF ごとに呼ばれるパーティクル更新。swap-and-pop は O(1) 削除 +
+    // 配列の密性を維持し GC を避ける (grain pool と同じパターン)。
     for (let i = 0; i < this.activeCount; ) {
       const particle = this.particles[i];
       if (!particle) {
@@ -74,7 +82,7 @@ export class ParticleSystem {
       particle.age += 1;
       const expired =
         (!particle.flyOver && particle.age > particle.lifespan) ||
-        (particle.flyOver && particle.age >= 300);
+        (particle.flyOver && particle.age >= FLYOVER_MAX_AGE);
 
       if (expired) {
         this.swapRemove(i);
@@ -88,7 +96,7 @@ export class ParticleSystem {
       const dy = particle.y - particle.cloudCenterY;
       const distance = Math.hypot(dx, dy);
       if (!particle.flyOver && distance > particle.cloudSize) {
-        const rotated = rotateVector2(particle.velX, particle.velY, 5);
+        const rotated = rotateVector2(particle.velX, particle.velY, PARTICLE_MAX_ROTATION);
         particle.velX = rotated.x;
         particle.velY = rotated.y;
       }
@@ -123,7 +131,7 @@ export class ParticleSystem {
       const randomChunkIndex = randInt(params.selectionStart, params.selectionEnd);
       const centerX = chunkCenterX(randomChunkIndex, chunkStep, chunkWidth);
       const jitter = randUnitVector2();
-      const jitterScale = randFloat(0, 5);
+      const jitterScale = randFloat(0, PARTICLE_JITTER_MAX);
 
       const particle: Particle = {
         cloudCenterX: centerX + jitter.x * jitterScale,
@@ -134,8 +142,8 @@ export class ParticleSystem {
         velY: 0,
         cloudSize,
         age: 0,
-        lifespan: randInt(30, 60),
-        flyOver: randInt(0, 499) === 0,
+        lifespan: randInt(PARTICLE_MIN_LIFESPAN, PARTICLE_MAX_LIFESPAN),
+        flyOver: randInt(0, FLYOVER_PROBABILITY_RANGE - 1) === 0,
       };
 
       const speed = randFloat(1, 5);

@@ -3,6 +3,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import { Box, Slider, Typography } from "@mui/material";
 import { useCallback, useRef } from "react";
 
+import { unwrapSliderValue } from "../../../utils/slider.ts";
 import { useKnobWheel } from "../hooks/useKnobWheel.ts";
 
 const RAIL_SX = {
@@ -78,8 +79,7 @@ export function VerticalMobileKnob({
 
   const handleFilterChange = useCallback(
     (_: Event, value: number | number[]) => {
-      const next = Array.isArray(value) ? (value[0] ?? filterValue) : value;
-      onFilterChange(next);
+      onFilterChange(unwrapSliderValue(value, filterValue));
     },
     [filterValue, onFilterChange],
   );
