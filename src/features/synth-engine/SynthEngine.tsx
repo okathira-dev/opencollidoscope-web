@@ -1,5 +1,6 @@
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import GitHubIcon from "@mui/icons-material/GitHub";
 import {
   Alert,
   Box,
@@ -41,6 +42,8 @@ import { ConfigPanel } from "./components/ConfigPanel.tsx";
 import { PlayerControlSurface } from "./components/PlayerControlSurface.tsx";
 import { VariantSwitcher } from "./components/VariantSwitcher.tsx";
 import { VolumeStatusBar } from "./components/VolumeStatusBar.tsx";
+
+const SOURCE_CODE_URL = "https://github.com/okathira-dev/opencollidoscope-web";
 
 export interface SynthEngineProps {
   engineId: number;
@@ -113,9 +116,24 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
       }}
       data-engine-id={engineId}
     >
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Open Collidoscope
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+        <Typography variant="h5" component="h1">
+          Open Collidoscope
+        </Typography>
+        <Tooltip title="Source code on GitHub">
+          <IconButton
+            component="a"
+            href={SOURCE_CODE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Source code on GitHub"
+            size="small"
+            sx={{ color: "inherit" }}
+          >
+            <GitHubIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {(audioError || initError) && (
         <Alert severity="error" sx={{ mb: 2, width: "100%", maxWidth: 800 }}>
