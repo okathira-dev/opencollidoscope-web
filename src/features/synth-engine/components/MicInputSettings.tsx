@@ -8,11 +8,9 @@ import {
   Switch,
   Typography,
 } from "@mui/material";
-import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useCallback } from "react";
 
-import { computeInputPeakLevel } from "../../../domain/audio/index.ts";
 import {
-  getInputAnalyserNode,
   useApplyMicInputConfig,
   useIsAudioInitialized,
   useMicConstraintError,
@@ -22,6 +20,7 @@ import {
 } from "../../../stores/audio-store.ts";
 import { useConfigMicInput, useUpdateConfig } from "../../../stores/config-store.ts";
 import { useDeferredConfigSlider } from "../hooks/useDeferredConfigSlider.ts";
+import { getInputPeakBarColor, useInputPeakLevel } from "../hooks/useInputPeakLevel.ts";
 
 function SettingDescription({ children }: { children: string }) {
   return (
@@ -33,39 +32,10 @@ function SettingDescription({ children }: { children: string }) {
 
 function InputLevelMeter() {
   const isInitialized = useIsAudioInitialized();
-  const [peakLevel, setPeakLevel] = useState(0);
-  const bufferRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const frameRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!isInitialized) {
-      setPeakLevel(0);
-      return;
-    }
-
-    const tick = () => {
-      const analyser = getInputAnalyserNode();
-      if (analyser) {
-        if (!bufferRef.current || bufferRef.current.length !== analyser.fftSize) {
-          bufferRef.current = new Float32Array(analyser.fftSize);
-        }
-        const peak = computeInputPeakLevel(analyser, bufferRef.current);
-        setPeakLevel((previous) => Math.max(peak, previous * 0.92));
-      }
-      frameRef.current = requestAnimationFrame(tick);
-    };
-
-    frameRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (frameRef.current !== null) {
-        cancelAnimationFrame(frameRef.current);
-      }
-    };
-  }, [isInitialized]);
+  const peakLevel = useInputPeakLevel();
 
   const percent = Math.min(peakLevel * 100, 100);
-  const barColor = peakLevel > 0.95 ? "error" : peakLevel > 0.7 ? "warning" : "primary";
+  const barColor = getInputPeakBarColor(peakLevel);
 
   return (
     <Box>

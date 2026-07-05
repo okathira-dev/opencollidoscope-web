@@ -3,12 +3,24 @@ import { create } from "zustand";
 export type HardwareVariant = "original" | "new";
 export type PlayerLayout = "facing" | "stacked" | "solo";
 
+export type ConfigPanelSectionId =
+  | "audio"
+  | "mic-input"
+  | "granular"
+  | "filter"
+  | "visual"
+  | "preset"
+  | "midi";
+
 interface UIState {
   isConfigPanelOpen: boolean;
+  configPanelTargetSection: ConfigPanelSectionId | null;
   hardwareVariant: HardwareVariant;
   playerLayout: PlayerLayout;
   isFullscreen: boolean;
   openConfigPanel: () => void;
+  openConfigPanelSection: (sectionId: ConfigPanelSectionId) => void;
+  clearConfigPanelTargetSection: () => void;
   closeConfigPanel: () => void;
   toggleConfigPanel: () => void;
   setHardwareVariant: (variant: HardwareVariant) => void;
@@ -28,11 +40,15 @@ async function requestAppFullscreen(): Promise<void> {
 
 const useUIStoreInternal = create<UIState>((set) => ({
   isConfigPanelOpen: false,
+  configPanelTargetSection: null,
   hardwareVariant: "original",
   playerLayout: "solo",
   isFullscreen: document.fullscreenElement !== null,
   openConfigPanel: () => set({ isConfigPanelOpen: true }),
-  closeConfigPanel: () => set({ isConfigPanelOpen: false }),
+  openConfigPanelSection: (sectionId) =>
+    set({ isConfigPanelOpen: true, configPanelTargetSection: sectionId }),
+  clearConfigPanelTargetSection: () => set({ configPanelTargetSection: null }),
+  closeConfigPanel: () => set({ isConfigPanelOpen: false, configPanelTargetSection: null }),
   toggleConfigPanel: () => set((state) => ({ isConfigPanelOpen: !state.isConfigPanelOpen })),
   setHardwareVariant: (variant) => set({ hardwareVariant: variant }),
   setPlayerLayout: (layout) => set({ playerLayout: layout }),
@@ -57,6 +73,18 @@ export function useToggleConfigPanel() {
 
 export function useOpenConfigPanel() {
   return useUIStoreInternal((state) => state.openConfigPanel);
+}
+
+export function useOpenConfigPanelSection() {
+  return useUIStoreInternal((state) => state.openConfigPanelSection);
+}
+
+export function useConfigPanelTargetSection(): ConfigPanelSectionId | null {
+  return useUIStoreInternal((state) => state.configPanelTargetSection);
+}
+
+export function useClearConfigPanelTargetSection() {
+  return useUIStoreInternal((state) => state.clearConfigPanelTargetSection);
 }
 
 export function useCloseConfigPanel() {

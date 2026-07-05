@@ -40,6 +40,7 @@ import { useWaveSelectionIsNull } from "../../stores/wave-store.ts";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
 import { PlayerControlSurface } from "./components/PlayerControlSurface.tsx";
 import { VariantSwitcher } from "./components/VariantSwitcher.tsx";
+import { VolumeStatusBar } from "./components/VolumeStatusBar.tsx";
 
 export interface SynthEngineProps {
   engineId: number;
@@ -128,41 +129,52 @@ export function SynthEngine({ engineId, color }: SynthEngineProps) {
         </Button>
       ) : (
         <Stack spacing={2} sx={{ width: "100%", maxWidth: 1400 }}>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
-            <VariantSwitcher />
-            <ToggleButtonGroup
-              value={playerLayout}
-              exclusive
-              size="small"
-              aria-label="プレイヤー配置モード"
-              onChange={(_, value: PlayerLayout | null) => {
-                if (value !== null) {
-                  setPlayerLayout(value);
-                }
-              }}
-            >
-              <ToggleButton value="facing" aria-label="向き合いモード">
-                向き合い
-              </ToggleButton>
-              <ToggleButton value="stacked" aria-label="二段モード">
-                二段
-              </ToggleButton>
-              <ToggleButton value="solo" aria-label="ソロモード">
-                ソロ
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Tooltip title={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}>
-              <IconButton
-                aria-label={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}
-                onClick={() => {
-                  void toggleFullscreen();
-                }}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 1,
+              flexWrap: "wrap",
+            }}
+          >
+            <VolumeStatusBar />
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
+              <VariantSwitcher />
+              <ToggleButtonGroup
+                value={playerLayout}
+                exclusive
                 size="small"
-                sx={{ color: "inherit" }}
+                aria-label="プレイヤー配置モード"
+                onChange={(_, value: PlayerLayout | null) => {
+                  if (value !== null) {
+                    setPlayerLayout(value);
+                  }
+                }}
               >
-                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-              </IconButton>
-            </Tooltip>
+                <ToggleButton value="facing" aria-label="向き合いモード">
+                  向き合い
+                </ToggleButton>
+                <ToggleButton value="stacked" aria-label="二段モード">
+                  二段
+                </ToggleButton>
+                <ToggleButton value="solo" aria-label="ソロモード">
+                  ソロ
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <Tooltip title={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}>
+                <IconButton
+                  aria-label={isFullscreen ? "フルスクリーン解除" : "フルスクリーン"}
+                  onClick={() => {
+                    void toggleFullscreen();
+                  }}
+                  size="small"
+                  sx={{ color: "inherit" }}
+                >
+                  {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
           <PlayerControlSurface
             disabled={!isInitialized}

@@ -16,8 +16,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { type ReactNode, useCallback, useRef, useState } from "react";
-
+import {
+  type ReactNode,
+  type SyntheticEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   useConfig,
   useConfigAudio,
@@ -38,7 +44,10 @@ import {
   useMidiSupported,
 } from "../../../stores/midi-store.ts";
 import {
+  type ConfigPanelSectionId,
+  useClearConfigPanelTargetSection,
   useCloseConfigPanel,
+  useConfigPanelTargetSection,
   useIsConfigPanelOpen,
   useToggleConfigPanel,
 } from "../../../stores/ui-store.ts";
@@ -49,17 +58,45 @@ const DRAWER_WIDTH = 320;
 
 // Slider は onChange でメモリのみ更新、onChangeCommitted で localStorage 永続化（useDeferredConfigSlider）。
 
+const CONFIG_SECTIONS: { id: ConfigPanelSectionId; title: string }[] = [
+  { id: "audio", title: "音声" },
+  { id: "mic-input", title: "マイク入力" },
+  { id: "granular", title: "グラニュラー" },
+  { id: "filter", title: "フィルター" },
+  { id: "visual", title: "視覚" },
+  { id: "preset", title: "プリセット" },
+  { id: "midi", title: "MIDI" },
+];
+
+function SettingDescription({ children }: { children: string }) {
+  return (
+    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+      {children}
+    </Typography>
+  );
+}
+
 interface ConfigAccordionSectionProps {
-  id: string;
+  id: ConfigPanelSectionId;
   title: string;
+  expanded: boolean;
+  onChange: (event: SyntheticEvent, expanded: boolean) => void;
   children: ReactNode;
 }
 
-function ConfigAccordionSection({ id, title, children }: ConfigAccordionSectionProps) {
+function ConfigAccordionSection({
+  id,
+  title,
+  expanded,
+  onChange,
+  children,
+}: ConfigAccordionSectionProps) {
   return (
     <Accordion
       disableGutters
       elevation={0}
+      expanded={expanded}
+      onChange={onChange}
       sx={{
         border: 1,
         borderColor: "divider",
@@ -190,6 +227,9 @@ function AudioTab() {
           onChangeCommitted={commitConfig}
           aria-label="アテニュエーション"
         />
+        <SettingDescription>
+          再生出力のリニア音量です（0-1）。値を下げると音が小さくなります。
+        </SettingDescription>
       </Box>
 
       <Typography
@@ -780,6 +820,72 @@ export function ConfigPanel() {
   const isOpen = useIsConfigPanelOpen();
   const toggleConfigPanel = useToggleConfigPanel();
   const closeConfigPanel = useCloseConfigPanel();
+  const targetSection = useConfigPanelTargetSection();
+  const clearTargetSection = useClearConfigPanelTargetSection();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<ConfigPanelSectionId>>(
+    () => new Set(),
+  );
+
+  const handleAccordionChange = useCallback(
+    (sectionId: ConfigPanelSectionId) => (_: SyntheticEvent, expanded: boolean) => {
+      setExpandedSections((previous) => {
+        const next = new Set(previous);
+        if (expanded) {
+          next.add(sectionId);
+        } else {
+          next.delete(sectionId);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isOpen || targetSection === null) {
+      return;
+    }
+
+    setExpandedSections((previous) => {
+      const next = new Set(previous);
+      next.add(targetSection);
+      return next;
+    });
+
+    const frameId = requestAnimationFrame(() => {
+      const header = scrollContainerRef.current?.querySelector<HTMLElement>(
+        `#${targetSection}-header`,
+      );
+      header?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      clearTargetSection();
+    });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [isOpen, targetSection, clearTargetSection]);
+
+  const renderSectionContent = (sectionId: ConfigPanelSectionId) => {
+    switch (sectionId) {
+      case "audio":
+        return <AudioTab />;
+      case "mic-input":
+        return <MicInputSettings />;
+      case "granular":
+        return <GranularTab />;
+      case "filter":
+        return <FilterTab />;
+      case "visual":
+        return <VisualTab />;
+      case "preset":
+        return <PresetTab />;
+      case "midi":
+        return <MidiTab />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -829,34 +935,18 @@ export function ConfigPanel() {
           項目をクリックして開閉できます
         </Typography>
 
-        <Box sx={{ flex: 1, overflow: "auto", mt: 1.5 }}>
-          <ConfigAccordionSection id="audio" title="音声">
-            <AudioTab />
-          </ConfigAccordionSection>
-
-          <ConfigAccordionSection id="mic-input" title="マイク入力">
-            <MicInputSettings />
-          </ConfigAccordionSection>
-
-          <ConfigAccordionSection id="granular" title="グラニュラー">
-            <GranularTab />
-          </ConfigAccordionSection>
-
-          <ConfigAccordionSection id="filter" title="フィルター">
-            <FilterTab />
-          </ConfigAccordionSection>
-
-          <ConfigAccordionSection id="visual" title="視覚">
-            <VisualTab />
-          </ConfigAccordionSection>
-
-          <ConfigAccordionSection id="preset" title="プリセット">
-            <PresetTab />
-          </ConfigAccordionSection>
-
-          <ConfigAccordionSection id="midi" title="MIDI">
-            <MidiTab />
-          </ConfigAccordionSection>
+        <Box ref={scrollContainerRef} sx={{ flex: 1, overflow: "auto", mt: 1.5 }}>
+          {CONFIG_SECTIONS.map((section) => (
+            <ConfigAccordionSection
+              key={section.id}
+              id={section.id}
+              title={section.title}
+              expanded={expandedSections.has(section.id)}
+              onChange={handleAccordionChange(section.id)}
+            >
+              {renderSectionContent(section.id)}
+            </ConfigAccordionSection>
+          ))}
         </Box>
       </Drawer>
     </>
