@@ -38,8 +38,8 @@
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "coi-serviceworker": "^0.1.7",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
