@@ -47,7 +47,7 @@
     "@biomejs/biome": "^2.5.8",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.3",
+    "@testing-library/user-event": "^14.6.4",
     "@types/audioworklet": "^0.0.100",
     "@types/node": "^25.9.3",
     "@types/react": "^19.2.18",
